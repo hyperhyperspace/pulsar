@@ -1,0 +1,27 @@
+{
+  "name": "beacon",
+  "version": "0.0.1",
+  "description": "A Blockchain running in the Browser (powered by Hyper Hyper Space).",
+  "main": "dist/index.js",
+  "repository": "https://github.com/hyperhyperspace/soliton.git",
+  "author": "José Orlicki, Santiago Bazerque",
+  "license": "MIT",
+  "private": false,
+  "devDependencies": {
+    "@hyper-hyper-space/core": "^0.6.3",
+    "@types/node": "^14.14.31",
+    "typescript": "^4.1.5"
+  },
+  "dependencies": {
+    "@hyper-hyper-space/node-env": "^0.8.0",
+    "@subspace/vdf": "^0.1.0",
+    "tslib": "^2.1.0"
+  },
+  "scripts": {
+    "build": "npx tsc",
+    "clean": "rm -rf ./decl/* ./dist/*",
+    "winclean": "if exist decl (rmdir decl /s /q) && mkdir decl && if exist dist (rmdir dist /s /q) && mkdir dist",
+    "start": "NODE_PATH=\"dist\" node ./dist/index.js",
+    "winstart": "./scripts/chat.bat"
+  }
+}
