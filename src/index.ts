@@ -25,7 +25,7 @@ function initResources(): Resources {
 async function createBlockchainSpace(resources: Resources, steps=STEPS): Promise<Space> {
     console.log();
     console.log('Generating new Blockchain...');
-    let Blockchain = new Blockchain(new RNGImpl().randomHexString(160), steps);
+    let blockchain = new Blockchain(new RNGImpl().randomHexString(160), steps);
     
     const keyPair = RSAKeyPair.generate(1024);
     const localIdentity = Identity.fromKeyPair({}, keyPair);
@@ -33,13 +33,13 @@ async function createBlockchainSpace(resources: Resources, steps=STEPS): Promise
 
     resources.config.id = localIdentity;
 
-    let space = Space.fromEntryPoint(Blockchain, resources);
+    let space = Space.fromEntryPoint(blockchain, resources);
     space.startBroadcast();
 
-    await resources.store.save(Blockchain);
+    await resources.store.save(blockchain);
 
-    Blockchain.setResources(resources);
-    Blockchain.startSync();
+    blockchain.setResources(resources);
+    blockchain.startSync();
 
     console.log();
     console.log('Blockchain is ready, wordcode is:');

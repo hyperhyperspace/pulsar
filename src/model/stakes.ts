@@ -1,5 +1,6 @@
 // https://evgenus.github.io/bigint-typescript-definitions/index.html
-import { BigInt } from '@bigint-typescript-definitions';
+//import { BigInt } from '@bigint-typescript-definitions';
+var BigInt = require('@bigint-typescript-definitions').BigInt;
 
 // Constants
 const NOISE_FRACTION = Number(0.10);
@@ -40,5 +41,4 @@ function vdfStepsByStakeDiscreteProtected(coins: bigint, totalCoins: bigint, vrf
     return BigInt(Math.floor(BLOCK_TIME_ADJUSTMENT * Number(slotProtected)));
 }
 
-
-
+export { slotByStake, vdfStepsByStakeDiscreteProtected }
