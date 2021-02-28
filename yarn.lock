@@ -892,11 +892,6 @@ bcrypt-pbkdf@^1.0.0:
   dependencies:
     tweetnacl "^0.14.3"
 
-bigint-typescript-definitions@^5.5.3-0:
-  version "5.5.3-0"
-  resolved "https://registry.yarnpkg.com/bigint-typescript-definitions/-/bigint-typescript-definitions-5.5.3-0.tgz#300089409aec063401c4c7f5e84062358008c70d"
-  integrity sha1-MACJQJrsBjQBxMf16EBiNYAIxw0=
-
 brace-expansion@^1.1.7:
   version "1.1.11"
   resolved "https://registry.yarnpkg.com/brace-expansion/-/brace-expansion-1.1.11.tgz#3c7fcbf529d87226f3d2f52b966ff5271eb441dd"
