@@ -1,30 +1,33 @@
 // Constants
-const NOISE_FRACTION = Number(0.10);
+const NOISE_FRACTION = Number(0.20);
 // Variables, going to be dynamically adjusted
 const VDF_PROTECTION_BASE = Number(3.0); // will raise very slow when VDF speed gets faster
 const BLOCK_TIME_ADJUSTMENT = Number(2000);
 
 function slotByStake(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint {
-    var stake = Number(coins) / Number(totalCoins);
-    var slot = Math.ceil(Number(1.0) / stake);
-    if (slot > 2 ** 32 - 1)
-        slot = 2 ** 32 - 1;
-    var randomSlot = (vrfSeed % BigInt(slot)) + BigInt(1);
+    var slots = Math.ceil(Number(totalCoins) / Number(coins));
+    if (slots > 2 ** 32 - 1)
+        slots = 2 ** 32 - 1;
+    var randomSlot = (vrfSeed % BigInt(slots)) + BigInt(1);
     return randomSlot;
 }
 
-function slotByStakeWithNoise(coins: bigint, totalCoins: bigint, vrfSeed: bigint): Number {
-    var stake = Number(coins) / Number(totalCoins);
-    var slot = Math.ceil(Number(1.0) / stake);
-    if (slot > 2 ** 32 - 1)
-        slot = 2 ** 32 - 1;
-    var randomSlot = (vrfSeed % BigInt(slot)) + BigInt(1);
+function noise(vrfSeed: bigint): Number {
     // Noise
-    var noise = Number((vrfSeed % BigInt(2) ** BigInt(256)));
+    var noise = Number((vrfSeed % (BigInt(2) ** BigInt(256))));
     noise /= Number(BigInt(2) ** BigInt(256));
     noise -= 0.5;
     noise *= NOISE_FRACTION;
-    return Number(randomSlot) + noise;
+    return noise;
+}
+
+function slotByStakeWithNoise(coins: bigint, totalCoins: bigint, vrfSeed: bigint): Number {
+    var slots = Math.ceil(Number(totalCoins) / Number(coins));
+    if (slots > 2 ** 32 - 1)
+        slots = 2 ** 32 - 1;
+    var randomSlot = (vrfSeed % BigInt(slots)) + BigInt(1);
+    var extraNoise = noise(vrfSeed);
+    return Number(randomSlot) + Number(extraNoise);
 }
 
 function slotByStakeProtected(coins: bigint, totalCoins: bigint, vrfSeed: bigint): Number {
@@ -37,4 +40,4 @@ function vdfStepsByStakeDiscreteProtected(coins: bigint, totalCoins: bigint, vrf
     return BigInt(Math.floor(BLOCK_TIME_ADJUSTMENT * Number(slotProtected)));
 }
 
-export { slotByStake, vdfStepsByStakeDiscreteProtected }
+export { slotByStake, slotByStakeWithNoise, noise, vdfStepsByStakeDiscreteProtected }
