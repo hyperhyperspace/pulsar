@@ -1,6 +1,3 @@
-// https://evgenus.github.io/bigint-typescript-definitions/index.html
-import { BigInt } from '@bigint-typescript-definitions';
-
 // Constants
 const NOISE_FRACTION = Number(0.10);
 // Variables, going to be dynamically adjusted
@@ -12,7 +9,7 @@ function slotByStake(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint
     var slot = Math.ceil(Number(1.0) / stake);
     if (slot > 2 ** 32 - 1)
         slot = 2 ** 32 - 1;
-    var randomSlot = BigInt.mod(vrfSeed, BigInt(slot)) + BigInt(1);
+    var randomSlot = (vrfSeed % BigInt(slot)) + BigInt(1);
     return randomSlot;
 }
 
@@ -21,9 +18,9 @@ function slotByStakeWithNoise(coins: bigint, totalCoins: bigint, vrfSeed: bigint
     var slot = Math.ceil(Number(1.0) / stake);
     if (slot > 2 ** 32 - 1)
         slot = 2 ** 32 - 1;
-    var randomSlot = BigInt.mod(vrfSeed, BigInt(slot)) + BigInt(1);
+    var randomSlot = (vrfSeed % BigInt(slot)) + BigInt(1);
     // Noise
-    var noise = Number(BigInt.mod(vrfSeed, BigInt(2) ** BigInt(256)));
+    var noise = Number((vrfSeed % BigInt(2) ** BigInt(256)));
     noise /= Number(BigInt(2) ** BigInt(256));
     noise -= 0.5;
     noise *= NOISE_FRACTION;
@@ -40,5 +37,4 @@ function vdfStepsByStakeDiscreteProtected(coins: bigint, totalCoins: bigint, vrf
     return BigInt(Math.floor(BLOCK_TIME_ADJUSTMENT * Number(slotProtected)));
 }
 
-
-
+export { slotByStake, vdfStepsByStakeDiscreteProtected }
