@@ -15,17 +15,14 @@ import { BlockchainValueOp } from './model/BlockchainValueOp';
 import * as readline from 'readline';
 import { VDF } from './model/VDF';
 
-
-const STEPS = 300000;
-
 function initResources(): Resources {
     return new Resources();
 }
 
-async function createBlockchainSpace(resources: Resources, steps=STEPS): Promise<Space> {
+async function createBlockchainSpace(resources: Resources): Promise<Space> {
     console.log();
     console.log('Generating new Blockchain...');
-    let blockchain = new Blockchain(new RNGImpl().randomHexString(160), steps);
+    let blockchain = new Blockchain(new RNGImpl().randomHexString(160));
     
     const keyPair = RSAKeyPair.generate(1024);
     const localIdentity = Identity.fromKeyPair({}, keyPair);

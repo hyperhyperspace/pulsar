@@ -17,6 +17,7 @@ import { BlockchainValueOp as BlockchainValueOp } from './BlockchainValueOp';
 
 import { Worker } from 'worker_threads';
 //import { Logger, LogLevel } from 'util/logging';
+import { vdfStepsByStakeDiscreteProtected } from './stakes';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
 
@@ -26,7 +27,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     static className = 'hhs/v0/examples/Blockchain';
     static opClasses = [BlockchainValueOp.className];
 
-    steps?: number;
+    totalCoins?: string;
 
     _lastOp?: BlockchainValueOp;
     _values: string[];
@@ -38,12 +39,15 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     _mesh?: Mesh;
     _peerGroup?: PeerGroupInfo;
 
-    constructor(seed?: string, steps?: number) {
+    constructor(seed?: string, totalCoins?: string) {
         super(Blockchain.opClasses);
 
-        if (seed !== undefined && steps !== undefined) {
+        if (seed !== undefined) {
             this.setId(seed);
-            this.steps = steps;
+            if (totalCoins !== undefined)
+                this.totalCoins = totalCoins;
+            else
+                this.totalCoins = "100";
         }
         
         this._values = [];
@@ -63,13 +67,20 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     race() {
         if (this._computation === undefined) {
 
-            //Blockchain.log.debug(() => 'Racing for challenge (' + this.steps + ' steps): "' + this.currentChallenge() + '".');
+            // using the challenge as temporary VRF seed.
+            const steps = vdfStepsByStakeDiscreteProtected(
+                BlockchainValueOp.coins,
+                BigInt(this.totalCoins),
+                BigInt( '0x'+this.currentChallenge() )
+             ); 
+
+            console.log('Racing for challenge (' + steps + ' steps): "' + this.currentChallenge() + '".');
 
             this._computation = new Worker('./dist/model/worker.js');
             this._computation.on('error', (err: Error) => { console.log('ERR');console.log(err)});
             this._computation.on('message', async (msg: {challenge: string, result: string}) => {
                 
-                //Blockchain.log.debug(() => 'Solved challenge "' + msg.challenge + '" with: "' + msg.result + '".');
+                console.log('Solved challenge "' + msg.challenge + '" with: "' + msg.result + '".');
 
                 if (msg.challenge === this.currentChallenge()) {
                     let op = new BlockchainValueOp(this, this.currentSeq(), msg.result);
@@ -84,23 +95,23 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     await this.getStore().save(this);
                     
                 } else {
-                    //Blockchain.log.debug('Mismatched challenge - could be normal.');
+                    console.log('Mismatched challenge - could be normal.');
                 }
             });
-            this._computation.postMessage({steps: this.steps, challenge: this.currentChallenge()});
+            this._computation.postMessage({steps: Number(steps), challenge: this.currentChallenge()});
             
         } else {
-            //Blockchain.log.debug('Race was called but a computation is running.');
+            console.log('Race was called but a computation is running.');
         }
     }
 
     stopRace() {
-        //Blockchain.log.debug('Going to stop current VDF computation.');
+        console.log('Going to stop current VDF computation.');
         if (this._computation !== undefined) {
             if (this._computationTermination === undefined) {
                 this._computationTermination = this._computation.terminate().then(
                     (ret: number) => {
-                        //Blockchain.log.trace('Stopped VDF computation');
+                        console.log('Stopped VDF computation');
                         this._computation = undefined;
                         this._computationTermination = undefined;
                         return ret;
@@ -171,7 +182,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     }
                 }
 
-                //Blockchain.log.debug('Challenge now is "' + this.currentChallenge() + '" for Blockchain position ' + this.currentSeq() + '.');
+                //console.log('Challenge now is "' + this.currentChallenge() + '" for Blockchain position ' + this.currentSeq() + '.');
                 mutated = true;
             }
 
@@ -191,7 +202,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     validate(references: Map<string, HashedObject>): boolean {
        references;
 
-       return this.steps !== undefined && this.getId() !== undefined;
+       return this.totalCoins !== undefined && this.getId() !== undefined;
     }
 
     async startSync(): Promise<void> {

@@ -13,21 +13,21 @@ class VDF {
 
         
 
-        //VDF.log.debug('Creating VDF instance...');
+        console.log('Creating VDF instance...');
         const vdfInstance = await createVdf();
-        //VDF.log.debug('Computing VDF...');
-        //const tGen = Date.now();
+        console.log('Computing VDF...');
+        const tGen = Date.now();
         const result = vdfInstance.generate(steps, Buffer.from(challenge, 'hex'), VDF.BITS, true);
-        //const elapsedGen = Date.now() - tGen;
-        //VDF.log.debug('Done computing VDF, took ' + elapsedGen + ' millis');
+        const elapsedGen = Date.now() - tGen;
+        console.log('Done computing VDF, took ' + elapsedGen + ' millis');
 
-        //const tVerif = Date.now();
+        const tVerif = Date.now();
 
-        //VDF.log.debug('VDF self verification: ' + vdfInstance.verify(steps, Buffer.from(challenge, 'hex'), result, VDF.BITS, true));
+        console.log('VDF self verification: ' + vdfInstance.verify(steps, Buffer.from(challenge, 'hex'), result, VDF.BITS, true));
 
-        //const elapsedVerif = Date.now() - tVerif;
+        const elapsedVerif = Date.now() - tVerif;
 
-        //VDF.log.debug('verification took ' + elapsedVerif + ' millis');
+        console.log('verification took ' + elapsedVerif + ' millis');
 
         return Buffer.from(result).toString('hex');
     }
