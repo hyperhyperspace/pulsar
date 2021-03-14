@@ -26,7 +26,7 @@
   * Fixed Velocity of Money (target range of cash velocity) with emision fluctuating to stabilize the Velocity.
   * Range of percentages of staked coins allowed (not a fixed target percentaje of staked coins like Cosmos). if percentaje staked goes below or above the range you modify the emission rate of rewards.
 
-## Future with Sharding
+## Research and the Future of Sharding
 
 - Adaptative Sharding with Sharding Shuffling per Epoch (for example, daily):
   * Sharding by TPS.
