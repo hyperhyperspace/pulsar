@@ -9,7 +9,7 @@
 ## Single-threaded Nakamoto Consensus
 
 - VDF+VRF Consensus.
-- Staking.
+- Fair staking in a single-threaded Nakamoto Consensus (simulated)
 
 ![Linear Integer Performance of CPUs](https://preshing.com/images/integer-perf.png)
 
