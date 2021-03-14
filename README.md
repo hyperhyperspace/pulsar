@@ -1,4 +1,4 @@
-# Soliton: A Blockchain running in the Browser.
+# Soliton: a Blockchain running in the Browser.
 
 ## Browser client available
 
