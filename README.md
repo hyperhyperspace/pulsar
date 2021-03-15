@@ -1,4 +1,4 @@
-# Soliton: a Blockchain running in the Browser.
+# Soliton: a blockchain for the browser.
 
 ## Browser client available
 
@@ -22,7 +22,7 @@
 
 ## State-of-the-art Monetary Policy Algorithms
 
-- Monetary policity with:
+- Algorihmic Monetary policy (no Governance) inspired by proven Goverment and successful blockchains cases with:
   * Fixed Velocity of Money (target range of cash velocity) with emision fluctuating to stabilize the Velocity.
   * Range of percentages of staked coins allowed (not a fixed target percentaje of staked coins like Cosmos). if percentaje staked goes below or above the range you modify the emission rate of rewards.
 
