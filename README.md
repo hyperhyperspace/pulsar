@@ -6,7 +6,7 @@
 * Browser client, with an external signalling server help, can become a peer in a gossip network of browsers.
 * Naive Key Storage in the Browser or in 3rd-party Encrypted Storage Services.
 
-## Single-threaded Nakamoto Consensus
+## Single-threaded Mining with a Synthetic Nakamoto Consensus
 
 - VDF+VRF Consensus.
 - Fair staking in a single-threaded Nakamoto Consensus (synthetic)
