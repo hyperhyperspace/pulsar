@@ -18,7 +18,7 @@
 
 ## Stake delegation for convenience
 
-- Stake Delegation if you dont want to do Staking+Mining yourself. The stake must be locked for the complete Epoch so funds cannot be moved to attack any shard in particular.
+- Stake Delegation if you dont want to do Staking+Mining yourself. The stake must be locked to help the system know how much stake is at-stake on mining and consensus.
 
 ## State-of-the-Art Tokenomics
 
