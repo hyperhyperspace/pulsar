@@ -29,7 +29,15 @@
 * **Issuance Rate has Rules (no discretionary policy-makers)**: can fluctuate between 0.001% and 20%. The maximum issuance rate (like Cosmos) is considered inflationary for cryptocurrency standards but it will only be reached as an initial rate for early adopters and under extreme conditions by the algorithm. It can never reach 0% so miners always have rewards incentives to continue mining (plus the transactions fees that are not part of the issuance but is part of the total rewards the miners get).
 * **Bootstrap Period with Virtual Balance on each Mining Thread**: to avoid cold-start issues, each miner get and initial virtual drop for each thread mining, only during the bootstrap period of several months. For example if Alice is using only 1 thread to mine she gets 10,000 native coins to mine and if she mines 1 block she can get 10 coins as a reward. Then she has 10,000 virtual coins during the bootstrap and 10 real coins until she spends that or earn more mining rewards. During the boostrap period she can use 10,010 coins for staking. After the bootstratp period, for example 6 months, the virtual coins cannot be used for staking/rewards, but any real non-bootstrap remain and can used for staking in the future.
 
-## Appendix: Research on the Future of Sharding
+## Appendix A: FAQ
+
+### How can you use Longest-Chain like Nakamoto Consensus on a PoS blockchain? Are there formal barries to this?
+
+There is paper called *[Formal Barriers to Longest-Chain Proof-of-Stake Protocols](https://arxiv.org/pdf/1809.06528.pdf)* describing limitations to Longest-Chain Fork-choice on Proof-of-Stake blockchains.
+Technically we are using something we call Average Fastest Chain as a Fork-choice, then is not exactly Nakamoto Consensus's Longest-Chain. We choose the change with the smallest average number of VDF steps per block. In the same line, this fork-choice if more difficult to attack with attacks of the type of NAME OF ATTACK FROM FEE-REGIME PAPER ATTACKS.
+
+
+## Appendix B: Research on the Future of Sharding
 
 - Adaptative Sharding with Sharding Shuffling per Epoch (for example, daily):
   * Sharding by TPS: for example a maximum of 10 TPS per shard.
