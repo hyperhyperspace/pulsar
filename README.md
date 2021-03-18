@@ -33,8 +33,8 @@
 
 ### How can you use Longest-Chain like Nakamoto Consensus on a PoS blockchain? Are there formal barries to this?
 
-There is paper called *[Formal Barriers to Longest-Chain Proof-of-Stake Protocols](https://arxiv.org/pdf/1809.06528.pdf)* describing limitations to Longest-Chain Fork-choice on Proof-of-Stake blockchains.
-Technically we are using something we call Average Fastest Chain as a Fork-choice, then is not exactly Nakamoto Consensus's Longest-Chain. We choose the change with the smallest average number of VDF steps per block. In the same line, this fork-choice if more difficult to attack with attacks of the type of NAME OF ATTACK FROM FEE-REGIME PAPER ATTACKS.
+There is a paper called *[Formal Barriers to Longest-Chain Proof-of-Stake Protocols](https://arxiv.org/pdf/1809.06528.pdf)* describing limitations to Longest-Chain Fork-choice on Proof-of-Stake blockchains.
+Technically we are using something we call *Average Fastest Chain* as a Fork-choice, then is not exactly Nakamoto Consensus's Longest-Chain. We choose the change with the smallest average number of VDF steps per block. In the same line, this fork-choice if more difficult to attack with attacks of the type of NAME OF ATTACK FROM FEE-REGIME PAPER ATTACKS.
 
 
 ## Appendix B: Research on the Future of Sharding
