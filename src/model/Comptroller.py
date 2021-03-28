@@ -56,7 +56,9 @@ class Comptroller(object):
     currentIssuance = None
     blockTimeFactor = None
     speedRatioTarget = None
+    blockRewardTarget = None
     blockReward = None
+    
 
     INITIAL_BLOCK_TIME_FACTOR = 2000
     INITIAL_SPEED_RATIO_TARGET = 3
@@ -164,7 +166,14 @@ class Comptroller(object):
         # calculate individual block reward
         totalCoins = self.totalCirculating + self.totalStaked
         annualRewards = totalCoins * self.currentIssuance / 100.0
-        self.blockReward = annualRewards / self.blocksPerYear  
+        # we use a block target, otherwise initial rewards will drop to zero due to zero coins in totalCoins.
+        self.blockRewardTarget = annualRewards / self.blocksPerYear  
+        if self.blockReward > self.blockRewardTarget:
+            self.blockReward = self.blockReward * (self.windowSize-1)/self.windowSize
+        elif self.blockReward < self.blockRewardTarget:
+            self.blockReward = self.blockReward * (self.windowSize+1)/self.windowSize
+        else: # ==
+            pass
     
 
     ## Parameters used in next block consensus.
