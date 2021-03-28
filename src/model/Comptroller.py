@@ -63,6 +63,7 @@ class Comptroller(object):
     INITIAL_BLOCK_TIME_FACTOR = 2000
     INITIAL_SPEED_RATIO_TARGET = 3
     INITIAL_BLOCK_REWARD = 100
+    BOOTSTRAP_VIRTUAL_STAKE = 10000
 
     MIN_BLOCK_TIME_FACTOR = 1
     MAX_BLOCK_TIME_FACTOR = 4000
@@ -186,6 +187,16 @@ class Comptroller(object):
 
     def getConsensusSpeedRatio(self):
         return self.speedRatioTarget
+
+
+    ## Informative functions
+
+    def currentAPYforStaking(self):
+        if self.totalStaked == 0:
+            auxStaked = self.BOOTSTRAP_VIRTUAL_STAKE
+        else:
+            auxStaked = self.totalStaked
+        return self.currentIssuance * (self.totalStaked + self.totalCirculating) / auxStaked
 
 
 
