@@ -10,6 +10,8 @@ class Comptroller(object):
     targetBlockTime = 40 # seconds
     # Rationale: want something robust but flexible, 24 sounds to flexible and 1 week to rigid, 48 hrs sounds a tradeoff.
     windowSize = 60 * 60 * 24 * 2 / targetBlockTime # 4320 blocks
+    # Extra buffer if we need to reorganize and drop the last blocks.
+    windowExtraBuffer = windowSize 
     blocksPerYear = 60 * 60 * 24 * 365 / targetBlockTime
     windowsPerYear = blocksPerYear / windowSize
     # Rational: Cosmos has this max issuance, FED also showd this max in the last 50 years.
@@ -47,7 +49,10 @@ class Comptroller(object):
     maxSpeedRatio = 4
     minSpeedRatio = 1.1
 
-
+    noiseFractionSlots = 0.20
+    ## Variables, going to be dynamically adjusted
+    # now is currentSpeedRatio
+    #const VDF_PROTECTION_BASE = Number(3.0); // will raise very slow when VDF speed gets faster
 
     # buffers of header data (windowSize items max)
     blockTimes = [] # total time to produce block (>0)
@@ -89,7 +94,7 @@ class Comptroller(object):
         self.txsPerBlock = self.minTxsPerBlock
 
 
-    def sampleBlock(self, blockTime, difficulty, volume, newStake, newUnstake, reward, txsCount):
+    def addBlockSample(self, blockTime, difficulty, volume, newStake, newUnstake, reward, txsCount):
 
         # update basic metrics
         self.blockNumber += 1
@@ -105,7 +110,7 @@ class Comptroller(object):
         self.unstaked.append(newUnstake)
         self.utilizations.append(txsCount / self.txsPerBlock)
 
-        if len(self.blockTimes) > self.windowSize:
+        if len(self.blockTimes) > self.windowSize + self.windowExtraBuffer:
             self.blockTimes = self.blockTimes[1:]
             self.difficulties = self.difficulties[1:]
             self.volumes = self.volumes[1:]
@@ -114,22 +119,71 @@ class Comptroller(object):
             self.txsCounts = self.txsCounts[1:]
 
         # update complex metrics
-        self.currentBlockTime = statistics.mean(self.blockTimes)
-        self.currentSpeed = statistics.mean(self.speeds)
-        if not self.currentMaxSpeed or self.speeds[-1] > self.currentMaxSpeed:
-            self.currentMaxSpeed = self.speeds[-1]
-        if not self.currentMinSpeed or self.speeds[-1] < self.currentMinSpeed:
-            self.currentMinSpeed = self.speeds[-1]
+        self.updateComplexMetrics()
+
+        # update block time control
+        self.updateBlockTimeActionable()
+
+        # update VDF ratio
+        self.updateSpeedRatioTarget()
+
+        # update Coin Issuance Rate
+        self.updateIssuance()
+
+        # update block size in Txs
+        self.updateBlockSize()
+
+    def updateComplexMetrics(self):
+        # update complex metrics
+        self.currentBlockTime = statistics.mean(self.blockTimes[-self.windowSize:])
+        self.currentSpeed = statistics.mean(self.speeds[-self.windowSize:])
+        self.currentMaxSpeed = max(self.speeds[-self.windowSize:])
+        self.currentMinSpeed = min(self.speeds[-self.windowSize:])
         self.currentSpeedRatio = self.currentMaxSpeed / self.currentMinSpeed
         if len(self.volumes) < self.windowSize: # bootstrap blocks
             auxWindowsPerYear = self.blocksPerYear / len(self.volumes)
         else:
             auxWindowsPerYear = self.windowsPerYear
-        self.velocity = statistics.median(self.volumes) * auxWindowsPerYear / self.totalCirculating
+        self.velocity = statistics.median(self.volumes[-self.windowSize:]) * auxWindowsPerYear / self.totalCirculating
         # use mean is not enough >0 points.
         if self.velocity == 0.0:
-            self.velocity = statistics.mean(self.volumes) * self.windowsPerYear / self.totalCirculating
-        self.meanBlockUtilization = statistics.mean(self.utilizations)
+            self.velocity = statistics.mean(self.volumes[-self.windowSize:]) * self.windowsPerYear / self.totalCirculating
+        self.meanBlockUtilization = statistics.mean(self.utilizations[-self.windowSize:])
+
+
+    def dropLastBlockSample(self):
+
+        # update basic metrics
+        if self.blockNumber > 0:
+            self.blockNumber -= 1
+        else: # do nothing if already empty.
+            return
+        if len(self.blockTimes) == 0:
+            return
+
+        self.totalStaked -= self.staked[-1] - self.unstaked[-1]
+        self.totalCirculating -= self.unstaked[-1] - self.staked[-1]
+
+        # append to buffers
+        self.blockTimes.pop()
+        self.difficulties.pop()
+        self.speeds.pop()
+        self.volumes.pop()
+        self.staked.pop()
+        self.unstaked.pop()
+        self.utilizations.pop()
+
+        if len(self.blockTimes) == 0:
+            self.currentBlockTime = None # mean rounded
+            self.currentSpeed = None # mean rounded
+            self.currentMaxSpeed = None # max
+            self.currentMinSpeed = None # min
+            self.currentSpeedRatio = None # max / min
+            self.velocity = None
+            return
+
+        # update complex metrics
+        self.updateComplexMetrics()
 
         # update block time control
         self.updateBlockTimeActionable()
@@ -207,7 +261,46 @@ class Comptroller(object):
         if self.txsPerBlock > self.maxTxsPerBlock:
             self.txsPerBlock = self.maxTxsPerBlock
 
-    
+    ## VDF Difficulty calculations
+
+    # vrfSeed is a bigint representing the signature of the current block number
+    # by the current miner.
+    def slotByStake(self, coins, totalCoins, vrfSeed): 
+        slots = math.ceil(float(totalCoins) / float(coins))
+        if (slots > 2 ** 32 - 1):
+            slots = 2 ** 32 - 1
+        randomSlot = (vrfSeed % int(slots)) + 1
+        return randomSlot
+
+
+    def noise(self, vrfSeed):
+        # Noise
+        noise = float(vrfSeed % 2**256)
+        noise /= float(2**256)
+        noise -= 0.5
+        noise *= self.noiseFractionSlots
+        return noise
+
+
+    def slotByStakeWithNoise(self, coins, totalCoins, vrfSeed):
+        slots = math.ceil(float(totalCoins) / float(coins))
+        if (slots > 2 ** 32 - 1):
+            slots = 2 ** 32 - 1
+        randomSlot = (vrfSeed % slots) + 1
+        extraNoise = self.noise(vrfSeed)
+        return float(randomSlot) + float(extraNoise)
+
+
+    def slotByStakeProtected(self, coins, totalCoins, vrfSeed):
+        randomSlot = self.slotByStakeWithNoise(coins, totalCoins, vrfSeed)
+        return self.currentSpeedRatio ** float(randomSlot)
+
+
+    def vdfSteps(self, coins, totalCoins, vrfSeed):
+        slotProtected = self.slotByStakeProtected(coins, totalCoins, vrfSeed)
+        steps = int(math.floor(self.blockTimeFactor * float(slotProtected)))
+        return steps + (steps%int(2))
+
 
     ## Parameters used in next block consensus.
 
