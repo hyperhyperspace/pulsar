@@ -226,7 +226,9 @@ class Comptroller(object):
 
     
     def updateIssuance(self):
-        if self.velocity > self.upperBandVelocity:
+        if self.blockNumber < self.earlyBirdPeriod:
+            self.currentIssuance = self.maxIssuance
+        elif self.velocity > self.upperBandVelocity:
             self.currentIssuance = self.currentIssuance * (self.windowSize-1)/self.windowSize
         elif self.velocity < self.lowerBandVelocity:
             self.currentIssuance = self.currentIssuance * (self.windowSize+1)/self.windowSize
@@ -266,6 +268,8 @@ class Comptroller(object):
     # vrfSeed is a bigint representing the signature of the current block number
     # by the current miner.
     def slotByStake(self, coins, totalCoins, vrfSeed): 
+        if self.blockNumber < self.bootstrapPeriod:
+            totalCoins += self.bootstrapVirtualStake
         slots = math.ceil(float(totalCoins) / float(coins))
         if (slots > 2 ** 32 - 1):
             slots = 2 ** 32 - 1
