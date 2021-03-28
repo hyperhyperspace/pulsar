@@ -30,6 +30,25 @@ class Comptroller(object):
     earlyBirdPeriod = 60 * 60 * 24 * 30 / targetBlockTime # blocks = 30 days
     bootstrapPeriod = 60 * 60 * 24 * 180 / targetBlockTime # blocks = 6 months
 
+    # Txs per Block
+    txsPerBlock = None
+    minTxsPerBlock = 400
+    maxTxsPerBlock = 160000
+    blockUtilizationTarget = 80 # %
+
+    initialBlockTimeFactor = 2000
+    initialSpeedRateTarget = 3
+    initialBlockReward = 100
+    bootstrapVirtualStake = 10000
+
+    minBlockTimeFactor = 1
+    maxBlockTimeFactor = 4000
+
+    maxSpeedRatio = 4
+    minSpeedRatio = 1.1
+
+
+
     # buffers of header data (windowSize items max)
     blockTimes = [] # total time to produce block (>0)
     difficulties = [] # vdf steps computed per block (>0)
@@ -38,6 +57,7 @@ class Comptroller(object):
     staked = [] # new coins staked per block (>=0), to stake you need 48hrs idle.
     unstaked = [] # new coins umstaked per block (>=0)
     rewards = [] # new coins minted for miner rewards (>0)
+    utilizations = [] # fraction of block txs used.
 
     # basic metrics
     blockNumber = 0
@@ -60,25 +80,16 @@ class Comptroller(object):
     blockReward = None
     
 
-    INITIAL_BLOCK_TIME_FACTOR = 2000
-    INITIAL_SPEED_RATIO_TARGET = 3
-    INITIAL_BLOCK_REWARD = 100
-    BOOTSTRAP_VIRTUAL_STAKE = 10000
-
-    MIN_BLOCK_TIME_FACTOR = 1
-    MAX_BLOCK_TIME_FACTOR = 4000
-
-    MAX_SPEED_RATIO = 4
-    MIN_SPEED_RATIO = 1.1
 
     def __init__(self):
         self.currentIssuance = self.maxIssuance
-        self.blockTimeFactor = self.INITIAL_BLOCK_TIME_FACTOR
-        self.speedRatioTarget = self.INITIAL_SPEED_RATIO_TARGET
-        self.blockReward = self.INITIAL_BLOCK_REWARD
+        self.blockTimeFactor = self.initialBlockTimeFactor
+        self.speedRatioTarget = self.initialSpeedRateTarget
+        self.blockReward = self.initialBlockReward
+        self.txsPerBlock = self.minTxsPerBlock
 
 
-    def sampleBlock(self, blockTime, difficulty, volume, newStake, newUnstake, reward):
+    def sampleBlock(self, blockTime, difficulty, volume, newStake, newUnstake, reward, txsCount):
 
         # update basic metrics
         self.blockNumber += 1
@@ -92,6 +103,7 @@ class Comptroller(object):
         self.volumes.append(volume)
         self.staked.append(newStake)
         self.unstaked.append(newUnstake)
+        self.utilizations.append(txsCount / self.txsPerBlock)
 
         if len(self.blockTimes) > self.windowSize:
             self.blockTimes = self.blockTimes[1:]
@@ -99,6 +111,7 @@ class Comptroller(object):
             self.volumes = self.volumes[1:]
             self.staked = self.staked[1:]
             self.unstaked = self.unstaked[1:]
+            self.txsCounts = self.txsCounts[1:]
 
         # update complex metrics
         self.currentBlockTime = statistics.mean(self.blockTimes)
@@ -116,6 +129,7 @@ class Comptroller(object):
         # use mean is not enough >0 points.
         if self.velocity == 0.0:
             self.velocity = statistics.mean(self.volumes) * self.windowsPerYear / self.totalCirculating
+        self.meanBlockUtilization = statistics.mean(self.utilizations)
 
         # update block time control
         self.updateBlockTimeActionable()
@@ -126,6 +140,9 @@ class Comptroller(object):
         # update Coin Issuance Rate
         self.updateIssuance()
 
+        # update block size in Txs
+        self.updateBlockSize()
+
 
     def updateBlockTimeActionable(self):
         if self.currentBlockTime > self.targetBlockTime:
@@ -134,23 +151,24 @@ class Comptroller(object):
             self.blockTimeFactor = self.blockTimeFactor * (self.windowSize-1)/self.windowSize
         else: # ==
             pass   
-        if self.blockTimeFactor < self.MIN_BLOCK_TIME_FACTOR:
-            self.blockTimeFactor = self.MIN_BLOCK_TIME_FACTOR
-        if self.blockTimeFactor > self.MAX_BLOCK_TIME_FACTOR:
-            self.blockTimeFactor = self.MAX_BLOCK_TIME_FACTOR
+        if self.blockTimeFactor < self.minBlockTimeFactor:
+            self.blockTimeFactor = self.minBlockTimeFactor
+        if self.blockTimeFactor > self.maxBlockTimeFactor:
+            self.blockTimeFactor = self.maxBlockTimeFactor
 
 
     def updateSpeedRatioTarget(self):
-        if self.currentSpeedRatio > self.speedRatioTarget:
+        # extra 0.1 for max speedRatio
+        if self.currentSpeedRatio > self.speedRatioTarget - 0.1:
             self.speedRatioTarget = self.speedRatioTarget * (self.windowSize+1)/self.windowSize
         elif self.currentSpeedRatio < self.speedRatioTarget:
             self.speedRatioTarget = self.speedRatioTarget * (self.windowSize-1)/self.windowSize
         else: # ==
             pass   
-        if self.speedRatioTarget < self.MIN_SPEED_RATIO:
-            self.speedRatioTarget = self.MIN_SPEED_RATIO
-        if self.speedRatioTarget > self.MAX_SPEED_RATIO:
-            self.speedRatioTarget = self.MAX_SPEED_RATIO
+        if self.speedRatioTarget < self.minSpeedRatio:
+            self.speedRatioTarget = self.minSpeedRatio
+        if self.speedRatioTarget > self.maxSpeedRatio:
+            self.speedRatioTarget = self.maxSpeedRatio
 
     
     def updateIssuance(self):
@@ -175,6 +193,20 @@ class Comptroller(object):
             self.blockReward = self.blockReward * (self.windowSize+1)/self.windowSize
         else: # ==
             pass
+
+
+    def updateBlockSize(self):
+        if self.meanBlockUtilization * 100 > self.blockUtilizationTarget + 2: # is %
+            self.txsPerBlock = self.txsPerBlock + 1 # additive change
+        elif self.meanBlockUtilization * 100 < self.blockUtilizationTarget - 2:
+            self.txsPerBlock = self.txsPerBlock - 1 # additive change
+        else: # ==
+            pass   
+        if self.txsPerBlock < self.minTxsPerBlock:
+            self.txsPerBlock = self.minTxsPerBlock
+        if self.txsPerBlock > self.maxTxsPerBlock:
+            self.txsPerBlock = self.maxTxsPerBlock
+
     
 
     ## Parameters used in next block consensus.
@@ -191,9 +223,11 @@ class Comptroller(object):
 
     ## Informative functions
 
+    # Rewards rate, always bigger or same than inflation
+    # https://medium.com/figment/cosmos-inflation-staking-rewards-how-are-they-related-eca420f29e62
     def currentAPYforStaking(self):
         if self.totalStaked == 0:
-            auxStaked = self.BOOTSTRAP_VIRTUAL_STAKE
+            auxStaked = self.bootstrapVirtualStake
         else:
             auxStaked = self.totalStaked
         return self.currentIssuance * (self.totalStaked + self.totalCirculating) / auxStaked
