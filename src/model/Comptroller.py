@@ -27,16 +27,20 @@ class Comptroller(object):
     # rate rises, rather than holding money people will try gaining advantages from the high interest rate. Hence, the reduction in average
     # holding of money causes the velocity of money to rise.
     # IMPORTANT: Velocity is computed over total circulating coins, staked coins are not considered circulating because you need 48hrs to unstake them.
+    # http://charts.woobull.com/bitcoin-velocity/
     upperBandVelocity = 9 # times per year
     lowerBandVelocity = 5 # times per year
     earlyBirdPeriod = 60 * 60 * 24 * 30 / targetBlockTime # blocks = 30 days
     bootstrapPeriod = 60 * 60 * 24 * 180 / targetBlockTime # blocks = 6 months
+    # staking Ratio bounds
+    minimumStakingRatio = 20 # %
 
     # Txs per Block
     txsPerBlock = None
     minTxsPerBlock = 400
     maxTxsPerBlock = 160000
     blockUtilizationTarget = 80 # %
+    blockUtilizationTolerance = 3 # %
 
     initialBlockTimeFactor = 2000
     initialSpeedRateTarget = 3
@@ -68,6 +72,7 @@ class Comptroller(object):
     blockNumber = 0
     totalStaked = 0.0
     totalCirculating = 0.0
+    stakingRatio = 100 # % initial value 
 
     # complex metrics
     currentBlockTime = None # mean rounded
@@ -100,6 +105,7 @@ class Comptroller(object):
         self.blockNumber += 1
         self.totalStaked += newStake - newUnstake
         self.totalCirculating += newUnstake - newStake
+        self.stakingRatio = 100 * float(self.totalStaked) / (self.totalCirculating + self.totalStaked)
 
         # append to buffers
         self.blockTimes.append(blockTime)
@@ -163,6 +169,7 @@ class Comptroller(object):
 
         self.totalStaked -= self.staked[-1] - self.unstaked[-1]
         self.totalCirculating -= self.unstaked[-1] - self.staked[-1]
+        self.stakingRatio = 100 * float(self.totalStaked) / (self.totalCirculating + self.totalStaked)
 
         # append to buffers
         self.blockTimes.pop()
@@ -228,10 +235,10 @@ class Comptroller(object):
     def updateIssuance(self):
         if self.blockNumber < self.earlyBirdPeriod:
             self.currentIssuance = self.maxIssuance
+        elif self.velocity < self.lowerBandVelocity or self.stakingRatio < self.minimumStakingRatio:
+            self.currentIssuance = self.currentIssuance * (self.windowSize+1)/self.windowSize
         elif self.velocity > self.upperBandVelocity:
             self.currentIssuance = self.currentIssuance * (self.windowSize-1)/self.windowSize
-        elif self.velocity < self.lowerBandVelocity:
-            self.currentIssuance = self.currentIssuance * (self.windowSize+1)/self.windowSize
         else: # ==
             pass
         if self.currentIssuance < self.minIssuance:
@@ -252,9 +259,9 @@ class Comptroller(object):
 
 
     def updateBlockSize(self):
-        if self.meanBlockUtilization * 100 > self.blockUtilizationTarget + 2: # is %
+        if self.meanBlockUtilization * 100 > self.blockUtilizationTarget + self.blockUtilizationTolerance: # is %
             self.txsPerBlock = self.txsPerBlock + 1 # additive change
-        elif self.meanBlockUtilization * 100 < self.blockUtilizationTarget - 2:
+        elif self.meanBlockUtilization * 100 < self.blockUtilizationTarget - self.blockUtilizationTolerance:
             self.txsPerBlock = self.txsPerBlock - 1 # additive change
         else: # ==
             pass   
