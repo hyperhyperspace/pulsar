@@ -9,7 +9,7 @@ class Comptroller(object):
     # Rationale: 12 o 15 seconds has uncles, and 44 has almost no uncles, average tx wait is 1.5x then for 40 secs is 60 seconds.
     targetBlockTime = 40 # seconds
     # Rationale: want something robust but flexible, 24 sounds to flexible and 1 week to rigid, 48 hrs sounds a tradeoff.
-    windowSize = 60 * 60 * 24 * 2 / targetBlockTime # 4320 blocks
+    windowSize = 60 * 60 * 24 * 2 // targetBlockTime # 4320 blocks
     # Extra buffer if we need to reorganize and drop the last blocks.
     windowExtraBuffer = windowSize 
     blocksPerYear = 60 * 60 * 24 * 365 / targetBlockTime
@@ -34,6 +34,8 @@ class Comptroller(object):
     bootstrapPeriod = 60 * 60 * 24 * 180 / targetBlockTime # blocks = 6 months
     # staking Ratio bounds
     minimumStakingRatio = 20 # %
+    maximumStakingRatio = 99 # %
+
 
     # Txs per Block
     txsPerBlock = None
@@ -70,8 +72,8 @@ class Comptroller(object):
 
     # basic metrics
     blockNumber = 0
-    totalStaked = 0.0
-    totalCirculating = 0.0
+    totalStaked = 1 # bootstrapVirtualStake # assuming at least one bootstrapping miner
+    totalCirculating = 1 #bootstrapVirtualStake * (100. - maximumStakingRatio ) / 100. # assuming 2% non-zero circulating.
     stakingRatio = 100 # % initial value 
 
     # complex metrics
@@ -104,7 +106,11 @@ class Comptroller(object):
         # update basic metrics
         self.blockNumber += 1
         self.totalStaked += newStake - newUnstake
+        if self.totalStaked < 1: #self.bootstrapVirtualStake: # always minimum
+            self.totalStaked = 1 #self.bootstrapVirtualStake
         self.totalCirculating += newUnstake - newStake
+        if self.totalCirculating < 1: #self.bootstrapVirtualStake * (100. - self.maximumStakingRatio) / 100.:
+            self.totalCirculating = 1 #self.bootstrapVirtualStake * (100. - self.maximumStakingRatio) / 100.
         self.stakingRatio = 100 * float(self.totalStaked) / (self.totalCirculating + self.totalStaked)
 
         # append to buffers
@@ -168,7 +174,11 @@ class Comptroller(object):
             return
 
         self.totalStaked -= self.staked[-1] - self.unstaked[-1]
+        if self.totalStaked < self.bootstrapVirtualStake: # always minimum
+            self.totalStaked = self.bootstrapVirtualStake
         self.totalCirculating -= self.unstaked[-1] - self.staked[-1]
+        if self.totalCirculating < self.bootstrapVirtualStake * (100. - self.maximumStakingRatio) / 100.:
+            self.totalCirculating = self.bootstrapVirtualStake * (100. - self.maximumStakingRatio) / 100.
         self.stakingRatio = 100 * float(self.totalStaked) / (self.totalCirculating + self.totalStaked)
 
         # append to buffers
@@ -237,7 +247,7 @@ class Comptroller(object):
             self.currentIssuance = self.maxIssuance
         elif self.velocity < self.lowerBandVelocity or self.stakingRatio < self.minimumStakingRatio:
             self.currentIssuance = self.currentIssuance * (self.windowSize+1)/self.windowSize
-        elif self.velocity > self.upperBandVelocity:
+        elif self.velocity > self.upperBandVelocity or self.stakingRatio > self.maximumStakingRatio:
             self.currentIssuance = self.currentIssuance * (self.windowSize-1)/self.windowSize
         else: # ==
             pass
