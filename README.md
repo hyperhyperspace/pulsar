@@ -1,4 +1,4 @@
-# Soliton: a blockchain for the browser.
+# Soliton: The Web Blockchain
 
 ## Browser client available
 
