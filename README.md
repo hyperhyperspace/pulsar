@@ -29,16 +29,23 @@
 * **Issuance Rate has Rules (no discretionary policy-makers)**: can fluctuate between 0.001% and 20%. The maximum issuance rate (like Cosmos) is considered inflationary for cryptocurrency standards but it will only be reached as an initial rate for early adopters and under extreme conditions by the algorithm. It can never reach 0% so miners always have rewards incentives to continue mining (plus the transactions fees that are not part of the issuance but is part of the total rewards the miners get).
 * **Bootstrap Period with Virtual Balance on each Mining Thread**: to avoid cold-start issues, each miner get and initial virtual drop for each thread mining, only during the bootstrap period of several months. For example if Alice is using only 1 thread to mine she gets 10,000 native coins to mine and if she mines 1 block she can get 10 coins as a reward. Then she has 10,000 virtual coins during the bootstrap and 10 real coins until she spends that or earn more mining rewards. During the boostrap period she can use 10,010 coins for staking. After the bootstratp period, for example 6 months, the virtual coins cannot be used for staking/rewards, but any real non-bootstrap remain and can used for staking in the future.
 
-## Types of Transactions
+## Type of Transactions
 
-1. `transfer(to,amount)`
-1. `increaseAllowance(to,amount)`
-1. `decreaseAllowance(to,amount)`
-1. `increaseAllowance(to,amount)`
-1. `stake(amount)`
+1. `transfer(to,amount)`: only if `balance(sender) >= amount`.
+1. `increaseAllowance(to,amount)`.
+1. `decreaseAllowance(to,amount)`.
+1. `transferFrom(from,to,amount)`: only if `allowance(from,sender) >= amount`.
+1. `stake(amount)`: 
 1. `unstake(amount)`: this transaction frees the funds after 7 days.
 1. `undelegateStake(amount)`: this transaction frees the funds after 7days.
-
+1. `lockedTransfer(to,amount,hash)`: lock `amount` until an unlock happens. Generates an unique `txId`.
+1. `unlockTransfer(txId,x,sig)`: only transfers `txId.amount` locked before if `H(x) == txId.hash` and if `sender == txId.to`.
+1. `delayedTransfer(to,amount,delay)`: lock `amount` until `blocktime+delay` seconds happens.
+1. `lockTimedTransfer(to,amount,delay)`: lock `amount` until `blocktime+delay` seconds happens, then it expires. Generates an unique `txId`.
+1. `unlockTimedTransfer(txId,x,sig)`: only transfers `txId.amount` locked before time `blocktime+delay` and if `sender == txId.to`.
+1. `initMultiSig(n,[sign_1, ..., sign_n],m)`: makes `sender` address to become a multisig wallet with `n` signataries, and needing `m` signataries to validate a transfer.
+1. `multiSigTransfer(from,to,amount)`: if `sender` is in the list of signataries of multisig `from` then the signer is voting to execute the transfer, if `#signers >= m` then the transfer gets executed.
+2. `multiSigReset(from)`: for `sender` in the list of signataries, the resetting of the wallet is voted, if `#signers >= m` then all incomplete votings on the address `from` are removed.
 
 ## References
 
