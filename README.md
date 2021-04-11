@@ -1,4 +1,4 @@
-# Soliton: a blockchain for the browser.
+# Soliton: The Web Blockchain
 
 ## Browser client available
 
@@ -28,6 +28,37 @@
 * **Velocity of Money Bands controls the Issuance Rate**: a band of lower and upper velocities of money controls the issuance rate of the native coin. We cansider Proof-of-Stake blockchains coins similar to M2 supply in traditional economics because coins are unlocked and free to transfer and coins stake are also liquid because can be unstaked very quickly if delegated (see [Velociy of Money for M2](https://fred.stlouisfed.org/series/M2V)). For example, we can choose *L = 6* and *U = 8* to be annual lower and upper bounds on the velocity of money. If the current velocity of below *L* we can consider the network to be in a *depressed* state, then the consensu will increase the target issuance rate of coins until the velocity increases again. If the current velocity is above *U* we can consider the network to be in a *inflationary* state, then the algorithm will decrease the target issuance rate of coins until the velocity recedes.
 * **Issuance Rate has Rules (no discretionary policy-makers)**: can fluctuate between 0.001% and 20%. The maximum issuance rate (like Cosmos) is considered inflationary for cryptocurrency standards but it will only be reached as an initial rate for early adopters and under extreme conditions by the algorithm. It can never reach 0% so miners always have rewards incentives to continue mining (plus the transactions fees that are not part of the issuance but is part of the total rewards the miners get).
 * **Bootstrap Period with Virtual Balance on each Mining Thread**: to avoid cold-start issues, each miner get and initial virtual drop for each thread mining, only during the bootstrap period of several months. For example if Alice is using only 1 thread to mine she gets 10,000 native coins to mine and if she mines 1 block she can get 10 coins as a reward. Then she has 10,000 virtual coins during the bootstrap and 10 real coins until she spends that or earn more mining rewards. During the boostrap period she can use 10,010 coins for staking. After the bootstratp period, for example 6 months, the virtual coins cannot be used for staking/rewards, but any real non-bootstrap remain and can used for staking in the future.
+
+## Type of Transactions
+
+### Core
+
+1. `transfer(to,amount)`: only if `balance(sender) >= amount`.
+1. `increaseAllowance(to,amount)`.
+1. `decreaseAllowance(to,amount)`.
+1. `transferFrom(from,to,amount)`: only if `allowance(from,sender) >= amount`.
+1. `stake(amount)`: moves to `staked` balance the `amount` of `sender`.
+1. `unstake(amount)`: this transaction frees the funds after 7 days.
+
+### Convenience
+
+3. `delegateStake(to,amount)`: moves to `delegatedStake` of `to` the `amount` of `sender`.
+3. `undelegateStake(to,amount)`: this transaction frees the funds after 7days.
+6. `delayedTransfer(to,amount,delay)`: lock `amount` until `blocktime+delay` seconds happens.
+
+### Advanced
+
+4. `lockedTransfer(to,amount,hash)`: lock `amount` until an unlock happens. Generates an unique `txId`.
+5. `unlockTransfer(txId,x,sig)`: only transfers `txId.amount` locked before if `H(x) == txId.hash` and if `sender == txId.to`.
+7. `lockTimedTransfer(to,amount,delay)`: lock `amount` until `blocktime+delay` seconds happens, then it expires. Generates an unique `txId`.
+8. `unlockTimedTransfer(txId,x,sig)`: only transfers `txId.amount` locked before time `blocktime+delay` and if `sender == txId.to`.
+9. `initMultiSig(n,[sign_1, ..., sign_n],m)`: makes `sender` address to become a multisig wallet with `n` signataries, and needing `m` signataries to validate a transfer.
+10. `multiSigTransfer(from,to,amount)`: if `sender` is in the list of signataries of multisig `from` then the signer is voting to execute the transfer, if `#signers >= m` then the transfer gets executed.
+11. `multiSigReset(from)`: for `sender` in the list of signataries, the resetting of the wallet is voted, if `#signers >= m` then all incomplete votings on the address `from` are removed.
+
+## References
+
+1. Proof-of-Stake Longest Chain Protocols: Security vs Predictability https://arxiv.org/abs/1910.02218
 
 ## Appendix A: FAQ
 
