@@ -9,7 +9,7 @@ class Comptroller(object):
     # Rationale: 12 o 15 seconds has uncles, and 44 has almost no uncles, average tx wait is 1.5x then for 40 secs is 60 seconds.
     targetBlockTime = 40 # seconds
     # Rationale: want something robust but flexible, 24 sounds to flexible and 1 week to rigid, 48 hrs sounds a tradeoff.
-    windowSize = 60 * 60 * 24 * 2 // targetBlockTime # 4320 blocks
+    windowSize = 60 * 60 * 24 * 7 // targetBlockTime # 15120 blocks
     # Extra buffer if we need to reorganize and drop the last blocks.
     windowExtraBuffer = windowSize 
     blocksPerYear = 60 * 60 * 24 * 365 / targetBlockTime
@@ -31,14 +31,12 @@ class Comptroller(object):
     upperBandVelocity = 9 # times per year
     lowerBandVelocity = 5 # times per year
     earlyBirdPeriod = 60 * 60 * 24 * 30 / targetBlockTime # blocks = 30 days
-    bootstrapPeriod = 60 * 60 * 24 * 180 / targetBlockTime # blocks = 6 months
+    bootstrapPeriod = 60 * 60 * 24 * 365 / targetBlockTime # blocks = 12 months
+    circularConvergencePeriod = bootstrapPeriod # also 12 months
     # staking Ratio bounds
     minimumStakingRatio = 20 # %
     maximumStakingRatio = 99 # %
 
-
-    # Txs per Block
-    txsPerBlock = None
     minTxsPerBlock = 400
     maxTxsPerBlock = 160000
     blockUtilizationTarget = 80 # %
@@ -49,54 +47,59 @@ class Comptroller(object):
     initialBlockReward = 100
     bootstrapVirtualStake = 10000
 
-    minBlockTimeFactor = 1
-    maxBlockTimeFactor = 4000
+    minBlockTimeFactor = 20
+    maxBlockTimeFactor = 200000
 
     maxSpeedRatio = 4
     minSpeedRatio = 1.1
 
     noiseFractionSlots = 0.20
-    ## Variables, going to be dynamically adjusted
-    # now is currentSpeedRatio
-    #const VDF_PROTECTION_BASE = Number(3.0); // will raise very slow when VDF speed gets faster
-
-    # buffers of header data (windowSize items max)
-    blockTimes = [] # total time to produce block (>0)
-    difficulties = [] # vdf steps computed per block (>0)
-    speeds = [] # vdf steps per seconds per block
-    volumes = [] # coins moved per block
-    staked = [] # new coins staked per block (>=0), to stake you need 48hrs idle.
-    unstaked = [] # new coins umstaked per block (>=0)
-    rewards = [] # new coins minted for miner rewards (>0)
-    utilizations = [] # fraction of block txs used.
-
-    # basic metrics
-    blockNumber = 0
-    totalStaked = 1 # bootstrapVirtualStake # assuming at least one bootstrapping miner
-    totalCirculating = 1 #bootstrapVirtualStake * (100. - maximumStakingRatio ) / 100. # assuming 2% non-zero circulating.
-    stakingRatio = 100 # % initial value 
-
-    # complex metrics
-    currentBlockTime = None # mean rounded
-    currentSpeed = None # mean rounded
-    currentMaxSpeed = None # max
-    currentMinSpeed = None # min
-    currentSpeedRatio = None # max / min
-    velocity = None
-
-    # controlled variables
-    currentIssuance = None
-    blockTimeFactor = None
-    speedRatioTarget = None
-    blockRewardTarget = None
-    blockReward = None
-    
 
 
     def __init__(self):
+
+        # Txs per Block
+        self.txsPerBlock = None
+
+        ## Variables, going to be dynamically adjusted
+        # now is currentSpeedRatio
+        #const VDF_PROTECTION_BASE = Number(3.0); // will raise very slow when VDF speed gets faster
+
+        # buffers of header data (windowSize items max)
+        self.blockTimes = [] # total time to produce block (>0)
+        self.difficulties = [] # vdf steps computed per block (>0)
+        self.speeds = [] # vdf steps per seconds per block
+        self.volumes = [] # coins moved per block
+        self.staked = [] # new coins staked per block (>=0), to stake you need 48hrs idle.
+        self.unstaked = [] # new coins umstaked per block (>=0)
+        self.rewards = [] # new coins minted for miner rewards (>0)
+        self.utilizations = [] # fraction of block txs used.
+
+        # basic metrics
+        self.blockNumber = 0
+        self.totalStaked = 10 # bootstrapVirtualStake # assuming at least one bootstrapping miner
+        self.totalCirculating = 0 #bootstrapVirtualStake * (100. - maximumStakingRatio ) / 100. # assuming 2% non-zero circulating.
+        self.stakingRatio = 100 # % initial value 
+
+        # complex metrics
+        self.currentBlockTime = None # mean rounded
+        self.currentSpeed = None # mean rounded
+        self.currentMaxSpeed = None # max
+        self.currentMinSpeed = None # min
+        self.currentSpeedRatio = None # max / min
+        self.velocity = None
+
+        # controlled variables
+        self.currentIssuance = None
+        self.blockTimeFactor = None
+        self.speedRatio = None
+        self.blockRewardTarget = None
+        self.blockReward = None
+
+        # Final initialization
         self.currentIssuance = self.maxIssuance
         self.blockTimeFactor = self.initialBlockTimeFactor
-        self.speedRatioTarget = self.initialSpeedRateTarget
+        self.speedRatio = self.initialSpeedRateTarget
         self.blockReward = self.initialBlockReward
         self.txsPerBlock = self.minTxsPerBlock
 
@@ -105,6 +108,8 @@ class Comptroller(object):
 
         # update basic metrics
         self.blockNumber += 1
+        assert( newStake <= self.totalCirculating )
+        assert( newUnstake <= self.totalStaked )  
         self.totalStaked += newStake - newUnstake
         if self.totalStaked < 1: #self.bootstrapVirtualStake: # always minimum
             self.totalStaked = 1 #self.bootstrapVirtualStake
@@ -174,11 +179,11 @@ class Comptroller(object):
             return
 
         self.totalStaked -= self.staked[-1] - self.unstaked[-1]
-        if self.totalStaked < self.bootstrapVirtualStake: # always minimum
-            self.totalStaked = self.bootstrapVirtualStake
+        if self.totalStaked < 1: #self.bootstrapVirtualStake: # always minimum
+            self.totalStaked = 1 #self.bootstrapVirtualStake
         self.totalCirculating -= self.unstaked[-1] - self.staked[-1]
-        if self.totalCirculating < self.bootstrapVirtualStake * (100. - self.maximumStakingRatio) / 100.:
-            self.totalCirculating = self.bootstrapVirtualStake * (100. - self.maximumStakingRatio) / 100.
+        if self.totalCirculating < 1: #self.bootstrapVirtualStake * (100. - self.maximumStakingRatio) / 100.:
+            self.totalCirculating = 1 #self.bootstrapVirtualStake * (100. - self.maximumStakingRatio) / 100.
         self.stakingRatio = 100 * float(self.totalStaked) / (self.totalCirculating + self.totalStaked)
 
         # append to buffers
@@ -217,9 +222,9 @@ class Comptroller(object):
 
     def updateBlockTimeActionable(self):
         if self.currentBlockTime > self.targetBlockTime:
-            self.blockTimeFactor = self.blockTimeFactor * (self.windowSize+1)/self.windowSize
+            self.blockTimeFactor = self.blockTimeFactor * float(self.windowSize-1)/self.windowSize
         elif self.currentBlockTime < self.targetBlockTime:
-            self.blockTimeFactor = self.blockTimeFactor * (self.windowSize-1)/self.windowSize
+            self.blockTimeFactor = self.blockTimeFactor * float(self.windowSize+1)/self.windowSize
         else: # ==
             pass   
         if self.blockTimeFactor < self.minBlockTimeFactor:
@@ -230,16 +235,16 @@ class Comptroller(object):
 
     def updateSpeedRatioTarget(self):
         # extra 0.1 for max speedRatio
-        if self.currentSpeedRatio > self.speedRatioTarget - 0.1:
-            self.speedRatioTarget = self.speedRatioTarget * (self.windowSize+1)/self.windowSize
-        elif self.currentSpeedRatio < self.speedRatioTarget:
-            self.speedRatioTarget = self.speedRatioTarget * (self.windowSize-1)/self.windowSize
+        if self.currentSpeedRatio > self.speedRatio:
+            self.speedRatio = self.speedRatio * (self.windowSize+1)/self.windowSize
+        elif self.currentSpeedRatio < self.speedRatio:
+            self.speedRatio = self.speedRatio * (self.windowSize-1)/self.windowSize
         else: # ==
             pass   
-        if self.speedRatioTarget < self.minSpeedRatio:
-            self.speedRatioTarget = self.minSpeedRatio
-        if self.speedRatioTarget > self.maxSpeedRatio:
-            self.speedRatioTarget = self.maxSpeedRatio
+        if self.speedRatio < self.minSpeedRatio:
+            self.speedRatio = self.minSpeedRatio
+        if self.speedRatio > self.maxSpeedRatio:
+            self.speedRatio = self.maxSpeedRatio
 
     
     def updateIssuance(self):
@@ -332,7 +337,7 @@ class Comptroller(object):
         return self.blockTimeFactor
 
     def getConsensusSpeedRatio(self):
-        return self.speedRatioTarget
+        return self.speedRatio
 
 
     ## Informative functions
