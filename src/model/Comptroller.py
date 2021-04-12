@@ -44,7 +44,7 @@ class Comptroller(object):
 
     initialBlockTimeFactor = 2000
     initialSpeedRateTarget = 3
-    initialBlockReward = 100
+    initialBlockReward = 10
     bootstrapVirtualStake = 10000
 
     minBlockTimeFactor = 20
@@ -87,7 +87,7 @@ class Comptroller(object):
         self.currentMaxSpeed = None # max
         self.currentMinSpeed = None # min
         self.currentSpeedRatio = None # max / min
-        self.velocity = None
+        self.velocity = 0.0
 
         # controlled variables
         self.currentIssuance = None
@@ -101,6 +101,7 @@ class Comptroller(object):
         self.blockTimeFactor = self.initialBlockTimeFactor
         self.speedRatio = self.initialSpeedRateTarget
         self.blockReward = self.initialBlockReward
+        self.blockRewardTarget = self.blockReward
         self.txsPerBlock = self.minTxsPerBlock
 
 
@@ -201,7 +202,7 @@ class Comptroller(object):
             self.currentMaxSpeed = None # max
             self.currentMinSpeed = None # min
             self.currentSpeedRatio = None # max / min
-            self.velocity = None
+            self.velocity = 0.0
             return
 
         # update complex metrics

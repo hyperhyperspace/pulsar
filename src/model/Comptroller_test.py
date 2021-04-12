@@ -210,7 +210,7 @@ class TestComptroller(unittest.TestCase):
         self.assertEqual(self.c.blockTimeFactor, 2000)
 
 
-    # Block time tests
+    # Speed ratio tests
 
     def test_lowSpeedRatio(self):
         self.assertEqual(self.c.speedRatio, 3)
@@ -348,6 +348,251 @@ class TestComptroller(unittest.TestCase):
             txsCount=1,
         )
         self.assertEqual(self.c.speedRatio, 3)
+
+
+    # Issuance tests
+
+    def test_earlyBirdIssuance(self):
+        self.assertEqual(self.c.currentIssuance, 20)
+        self.assertEqual(self.c.velocity, 0.0)
+        self.assertEqual(self.c.blockReward, 10)
+        self.assertEqual(self.c.blockRewardTarget, 10)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=5, 
+            newStake=0, 
+            newUnstake=1, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 20)
+        self.assertEqual(self.c.velocity, 3942000.0)
+        self.assertEqual(self.c.blockReward, 9.999338624338625)
+        self.assertEqual(self.c.blockRewardTarget, 2.536783358701167e-06)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=4000, 
+            volume=5, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 20)
+        self.assertEqual(self.c.velocity, 492750.0)
+        self.assertEqual(self.c.blockReward, 9.998677292419027)
+        self.assertEqual(self.c.blockRewardTarget, 2.536783358701167e-06)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=5, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 20)
+        self.assertEqual(self.c.velocity, 187714.2857142857)
+        self.assertEqual(self.c.blockReward, 9.99801600423831)
+        self.assertEqual(self.c.blockRewardTarget, 2.536783358701167e-06)
+
+
+    def test_hiIssuance(self):
+        self.assertEqual(self.c.currentIssuance, 20)
+        self.assertEqual(self.c.velocity, 0.0)
+        self.c.blockNumber = self.c.earlyBirdPeriod + 1
+        self.assertEqual(self.c.blockReward, 10)
+        self.assertEqual(self.c.blockRewardTarget, 10)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=5, 
+            newStake=0, 
+            newUnstake=1, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 19.99867724867725)
+        self.assertEqual(self.c.velocity, 3942000.0)
+        self.assertEqual(self.c.blockReward, 9.999338624338625)
+        self.assertEqual(self.c.blockRewardTarget, 2.5366155820240045e-06)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=4000, 
+            volume=5, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 19.997354584838053)
+        self.assertEqual(self.c.velocity, 492750.0)
+        self.assertEqual(self.c.blockReward, 9.998677292419027)
+        self.assertEqual(self.c.blockRewardTarget, 2.5364478164431827e-06)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=5, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 19.99603200847662)
+        self.assertEqual(self.c.velocity, 187714.2857142857)
+        self.assertEqual(self.c.blockReward, 9.99801600423831)
+        self.assertEqual(self.c.blockRewardTarget, 2.536280061957968e-06)
+
+
+    def test_lowIssuance(self):
+        self.c.currentIssuance = 10.0
+        self.assertEqual(self.c.currentIssuance, 10)
+        self.assertEqual(self.c.velocity, 0.0)
+        self.assertEqual(self.c.blockReward, 10)
+        self.c.blockNumber = self.c.earlyBirdPeriod + 1
+        self.c.blockReward = 1.2684755676891649e-06
+        self.assertEqual(self.c.blockReward, 1.2684755676891649e-06)
+        self.assertEqual(self.c.blockRewardTarget, 10)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=0.000005, 
+            newStake=0, 
+            newUnstake=1, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 10.000661375661375)
+        self.assertEqual(self.c.velocity, 3.942)
+        self.assertEqual(self.c.blockReward, 1.2684755676891649e-06)
+        self.assertEqual(self.c.blockRewardTarget, 1.2684755676891649e-06)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=4000, 
+            volume=0.000005, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 10.001322795064526)
+        self.assertEqual(self.c.velocity, 0.49275)
+        self.assertEqual(self.c.blockReward, 1.2685594615759168e-06)
+        self.assertEqual(self.c.blockRewardTarget, 1.2685594615759166e-06)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=0.000005, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 10.001984258212348)
+        self.assertEqual(self.c.velocity, 0.18771428571428572)
+        self.assertEqual(self.c.blockReward, 1.2686433610112063e-06)
+        self.assertEqual(self.c.blockRewardTarget, 1.2686433610112057e-06)
+
+
+    def test_minIssuance(self):
+        self.c.currentIssuance = 1.0
+        self.assertEqual(self.c.currentIssuance, 1)
+        self.assertEqual(self.c.velocity, 0.0)
+        self.c.blockNumber = self.c.earlyBirdPeriod + 1
+        self.assertEqual(self.c.blockReward, 10)
+        self.assertEqual(self.c.blockRewardTarget, 10)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=5, 
+            newStake=0, 
+            newUnstake=1, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 1)
+        self.assertEqual(self.c.velocity, 3942000.0)
+        self.assertEqual(self.c.blockReward, 9.999338624338625)
+        self.assertEqual(self.c.blockRewardTarget, 1.2683916793505834e-07)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=4000, 
+            volume=5, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 1)
+        self.assertEqual(self.c.velocity, 492750.0)
+        self.assertEqual(self.c.blockReward, 9.998677292419027)
+        self.assertEqual(self.c.blockRewardTarget, 1.2683916793505834e-07)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=5, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 1)
+        self.assertEqual(self.c.velocity, 187714.2857142857)
+        self.assertEqual(self.c.blockReward, 9.99801600423831)
+        self.assertEqual(self.c.blockRewardTarget, 1.2683916793505834e-07)
+
+
+    def test_maxIssuance(self):
+        self.assertEqual(self.c.currentIssuance, 20)
+        self.assertEqual(self.c.velocity, 0.0)
+        self.c.blockNumber = self.c.earlyBirdPeriod + 1
+        self.assertEqual(self.c.blockReward, 10)
+        self.assertEqual(self.c.blockRewardTarget, 10)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=0.000005, 
+            newStake=0, 
+            newUnstake=1, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 20)
+        self.assertEqual(self.c.velocity, 3.942)
+        self.assertEqual(self.c.blockReward, 9.999338624338625)
+        self.assertEqual(self.c.blockRewardTarget, 2.536783358701167e-06)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=4000, 
+            volume=0.000005, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 20)
+        self.assertEqual(self.c.velocity, 0.49275)
+        self.assertEqual(self.c.blockReward, 9.998677292419027)
+        self.assertEqual(self.c.blockRewardTarget, 2.536783358701167e-06)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=0.000005, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.currentIssuance, 20)
+        self.assertEqual(self.c.velocity, 0.18771428571428572)
+        self.assertEqual(self.c.blockReward, 9.99801600423831)
+        self.assertEqual(self.c.blockRewardTarget, 2.536783358701167e-06)
+
+
+    # Block size tests
+
+    
 
 
 
