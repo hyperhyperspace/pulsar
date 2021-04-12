@@ -18,7 +18,7 @@ class Comptroller(object):
     # Issuance is over total coins, staked or not.
     maxIssuance = 20 # %
     # Rationaled: we dont want 0% issuance to have >0 inventives, sounds like a reasonable national inflation standard.
-    minIssuance =  1 # %
+    nonCircularMinIssuance =  1 # %    
     # Rationale: stable Velocity of USD money (M1) during 1970-2000s (https://fred.stlouisfed.org/series/M1V)
     # Analysis: https://www.mckendree.edu/academics/scholars/issue14/shrestha.htm
     # Finally, one can come up with a theoretical conclusion-the rise in interest rate will make people decrease their time interval, 
@@ -31,14 +31,16 @@ class Comptroller(object):
     upperBandVelocity = 9 # times per year
     lowerBandVelocity = 5 # times per year
     earlyBirdPeriod = 60 * 60 * 24 * 30 / targetBlockTime # blocks = 30 days
-    bootstrapPeriod = 60 * 60 * 24 * 365 / targetBlockTime # blocks = 12 months
-    circularConvergencePeriod = bootstrapPeriod # also 12 months
+    bootstrapPeriod = 60 * 60 * 24 * 365 / targetBlockTime # blocks = 6 months
+    circularBootstrapPeriod = 60 * 60 * 24 * 365 * 2 / targetBlockTime # 2 years
+    circularConvergencePeriod = 60 * 60 * 24 * 365 * 2 / targetBlockTime # 1 years
     # staking Ratio bounds
     minimumStakingRatio = 20 # %
     maximumStakingRatio = 99 # %
 
     minTxsPerBlock = 400
     maxTxsPerBlock = 160000
+    # https://www.coindesk.com/charts-determining-ideal-block-size-bitcoin
     blockUtilizationTarget = 80 # %
     blockUtilizationTolerance = 3 # %
 
@@ -90,6 +92,7 @@ class Comptroller(object):
         self.velocity = 0.0
 
         # controlled variables
+        self.minIssuance = self.nonCircularMinIssuance # 1%
         self.currentIssuance = None
         self.blockTimeFactor = None
         self.speedRatio = None
@@ -249,18 +252,27 @@ class Comptroller(object):
 
     
     def updateIssuance(self):
+        # early bird issuance
         if self.blockNumber < self.earlyBirdPeriod:
             self.currentIssuance = self.maxIssuance
+        # circular economy convergence
+        elif self.blockNumber >= self.circularBootstrapPeriod and \
+            self.blockNumber < self.circularBootstrapPeriod + self.circularConvergencePeriod:
+            self.minIssuance = self.nonCircularMinIssuance * (self.circularBootstrapPeriod + self.circularConvergencePeriod - self.blockNumber) / \
+                                self.circularConvergencePeriod
+        # regular adaptability
         elif self.velocity < self.lowerBandVelocity or self.stakingRatio < self.minimumStakingRatio:
             self.currentIssuance = self.currentIssuance * (self.windowSize+1)/self.windowSize
         elif self.velocity > self.upperBandVelocity or self.stakingRatio > self.maximumStakingRatio:
             self.currentIssuance = self.currentIssuance * (self.windowSize-1)/self.windowSize
         else: # ==
             pass
+        # check limits min/max
         if self.currentIssuance < self.minIssuance:
             self.currentIssuance = self.minIssuance   
         if self.currentIssuance > self.maxIssuance:
             self.currentIssuance = self.maxIssuance 
+
         # calculate individual block reward
         totalCoins = self.totalCirculating + self.totalStaked
         annualRewards = totalCoins * self.currentIssuance / 100.0

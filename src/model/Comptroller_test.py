@@ -495,6 +495,55 @@ class TestComptroller(unittest.TestCase):
         self.assertEqual(self.c.blockRewardTarget, 1.2686433610112057e-06)
 
 
+    def test_lowStakingRatio(self):
+        self.c.currentIssuance = 10.0
+        self.assertEqual(self.c.currentIssuance, 10)
+        self.assertEqual(self.c.velocity, 0.0)
+        self.assertEqual(self.c.blockReward, 10)
+        self.c.blockNumber = self.c.earlyBirdPeriod + 1
+        self.c.blockReward = 1.2684755676891649e-06
+        self.assertEqual(self.c.blockReward, 1.2684755676891649e-06)
+        self.assertEqual(self.c.blockRewardTarget, 10)
+        self.assertEqual(self.c.stakingRatio, 100)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=0.000005, 
+            newStake=0, 
+            newUnstake=10, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.stakingRatio, 9.090909090909092)
+        self.assertEqual(self.c.currentIssuance, 10.000661375661375)
+        self.assertEqual(self.c.velocity, 0.3942)
+        self.assertEqual(self.c.blockReward, 1.2685594615759168e-06)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=4000, 
+            volume=0.000005, 
+            newStake=0, 
+            newUnstake=1, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.stakingRatio, 8.333333333333334)
+        self.assertEqual(self.c.currentIssuance, 10.001322795064526)
+        self.assertEqual(self.c.velocity, 0.1791818181818182)
+        self.c.addBlockSample(
+            blockTime=40, 
+            difficulty=2000, 
+            volume=0.000005, 
+            newStake=0, 
+            newUnstake=0, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.stakingRatio, 8.333333333333334)
+        self.assertEqual(self.c.currentIssuance, 10.001984258212348)
+        self.assertEqual(self.c.velocity, 0.11945454545454547)
+
+
     def test_minIssuance(self):
         self.c.currentIssuance = 1.0
         self.assertEqual(self.c.currentIssuance, 1)
@@ -592,7 +641,158 @@ class TestComptroller(unittest.TestCase):
 
     # Block size tests
 
-    
+    def test_lowBlockUtilization(self):
+        self.assertEqual(self.c.blockTimeFactor, 2000)
+        self.c.minTxsPerBlock = 200
+        self.assertEqual(self.c.txsPerBlock, 400)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=0, 
+            newUnstake=1, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.132275132275)
+        self.assertEqual(self.c.txsPerBlock, 399)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.2645590129055)
+        self.assertEqual(self.c.txsPerBlock, 398)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.3968516424698)
+        self.assertEqual(self.c.txsPerBlock, 397)
+
+
+    def test_hiBlockUtilization(self):
+        self.assertEqual(self.c.blockTimeFactor, 2000)
+        self.assertEqual(self.c.txsPerBlock, 400)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=0, 
+            newUnstake=1, 
+            reward=2, 
+            txsCount=390,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.132275132275)
+        self.assertEqual(self.c.txsPerBlock, 401)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=390,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.2645590129055)
+        self.assertEqual(self.c.txsPerBlock, 402)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=390,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.3968516424698)
+        self.assertEqual(self.c.txsPerBlock, 403)
+
+
+    def test_minBlockSize(self):
+        self.assertEqual(self.c.blockTimeFactor, 2000)
+        self.assertEqual(self.c.txsPerBlock, 400)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=0, 
+            newUnstake=1, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.132275132275)
+        self.assertEqual(self.c.txsPerBlock, 400)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.2645590129055)
+        self.assertEqual(self.c.txsPerBlock, 400)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=1,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.3968516424698)
+        self.assertEqual(self.c.txsPerBlock, 400)
+
+
+    def test_maxBlockSize(self):
+        self.assertEqual(self.c.blockTimeFactor, 2000)
+        self.c.maxTxsPerBlock = 402
+        self.assertEqual(self.c.txsPerBlock, 400)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=0, 
+            newUnstake=1, 
+            reward=2, 
+            txsCount=390,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.132275132275)
+        self.assertEqual(self.c.txsPerBlock, 401)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=390,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.2645590129055)
+        self.assertEqual(self.c.txsPerBlock, 402)
+        self.c.addBlockSample(
+            blockTime=20, 
+            difficulty=2000, 
+            volume=50, 
+            newStake=1, 
+            newUnstake=4, 
+            reward=2, 
+            txsCount=390,
+        )
+        self.assertEqual(self.c.blockTimeFactor, 2000.3968516424698)
+        self.assertEqual(self.c.txsPerBlock, 402)
 
 
 
