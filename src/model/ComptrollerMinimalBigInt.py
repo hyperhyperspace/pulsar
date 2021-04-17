@@ -16,6 +16,9 @@ def divTrunc(x,y):
 def div(x,y):
     return x // y
 
+def trunc(x):
+    return x // UNIT
+
 
 class ComptrollerMinimalBigInt(object):
 
@@ -157,16 +160,22 @@ class ComptrollerMinimalBigInt(object):
 
     # vrfSeed is a bigint representing the signature of the current block number
     # by the current miner.
+    # totalCoin: fixed-point by UNIT
+    # vrfSeed: integer of 256 bits comming from a hash.
     def slotByStake(self, coins, totalCoins, vrfSeed): 
         if self.blockNumber < self.bootstrapPeriod:
             totalCoins += self.bootstrapVirtualStake
-        slots = math.ceil(float(totalCoins) / float(coins))
-        if (slots > 2 ** 32 - 1):
+        slots = divTrunc(totalCoins, coins) # math.ceil(float(totalCoins) / float(coins))
+        if mulTrunc(slots, coins) < totalCoins:
+            slots += UNIT
+        slots = trunc(slots)
+        if (slots > 2 ** 32 - 1): # this will be highly unusual, usually slots is small.
             slots = 2 ** 32 - 1
-        randomSlot = (vrfSeed % int(slots)) + 1
+        randomSlot = (vrfSeed % slots) + 1
         return randomSlot
 
-
+    # FLOATING POINT RETURN VALUE
+    # warning: this functions returns a floating-point
     def noise(self, vrfSeed):
         # Noise
         noise = float(vrfSeed % 2**256)
@@ -175,19 +184,32 @@ class ComptrollerMinimalBigInt(object):
         noise *= self.noiseFractionSlots
         return noise
 
-
+    # FLOATING POINT RETURN VALUE
+    # warning: this functions returns a floating-point
     def slotByStakeWithNoise(self, coins, totalCoins, vrfSeed):
-        slots = math.ceil(float(totalCoins) / float(coins))
-        if (slots > 2 ** 32 - 1):
+        if self.blockNumber < self.bootstrapPeriod:
+            totalCoins += self.bootstrapVirtualStake
+        slots = divTrunc(totalCoins, coins) # math.ceil(float(totalCoins) / float(coins))
+        if mulTrunc(slots, coins) < totalCoins:
+            slots += UNIT
+        slots = trunc(slots)
+        if (slots > 2 ** 32 - 1): # this will be highly unusual, usually slots is small.
             slots = 2 ** 32 - 1
         randomSlot = (vrfSeed % slots) + 1
+        # START of Floating-point section
         extraNoise = self.noise(vrfSeed)
-        return float(randomSlot) + float(extraNoise)
+        return float(randomSlot) + extraNoise
 
 
+    # FLOATING POINT RETURN VALUE
+    # warning: this functions returns a floating-point
+    # vrfSeed is a bigint representing the signature of the current block number
+    # by the current miner.
+    # totalCoin: fixed-point by UNIT
+    # vrfSeed: integer of 256 bits comming from a hash.
     def slotByStakeProtected(self, coins, totalCoins, vrfSeed):
         randomSlot = self.slotByStakeWithNoise(coins, totalCoins, vrfSeed)
-        return self.speedRatio ** float(randomSlot)
+        return (float(self.speedRatio)/UNIT) ** float(randomSlot)
 
 
     ## Parameters used in next block consensus.
@@ -195,8 +217,9 @@ class ComptrollerMinimalBigInt(object):
     # VRFSEED is based on miner address and was prev hashed with the blockNumber.
     def getConsensusDifficulty(self, coins, totalCoins, vrfSeed):
         slotProtected = self.slotByStakeProtected(coins, totalCoins, vrfSeed)
-        steps = int(math.floor(self.blockTimeFactor * float(slotProtected)))
-        return steps + (steps%int(2))
+        floatBlockTimeFactor = float(self.blockTimeFactor)/UNIT
+        steps = int(math.floor(floatBlockTimeFactor * slotProtected))
+        return steps + (steps%int(2)) # even integer difficulty values only (odd can break VDF).
 
     def getConsensusBlockReward(self):
         return self.blockReward # static 10 coins
