@@ -29,7 +29,7 @@ class ComptrollerMinimal(object):
     initialMovingMinSpeed = 5000 
     speedRatio = None
 
-    noiseFractionSlots = 0.20
+    noiseFractionSlots = 0.10
 
     def __init__(self):
 
@@ -107,7 +107,7 @@ class ComptrollerMinimal(object):
         if self.currentSpeed < self.movingMinSpeed and self.speedRatio < self.maxSpeedRatio: # decrease min
             self.movingMinSpeed = self.movingMinSpeed * (self.windowSize-1)/self.windowSize
         if self.currentSpeed < self.movingMinSpeed and self.speedRatio >= self.maxSpeedRatio: # decrease min and decrease max
-            self.movingMaxSpeed = self.movingMaxSpeed * (self.windowSize-1)/self.windowSize
+            self.movingMinSpeed = self.movingMinSpeed * (self.windowSize-1)/self.windowSize
             self.movingMaxSpeed = self.movingMaxSpeed * (self.windowSize-1)/self.windowSize
         
         if self.currentSpeed < self.movingMaxSpeed and self.currentSpeed > self.movingMinSpeed and self.speedRatio > self.minSpeedRatio:            
@@ -145,7 +145,7 @@ class ComptrollerMinimal(object):
         slots = math.ceil(float(totalCoins) / float(coins))
         if (slots > 2 ** 32 - 1):
             slots = 2 ** 32 - 1
-        randomSlot = (vrfSeed % int(slots)) + 1
+        randomSlot = (vrfSeed % int(slots))
         return randomSlot
 
 
@@ -153,7 +153,6 @@ class ComptrollerMinimal(object):
         # Noise
         noise = float(vrfSeed % 2**256)
         noise /= float(2**256)
-        noise -= 0.5
         noise *= self.noiseFractionSlots
         return noise
 
@@ -162,7 +161,7 @@ class ComptrollerMinimal(object):
         slots = math.ceil(float(totalCoins) / float(coins))
         if (slots > 2 ** 32 - 1):
             slots = 2 ** 32 - 1
-        randomSlot = (vrfSeed % slots) + 1
+        randomSlot = (vrfSeed % slots)
         extraNoise = self.noise(vrfSeed)
         return float(randomSlot) + float(extraNoise)
 
