@@ -335,21 +335,21 @@ class Comptroller(object):
         return self.currentSpeedRatio ** float(randomSlot)
 
 
-    def vdfSteps(self, coins, totalCoins, vrfSeed):
+    ## Parameters used in next block consensus.
+
+    # VRFSEED is based on miner address and was prev hashed with the blockNumber.
+    def getConsensusDifficulty(self, coins, totalCoins, vrfSeed):
         slotProtected = self.slotByStakeProtected(coins, totalCoins, vrfSeed)
         steps = int(math.floor(self.blockTimeFactor * float(slotProtected)))
         return steps + (steps%int(2))
 
-
-    ## Parameters used in next block consensus.
-
     def getConsensusBlockReward(self):
         return math.ceil(self.blockReward)
 
-    def getConsensusBlockTimeFactor(self):
+    def getBlockTimeFactor(self):
         return self.blockTimeFactor
 
-    def getConsensusSpeedRatio(self):
+    def getSpeedRatio(self):
         return self.speedRatio
 
 

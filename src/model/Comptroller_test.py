@@ -248,6 +248,7 @@ class TestComptroller(unittest.TestCase):
 
     def test_hiSpeedRatio(self):
         self.assertEqual(self.c.speedRatio, 3)
+        self.assertEqual(self.c.currentSpeedRatio, 3)
         self.c.addBlockSample(
             blockTime=40, 
             difficulty=2000, 
