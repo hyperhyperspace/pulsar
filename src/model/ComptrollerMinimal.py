@@ -68,26 +68,36 @@ class ComptrollerMinimal(object):
         self.currentSpeed = difficulty / blockTime
 
         # update block time control
-        self.updateBlockTimeActionable()
+        self.updateOrTestBlockTimeActionable()
 
         # update VDF ratio
-        self.updateSpeedRatioTarget()
+        self.updateOrTestSpeedRatioTarget()
 
 
-    def updateBlockTimeActionable(self):
+    def updateOrTestBlockTimeActionable(self, newBlockTimeFactor=None):
         if self.currentBlockTime > self.targetBlockTime:
-            self.blockTimeFactor = self.blockTimeFactor * float(self.windowSize-1)/self.windowSize
+            validBlockTimeFactor = self.blockTimeFactor * float(self.windowSize-1)/self.windowSize
         elif self.currentBlockTime < self.targetBlockTime:
-            self.blockTimeFactor = self.blockTimeFactor * float(self.windowSize+1)/self.windowSize
+            validBlockTimeFactor = self.blockTimeFactor * float(self.windowSize+1)/self.windowSize
         else: # ==
-            pass   
-        if self.blockTimeFactor < self.minBlockTimeFactor:
-            self.blockTimeFactor = self.minBlockTimeFactor
-        if self.blockTimeFactor > self.maxBlockTimeFactor:
-            self.blockTimeFactor = self.maxBlockTimeFactor
+            validBlockTimeFactor = self.blockTimeFactor  
+        if validBlockTimeFactor < self.minBlockTimeFactor:
+            validBlockTimeFactor = self.minBlockTimeFactor
+        if validBlockTimeFactor > self.maxBlockTimeFactor:
+            validBlockTimeFactor = self.maxBlockTimeFactor
+        # test or update
+        if newBlockTimeFactor:
+            return newBlockTimeFactor == validBlockTimeFactor
+        else:
+            self.blockTimeFactor = validBlockTimeFactor
 
+    # to use testing func, all parameters must be included.
+    def updateOrTestSpeedRatioTarget(self, newMovingMaxSpeed=None, newMovingMinSpeed=None, newSpeedRatio=None):
+        #backup
+        backupMovingMaxSpeed = self.movingMaxSpeed
+        backupMovingMinSpeed = self.movingMinSpeed
+        backupSpeedRatio = self.speedRatio
 
-    def updateSpeedRatioTarget(self):
         if self.currentSpeed > self.movingMaxSpeed and self.speedRatio < self.maxSpeedRatio: # increase max
             self.movingMaxSpeed = self.movingMaxSpeed * (self.windowSize+1)/self.windowSize
         if self.currentSpeed > self.movingMaxSpeed and self.speedRatio >= self.maxSpeedRatio: # increase max and increase min
@@ -111,8 +121,18 @@ class ComptrollerMinimal(object):
             aux = self.movingMaxSpeed
             self.movingMaxSpeed = self.movingMinSpeed * (1 + (self.minSpeedRatio/2))
             self.movingMinSpeed = aux * (1 - (self.minSpeedRatio/2))
+            print('DEBUG: Unexpected Speed Cross!!!: self.movingMaxSpeed < self.movingMinSpeed')
 
         self.speedRatio = self.movingMaxSpeed / self.movingMinSpeed
+
+        if newMovingMaxSpeed and newMovingMinSpeed and newSpeedRatio:
+            if self.movingMaxSpeed==newMovingMaxSpeed and self.movingMinSpeed==newMovingMinSpeed and self.speedRatio==newSpeedRatio:
+                return True
+            else: # revert with backups, and return False
+                self.movingMaxSpeed = backupMovingMaxSpeed
+                self.movingMinSpeed = backupMovingMinSpeed
+                self.speedRatio = backupSpeedRatio
+                return False
         
 
     ## VDF Difficulty calculations
