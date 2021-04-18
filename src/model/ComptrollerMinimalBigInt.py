@@ -227,10 +227,6 @@ class ComptrollerMinimalBigInt(object):
         floatBlockTimeFactor = float(self.blockTimeFactor)/UNIT
         steps = int(math.floor(floatBlockTimeFactor * slotProtected))
         # END FLOATING POINT SECTION #3
-        #print ('BLOCTIMEFACTOR = ', self.blockTimeFactor)
-        #print ('SPEEDRATIO = ', self.speedRatio)
-        #print('DIFFICULTY = ',steps + (steps%int(2)))
-        #print ('-'*20)
         return steps + (steps%int(2)) # even integer difficulty values only (odd can break VDF).
 
     def getConsensusBlockReward(self):
