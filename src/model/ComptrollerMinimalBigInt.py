@@ -2,7 +2,7 @@
 import statistics
 import math
 
-UNIT = 10**6
+UNIT = 10**12
 
 def mulTrunc(x,y):
     return x * y // UNIT
@@ -49,7 +49,7 @@ class ComptrollerMinimalBigInt(object):
     initialMovingMinSpeed = 5000 * UNIT 
     speedRatio = None
 
-    noiseFractionSlots = 20 * (UNIT//10**2) # 0.20 * UNIT
+    noiseFractionSlots = 10 * (UNIT//10**2) # 0.10 * UNIT
 
     def __init__(self):
 
@@ -171,18 +171,21 @@ class ComptrollerMinimalBigInt(object):
         slots = trunc(slots)
         if (slots > 2 ** 32 - 1): # this will be highly unusual, usually slots is small.
             slots = 2 ** 32 - 1
-        randomSlot = (vrfSeed % slots) + 1
+        randomSlot = (vrfSeed % slots)
         return randomSlot
 
     # FLOATING POINT RETURN VALUE
     # warning: this functions returns a floating-point
     def noise(self, vrfSeed):
         # Noise
+        # BEGIN FLOATING POINT SECTION #1
         noise = float(vrfSeed % 2**256)
         noise /= float(2**256)
-        noise -= 0.5
-        noise *= self.noiseFractionSlots
+        noise = int(noise * self.UNIT)
+        # END FLOATING POINT SECTION #1
+        noise = mulTrunc(noise, self.noiseFractionSlots)
         return noise
+
 
     # FLOATING POINT RETURN VALUE
     # warning: this functions returns a floating-point
@@ -193,12 +196,11 @@ class ComptrollerMinimalBigInt(object):
         if mulTrunc(slots, coins) < totalCoins:
             slots += UNIT
         slots = trunc(slots)
-        if (slots > 2 ** 32 - 1): # this will be highly unusual, usually slots is small.
+        if (slots >= 2 ** 32 - 1): # this will be highly unusual, usually slots is small.
             slots = 2 ** 32 - 1
-        randomSlot = (vrfSeed % slots) + 1
-        # START of Floating-point section
+        randomSlot = (vrfSeed % slots)
         extraNoise = self.noise(vrfSeed)
-        return float(randomSlot) + extraNoise
+        return randomSlot * self.UNIT + extraNoise
 
 
     # FLOATING POINT RETURN VALUE
@@ -209,17 +211,22 @@ class ComptrollerMinimalBigInt(object):
     # vrfSeed: integer of 256 bits comming from a hash.
     def slotByStakeProtected(self, coins, totalCoins, vrfSeed):
         randomSlot = self.slotByStakeWithNoise(coins, totalCoins, vrfSeed)
-        #print ('RANDOMSLOT = ', randomSlot)
+        # BEGIN FLOATING POINT SECTION #2
+        randomSlot = float(randomSlot) / self.UNIT # not truncate with // , is float division with /
+        if randomSlot >= 64.0:
+            randomSlot = 64.0
         return (float(self.speedRatio)/UNIT) ** float(randomSlot)
-
+        # END FLOATING POINT SECTION #2
 
     ## Parameters used in next block consensus.
 
     # VRFSEED is based on miner address and was prev hashed with the blockNumber.
     def getConsensusDifficulty(self, coins, totalCoins, vrfSeed):
+        # BEGIN FLOATING POINT SECTION #3
         slotProtected = self.slotByStakeProtected(coins, totalCoins, vrfSeed)
         floatBlockTimeFactor = float(self.blockTimeFactor)/UNIT
         steps = int(math.floor(floatBlockTimeFactor * slotProtected))
+        # END FLOATING POINT SECTION #3
         #print ('BLOCTIMEFACTOR = ', self.blockTimeFactor)
         #print ('SPEEDRATIO = ', self.speedRatio)
         #print('DIFFICULTY = ',steps + (steps%int(2)))
