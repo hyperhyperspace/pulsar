@@ -248,7 +248,6 @@ class TestComptroller(unittest.TestCase):
 
     def test_hiSpeedRatio(self):
         self.assertEqual(self.c.speedRatio, 3)
-        self.assertEqual(self.c.currentSpeedRatio, 3)
         self.c.addBlockSample(
             blockTime=40, 
             difficulty=2000, 
@@ -259,6 +258,7 @@ class TestComptroller(unittest.TestCase):
             txsCount=1,
         )
         self.assertEqual(self.c.speedRatio, 2.999801587301587)
+        self.assertEqual(self.c.currentSpeedRatio, 1)
         self.c.addBlockSample(
             blockTime=40, 
             difficulty=20000, 
@@ -269,6 +269,7 @@ class TestComptroller(unittest.TestCase):
             txsCount=1,
         )
         self.assertEqual(self.c.speedRatio, 2.9999999868774667)
+        self.assertEqual(self.c.currentSpeedRatio, 10)
         self.c.addBlockSample(
             blockTime=40, 
             difficulty=2000, 
@@ -279,6 +280,7 @@ class TestComptroller(unittest.TestCase):
             txsCount=1,
         )
         self.assertEqual(self.c.speedRatio, 3.0001983995750114)
+        self.assertEqual(self.c.currentSpeedRatio, 10)
 
 
     def test_minSpeedRatio(self):

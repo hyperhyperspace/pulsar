@@ -53,7 +53,7 @@ class Comptroller(object):
     maxBlockTimeFactor = 200000
 
     maxSpeedRatio = 4
-    minSpeedRatio = 1.1
+    minSpeedRatio = 1.3
 
     noiseFractionSlots = 0.20
 

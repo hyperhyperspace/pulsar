@@ -23,8 +23,8 @@ class ComptrollerMinimal(object):
     minBlockTimeFactor = 20
     maxBlockTimeFactor = 200000
 
-    maxSpeedRatio = 4
-    minSpeedRatio = 1.1
+    maxSpeedRatio = 3.1
+    minSpeedRatio = 1.3
     initialMovingMaxSpeed = 15000
     initialMovingMinSpeed = 5000 
     speedRatio = None
@@ -168,8 +168,9 @@ class ComptrollerMinimal(object):
 
     def slotByStakeProtected(self, coins, totalCoins, vrfSeed):
         randomSlot = self.slotByStakeWithNoise(coins, totalCoins, vrfSeed)
+        if randomSlot >= 64:
+            randomSlot = 64
         return self.speedRatio ** float(randomSlot)
-
 
     ## Parameters used in next block consensus.
 

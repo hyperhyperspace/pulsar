@@ -43,8 +43,8 @@ class ComptrollerMinimalBigInt(object):
     minBlockTimeFactor = 20 * UNIT
     maxBlockTimeFactor = 200000 * UNIT
 
-    maxSpeedRatio = 4 * UNIT
-    minSpeedRatio = 11 * (UNIT//10) ## 1.1 * UNIT
+    maxSpeedRatio = 31 * (UNIT//10) ## 3.1 * UNIT
+    minSpeedRatio = 13 * (UNIT//10) ## 1.3 * UNIT
     initialMovingMaxSpeed = 15000 * UNIT
     initialMovingMinSpeed = 5000 * UNIT 
     speedRatio = None
@@ -209,6 +209,7 @@ class ComptrollerMinimalBigInt(object):
     # vrfSeed: integer of 256 bits comming from a hash.
     def slotByStakeProtected(self, coins, totalCoins, vrfSeed):
         randomSlot = self.slotByStakeWithNoise(coins, totalCoins, vrfSeed)
+        #print ('RANDOMSLOT = ', randomSlot)
         return (float(self.speedRatio)/UNIT) ** float(randomSlot)
 
 
@@ -219,6 +220,10 @@ class ComptrollerMinimalBigInt(object):
         slotProtected = self.slotByStakeProtected(coins, totalCoins, vrfSeed)
         floatBlockTimeFactor = float(self.blockTimeFactor)/UNIT
         steps = int(math.floor(floatBlockTimeFactor * slotProtected))
+        #print ('BLOCTIMEFACTOR = ', self.blockTimeFactor)
+        #print ('SPEEDRATIO = ', self.speedRatio)
+        #print('DIFFICULTY = ',steps + (steps%int(2)))
+        #print ('-'*20)
         return steps + (steps%int(2)) # even integer difficulty values only (odd can break VDF).
 
     def getConsensusBlockReward(self):

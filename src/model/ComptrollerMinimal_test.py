@@ -317,7 +317,7 @@ class TestComptroller(unittest.TestCase):
         self.assertEqual( self.c.slotByStakeWithNoise( 10, 10000, 7336086308650337759096410431252085093178178779429473360863086503377590964104312520850931781787794294), 294.00109965460126 )
 
     # Only noise, 10%.
-    
+
     def test_noise_nonRandom(self):
         # test('[STK10] 10% noise with non-random seed.', () => {
         self.c.blockNumber = self.c.bootstrapPeriod + 1
@@ -334,6 +334,65 @@ class TestComptroller(unittest.TestCase):
         self.assertEqual( self.c.noise( 18940146006418912330417223372747770698114519063662189401460064189123304172233727477706981145190636621894014600641891233041722337274777069811451906366218940146006418912330417223372747770698114519063662 ), 0.04367470580286885 )
         self.assertEqual( self.c.noise( 93318326445589413015567173322633022244619258241503933183264455894130155671733226330222446192582415039331832644558941301556717332263302224461925824150393318326445589413015567173322633022244619258241503 ), 0.0720054880339581 )
         self.assertEqual( self.c.noise( 73360863086503377590964104312520850931781787794294733608630865033775909641043125208509317817877942947336086308650337759096410431252085093178178779429473360863086503377590964104312520850931781787794294 ), 0.06228213394166035 )
+
+    # Difficulty, VDF steps, integer.
+
+    def test_difficulty_smallSeed_noise(self):
+        # test('[STK05] Pseudo-random slot, small not-random seed, rounding, plus 10% noise.', () => {
+        self.c.blockNumber = self.c.bootstrapPeriod + 1
+        self.assertEqual( self.c.getConsensusDifficulty( 3, 10, 2**256-4), 2232 )
+        self.assertEqual( self.c.getConsensusDifficulty( 3, 10, 2**256-3), 6696 )
+        self.assertEqual( self.c.getConsensusDifficulty( 3, 10, 2**256-2), 20090 )
+        self.assertEqual( self.c.getConsensusDifficulty( 3, 10, 2**256-1), 60270 )
+        self.assertEqual( self.c.getConsensusDifficulty( 3, 10, 2**256-0), 2000 )
+
+
+    def test_difficulty_medSlot_smallSeed_noise(self):
+        # test('[STK06] Pseudo-random slot, small not-random seed, plus 10% noise.', () => {
+        self.c.blockNumber = self.c.bootstrapPeriod + 1
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 2**256-6), 2232 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 2**256-5), 6696 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 2**256-4), 20090 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 2**256-3), 60270 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 2**256-2), 180812 )
+  
+    def test_difficulty_medSlot_bigNonRandomSeed_noise(self):
+        # test('[STK07] Pseudo-random slot, big not-random seed, plus 10% noise.', () => {
+        self.c.blockNumber = self.c.bootstrapPeriod + 1
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 10000000000000000000000000000000), 2000 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 10000000000000000000000000000001), 6000 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 10000000000000000000000000000005), 486000 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 10000000000000000000000000000009), 39366000 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 10000000000000000000000000000010), 2000 )
+
+    def test_difficulty_medSlot_bigRandomSeed_noise(self):
+        # test('[STK08] Pseudo-random slot, big random seed, plus 10% noise.', () => {
+        self.c.blockNumber = self.c.bootstrapPeriod + 1
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 5260998118755007034341642210716494845522350648952052609981187550070343416422107164948455223506489520), 2048 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 3526920428917842446652870866910534351362200027247135269204289178424466528708669105343513622000272471), 6274 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 1894014600641891233041722337274777069811451906366218940146006418912330417223372747770698114519063662), 18008 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 9331832644558941301556717332263302224461925824150393318326445589413015567173322633022244619258241503), 56384 )
+        self.assertEqual( self.c.getConsensusDifficulty( 1000, 10000, 7336086308650337759096410431252085093178178779429473360863086503377590964104312520850931781787794294), 162196 )
+        
+    def test_difficulty_bigSlot_bigRandomSeed_noise(self):
+        # test('[STK09] Big pseudo-random slot, big random seed, plus 10% noise.', () => {
+        self.c.blockNumber = self.c.bootstrapPeriod + 1
+        self.assertEqual( self.c.getConsensusDifficulty( 10, 10000, 5260998118755007034341642210716494845522350648952052609981187550070343416422107164948455223506489520), \
+            6867367640585024404965563169767424 )
+        self.assertEqual( self.c.getConsensusDifficulty( 10, 10000, 3526920428917842446652870866910534351362200027247135269204289178424466528708669105343513622000272471), \
+            6867367640585024404965563169767424 )
+        self.assertEqual( self.c.getConsensusDifficulty( 10, 10000, 1894014600641891233041722337274777069811451906366218940146006418912330417223372747770698114519063662), \
+            6867367640585024404965563169767424 )
+        self.assertEqual( self.c.getConsensusDifficulty( 10, 10000, 9331832644558941301556717332263302224461925824150393318326445589413015567173322633022244619258241503), \
+            6867367640585024404965563169767424 )
+        self.assertEqual( self.c.getConsensusDifficulty( 10, 10000, 7336086308650337759096410431252085093178178779429473360863086503377590964104312520850931781787794294), \
+            6867367640585024404965563169767424 )
+        self.assertEqual( self.c.getConsensusDifficulty( 10, 10000, 1236086308650337759096410431252085093178178779429473360863086503377590964104312520850931781787794005), \
+            500336 )
+        self.assertEqual( self.c.getConsensusDifficulty( 10, 10000, 1236076308750327758096410431252085093178178779429473360863086503377590964104312520850931781787794014), \
+            10371246206 )
+        self.assertEqual( self.c.getConsensusDifficulty( 10, 10000, 9216276108752326758096410431252085093178178779429473360863086503377590964104312520850931781787794194), \
+            6867367640585024404965563169767424 )
 
 
 
