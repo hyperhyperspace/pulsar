@@ -9,14 +9,16 @@ interface Comptroller {
     // Difficulty internal
     slotByStake(coins: bigint, totalCoins: bigint, vrfSeed: bigint);
     noise(vrfSeed: bigint);
-    slotByStakeWithNoise(self, coins, totalCoins, vrfSeed);
-    slotByStakeProtected(self, coins, totalCoins, vrfSeed);
+    slotByStakeWithNoise(coins, totalCoins, vrfSeed);
+    slotByStakeProtected(coins, totalCoins, vrfSeed);
 
     // Consensus Getter
-    getConsensusDifficulty(self, coins, totalCoins, vrfSeed);
-    getConsensusBlockReward(self);
-    getBlockTimeFactor(self);
-    getSpeedRatio(self);
+    getConsensusDifficulty(coins, totalCoins, vrfSeed);
+    getConsensusBlockReward();
+    getBlockTimeFactor();
+    getSpeedRatio();
+    setBlockNumber(blockNumber: bigint);
+
 
 }
 

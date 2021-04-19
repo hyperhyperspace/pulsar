@@ -18,7 +18,8 @@ class FixedPoint {
     }
     
     static divTrunc(x: bigint, y: bigint): bigint {
-        return x * FixedPoint.UNIT / y;
+        
+        return (x * FixedPoint.UNIT) / y;
     }
     
     static div(x: bigint, y: bigint): bigint {
@@ -66,7 +67,7 @@ class MiniComptroller implements Comptroller {
     ///////////
 
     // basic metrics
-    private blockNumber = 0;
+    private blockNumber: bigint = BigInt(0);
 
     // complex metrics
     private currentBlockTime?: bigint  = undefined; // mean rounded
@@ -87,17 +88,25 @@ class MiniComptroller implements Comptroller {
     // Actions and Consensus Checkers
     // TODO: check if blockTime will come in seconds or milliseconds, better ms.
     addBlockSample(blockTime: bigint, difficulty: bigint): void {
-
+        this.currentBlockTime = this.currentBlockTime
+        this.blockTimeFactor = this.blockTimeFactor
+        this.currentSpeed = this.currentSpeed
+        this.currentBlockTime = this.currentBlockTime
+        blockTime = blockTime
+        difficulty = difficulty
     }
 
 
     updateOrTestBlockTimeActionable(newBlockTimeFactor?: bigint): boolean {
-        return true;
+        return newBlockTimeFactor == BigInt(0)
     }
 
 
     dupdateOrTestSpeedRatioTarget(newMovingMaxSpeed?: bigint, newMovingMinSpeed?: bigint, newSpeedRatio?: bigint): boolean {
-        return true
+        var a = newMovingMaxSpeed;
+        var b = newMovingMinSpeed;
+        var c = newSpeedRatio;
+        return a == b && b == c
     }
 
     // Difficulty internal
@@ -111,45 +120,80 @@ class MiniComptroller implements Comptroller {
         if (slots > 2 ** 32 - 1)
             slots = BigInt(2 ** 32 - 1)
         var randomSlot = (vrfSeed % BigInt(slots));
-        return randomSlot;
+        return randomSlot
     }
 
 
     noise(vrfSeed: bigint): bigint {
-        return BigInt(0)
+        // Noise
+        // BEGIN FLOATING POINT SECTION #1
+        var noise = Number(vrfSeed % BigInt(2**256))
+        noise /= Number(2**256)
+        var noiseBigInt = BigInt(Math.floor(noise * Number(FixedPoint.UNIT)))
+        // END FLOATING POINT SECTION #1
+        noiseBigInt = FixedPoint.mulTrunc(noiseBigInt, MiniComptroller.noiseFractionSlots)
+        return noiseBigInt
     }
 
 
-    slotByStakeWithNoise(self, coins, totalCoins, vrfSeed): bigint {
-        return BigInt(0)
+    slotByStakeWithNoise(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint {
+        if (this.blockNumber < MiniComptroller.bootstrapPeriod)
+            totalCoins += MiniComptroller.bootstrapVirtualStake
+        var slots: bigint = FixedPoint.divTrunc(totalCoins, coins) 
+        if (FixedPoint.mulTrunc(slots, coins) < totalCoins)
+            slots += FixedPoint.UNIT
+        slots = FixedPoint.trunc(slots)
+        if (slots > 2 ** 32 - 1)
+            slots = BigInt(2 ** 32 - 1)
+        var randomSlot = (vrfSeed % BigInt(slots));
+        console.log('RANDOMSLOT =' + randomSlot);
+        var extraNoise = this.noise(vrfSeed)
+        console.log('EXTRANOISE =' + extraNoise);
+        console.log('------------------------------------');
+        return randomSlot * FixedPoint.UNIT + extraNoise
     }
 
 
-    slotByStakeProtected(self, coins, totalCoins, vrfSeed): number {
-        return 0
+    slotByStakeProtected(coins: bigint, totalCoins: bigint, vrfSeed: bigint): number {
+        var randomSlot = this.slotByStakeWithNoise(coins, totalCoins, vrfSeed)
+        // BEGIN FLOATING POINT SECTION #2
+        var floatRandomSlot = Number(randomSlot) / Number(FixedPoint.UNIT) // not truncate with // , is float division with /
+        if (floatRandomSlot >= 64.0)
+        floatRandomSlot = 64.0
+        return (Number(this.speedRatio)/Number(FixedPoint.UNIT)) ** Number(floatRandomSlot)
+        // END FLOATING POINT SECTION #2
     }
 
 
     // Consensus Getter
 
 
-    getConsensusDifficulty(self, coins, totalCoins, vrfSeed) {
-        
+    getConsensusDifficulty(coins: bigint, totalCoins: bigint, vrfSeed: bigint) {
+        // BEGIN FLOATING POINT SECTION #3
+        var slotProtected = this.slotByStakeProtected(coins, totalCoins, vrfSeed)
+        var floatBlockTimeFactor = Number(this.blockTimeFactor)/Number(FixedPoint.UNIT)
+        var steps = BigInt(Math.floor(floatBlockTimeFactor * slotProtected))
+        // END FLOATING POINT SECTION #3
+        return steps + (steps%BigInt(2)) // even integer difficulty values only (odd can break VDF).        
     }
 
 
-    getConsensusBlockReward(self) {
-
+    getConsensusBlockReward() {
+        return this.blockReward // static 10 coins
     }
 
 
-    getBlockTimeFactor(self) {
-
+    getBlockTimeFactor() {
+        return this.blockTimeFactor
     }
 
 
-    getSpeedRatio(self) {
+    getSpeedRatio() {
+        return this.speedRatio
+    }
 
+    setBlockNumber(blockNumber: bigint){
+        this.blockNumber = blockNumber
     }
 
 
@@ -157,4 +201,4 @@ class MiniComptroller implements Comptroller {
 
 }
 
-export { MiniComptroller };
+export { MiniComptroller, FixedPoint };

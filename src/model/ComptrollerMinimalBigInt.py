@@ -93,6 +93,7 @@ class ComptrollerMinimalBigInt(object):
 
         # update VDF ratio
         self.updateOrTestSpeedRatioTarget()
+        
 
     def updateOrTestBlockTimeActionable(self, newBlockTimeFactor=None):
         if self.currentBlockTime > self.targetBlockTime:
