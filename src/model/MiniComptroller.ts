@@ -67,11 +67,12 @@ class MiniComptroller implements Comptroller {
     ///////////
 
     // basic metrics
-    private blockNumber: bigint = BigInt(0);
+    private blockNumber: bigint = BigInt(1);
+    private difficulty: bigint = BigInt(1);
 
     // complex metrics
-    private currentBlockTime?: bigint  = undefined; // mean rounded
-    private currentSpeed?: bigint = undefined; // mean rounded
+    private currentBlockTime: bigint  = BigInt(1); // mean rounded
+    private currentSpeed: bigint = BigInt(1); // mean rounded
     private movingMaxSpeed: bigint = MiniComptroller.initialMovingMaxSpeed;
     private movingMinSpeed: bigint = MiniComptroller.initialMovingMinSpeed;
 
@@ -88,25 +89,105 @@ class MiniComptroller implements Comptroller {
     // Actions and Consensus Checkers
     // TODO: check if blockTime will come in seconds or milliseconds, better ms.
     addBlockSample(blockTime: bigint, difficulty: bigint): void {
-        this.currentBlockTime = this.currentBlockTime
-        this.blockTimeFactor = this.blockTimeFactor
-        this.currentSpeed = this.currentSpeed
-        this.currentBlockTime = this.currentBlockTime
-        blockTime = blockTime
-        difficulty = difficulty
+        // update basic metrics
+        this.blockNumber += BigInt(1)
+
+        // append to buffers
+        this.currentBlockTime = blockTime * FixedPoint.UNIT
+        this.difficulty = difficulty * FixedPoint.UNIT
+        this.currentSpeed = FixedPoint.divTrunc(this.difficulty, this.currentBlockTime) 
+
+        // update block time control
+        this.updateOrTestBlockTimeActionable()
+
+        // update VDF ratio
+        this.updateOrTestSpeedRatioTarget()
+    }
+
+
+    setSpeed(blockTime: bigint, difficulty: bigint): void {
+        this.currentBlockTime = blockTime * FixedPoint.UNIT
+        this.difficulty = difficulty * FixedPoint.UNIT
+        this.currentSpeed = FixedPoint.divTrunc(this.difficulty, this.currentBlockTime) 
     }
 
 
     updateOrTestBlockTimeActionable(newBlockTimeFactor?: bigint): boolean {
-        return newBlockTimeFactor == BigInt(0)
+        var validBlockTimeFactor = BigInt(0)
+        if (this.currentBlockTime > MiniComptroller.targetBlockTime)
+            validBlockTimeFactor = FixedPoint.div(FixedPoint.mul(this.blockTimeFactor, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
+        else if (this.currentBlockTime < MiniComptroller.targetBlockTime)
+            validBlockTimeFactor = FixedPoint.div(FixedPoint.mul(this.blockTimeFactor, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
+        else // ==
+            validBlockTimeFactor = this.blockTimeFactor  
+        if (validBlockTimeFactor < MiniComptroller.minBlockTimeFactor)
+            validBlockTimeFactor = MiniComptroller.minBlockTimeFactor
+        if (validBlockTimeFactor > MiniComptroller.maxBlockTimeFactor)
+            validBlockTimeFactor = MiniComptroller.maxBlockTimeFactor
+        // test or update
+        if (newBlockTimeFactor != undefined)
+            return newBlockTimeFactor == validBlockTimeFactor
+        else
+            this.blockTimeFactor = validBlockTimeFactor
+            return true
     }
 
 
-    dupdateOrTestSpeedRatioTarget(newMovingMaxSpeed?: bigint, newMovingMinSpeed?: bigint, newSpeedRatio?: bigint): boolean {
-        var a = newMovingMaxSpeed;
-        var b = newMovingMinSpeed;
-        var c = newSpeedRatio;
-        return a == b && b == c
+    updateOrTestSpeedRatioTarget(newMovingMaxSpeed?: bigint, newMovingMinSpeed?: bigint, newSpeedRatio?: bigint): boolean {
+        // backup
+        var backupMovingMaxSpeed = this.movingMaxSpeed
+        var backupMovingMinSpeed = this.movingMinSpeed
+        var backupSpeedRatio = this.speedRatio
+        //console.log('MOVINGMINSPEED = ', this.movingMinSpeed)
+
+
+        if (this.currentSpeed > this.movingMaxSpeed && this.speedRatio < MiniComptroller.maxSpeedRatio) {// increase max
+            this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
+            //console.log('PATH1 = ', this.movingMinSpeed)
+        }
+        if (this.currentSpeed > this.movingMaxSpeed && this.speedRatio >= MiniComptroller.maxSpeedRatio) { // increase max and increase min
+            this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
+            this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
+            //console.log('PATH2 = ', this.movingMinSpeed)
+        }
+        if (this.currentSpeed < this.movingMinSpeed && this.speedRatio < MiniComptroller.maxSpeedRatio) {// decrease min
+            this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
+            //console.log('PATH3 = ', this.movingMinSpeed)
+        }
+        if (this.currentSpeed < this.movingMinSpeed && this.speedRatio >= MiniComptroller.maxSpeedRatio) {// decrease min and decrease max
+            this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
+            this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
+            //console.log('PATH4 = ', this.movingMinSpeed)
+        }
+        if (this.currentSpeed < this.movingMaxSpeed && this.currentSpeed > this.movingMinSpeed && this.speedRatio > MiniComptroller.minSpeedRatio) {            
+            // in the middle, decrease max and increase min.
+            this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize+FixedPoint.UNIT), MiniComptroller.windowSize)
+            this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize-FixedPoint.UNIT), MiniComptroller.windowSize)
+            //console.log('PATH5 = ', this.movingMinSpeed)
+        }
+        // when they cross in the middle, this should not happen.
+        var aux = BigInt(0)
+        if (this.movingMaxSpeed < this.movingMinSpeed){
+            // we swap them, adding the buffer of minimum ratio.
+            aux = this.movingMaxSpeed
+            this.movingMaxSpeed = FixedPoint.mulTrunc(this.movingMinSpeed, (FixedPoint.UNIT + FixedPoint.div(MiniComptroller.minSpeedRatio,BigInt(2))))
+            this.movingMinSpeed = FixedPoint.mulTrunc(aux, (FixedPoint.UNIT + FixedPoint.div(MiniComptroller.minSpeedRatio,BigInt(2))))
+            console.log('DEBUG: Unexpected Speed Cross!!!: this.movingMaxSpeed < this.movingMinSpeed')
+        }
+        //console.log('MOVINGMINSPEED = ', this.movingMinSpeed)
+        this.speedRatio = FixedPoint.divTrunc(this.movingMaxSpeed, this.movingMinSpeed)
+
+        if (newMovingMaxSpeed && newMovingMinSpeed && newSpeedRatio){
+            if (this.movingMaxSpeed==newMovingMaxSpeed && this.movingMinSpeed==newMovingMinSpeed && this.speedRatio==newSpeedRatio)
+                return true
+            else { // revert with backups, and return False
+                this.movingMaxSpeed = backupMovingMaxSpeed
+                this.movingMinSpeed = backupMovingMinSpeed
+                this.speedRatio = backupSpeedRatio
+                return false
+            }
+        }
+        return true
     }
 
     // Difficulty internal
@@ -146,10 +227,7 @@ class MiniComptroller implements Comptroller {
         if (slots > 2 ** 32 - 1)
             slots = BigInt(2 ** 32 - 1)
         var randomSlot = (vrfSeed % BigInt(slots));
-        console.log('RANDOMSLOT =' + randomSlot);
         var extraNoise = this.noise(vrfSeed)
-        console.log('EXTRANOISE =' + extraNoise);
-        console.log('------------------------------------');
         return randomSlot * FixedPoint.UNIT + extraNoise
     }
 
@@ -196,6 +274,17 @@ class MiniComptroller implements Comptroller {
         this.blockNumber = blockNumber
     }
 
+    setBlockTimeFactor(blockTimeFactor: bigint){
+        this.blockTimeFactor = blockTimeFactor
+    }
+
+    getMovingMaxSpeed() {
+        return this.movingMaxSpeed
+    }
+
+    getMovingMinSpeed() {
+        return this.movingMinSpeed
+    }
 
 
 

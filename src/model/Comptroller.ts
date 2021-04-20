@@ -3,8 +3,9 @@ interface Comptroller {
     // Actions and Consensus Checkers
     // TODO: check if blockTime will come in seconds or milliseconds, better ms.
     addBlockSample(blockTime: bigint, difficulty: bigint) : void;
+    setSpeed(blockTime: bigint, difficulty: bigint): void;
     updateOrTestBlockTimeActionable(newBlockTimeFactor?: bigint);
-    dupdateOrTestSpeedRatioTarget(newMovingMaxSpeed?: bigint, newMovingMinSpeed?: bigint, newSpeedRatio?: bigint);
+    updateOrTestSpeedRatioTarget(newMovingMaxSpeed?: bigint, newMovingMinSpeed?: bigint, newSpeedRatio?: bigint);
 
     // Difficulty internal
     slotByStake(coins: bigint, totalCoins: bigint, vrfSeed: bigint);
@@ -18,7 +19,9 @@ interface Comptroller {
     getBlockTimeFactor();
     getSpeedRatio();
     setBlockNumber(blockNumber: bigint);
-
+    setBlockTimeFactor(blockTimeFactor: bigint)
+    getMovingMaxSpeed()
+    getMovingMinSpeed
 
 }
 

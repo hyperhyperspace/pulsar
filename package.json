@@ -1,7 +1,7 @@
 {
   "name": "beacon",
   "version": "0.0.1",
-  "description": "A Blockchain running in the Browser (powered by Hyper Hyper Space).",
+  "description": "The Web Blockchain (powered by Hyper Hyper Space).",
   "main": "dist/index.js",
   "repository": "https://github.com/hyperhyperspace/soliton.git",
   "author": "José Orlicki, Santiago Bazerque",
