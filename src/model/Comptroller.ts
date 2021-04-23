@@ -21,8 +21,10 @@ interface Comptroller {
     setBlockNumber(blockNumber: bigint);
     setBlockTimeFactor(blockTimeFactor: bigint)
     getMovingMaxSpeed()
-    getMovingMinSpeed
-
+    getMovingMinSpeed()
+    setMovingMaxSpeed(movingMaxSpeed: bigint)
+    setMovingMinSpeed(movingMinSpeed: bigint)
+    
 }
 
 export { Comptroller };

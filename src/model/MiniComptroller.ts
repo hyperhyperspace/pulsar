@@ -138,32 +138,25 @@ class MiniComptroller implements Comptroller {
         var backupMovingMaxSpeed = this.movingMaxSpeed
         var backupMovingMinSpeed = this.movingMinSpeed
         var backupSpeedRatio = this.speedRatio
-        //console.log('MOVINGMINSPEED = ', this.movingMinSpeed)
-
 
         if (this.currentSpeed > this.movingMaxSpeed && this.speedRatio < MiniComptroller.maxSpeedRatio) {// increase max
             this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
-            //console.log('PATH1 = ', this.movingMinSpeed)
         }
         if (this.currentSpeed > this.movingMaxSpeed && this.speedRatio >= MiniComptroller.maxSpeedRatio) { // increase max and increase min
             this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
             this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
-            //console.log('PATH2 = ', this.movingMinSpeed)
         }
         if (this.currentSpeed < this.movingMinSpeed && this.speedRatio < MiniComptroller.maxSpeedRatio) {// decrease min
             this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
-            //console.log('PATH3 = ', this.movingMinSpeed)
         }
         if (this.currentSpeed < this.movingMinSpeed && this.speedRatio >= MiniComptroller.maxSpeedRatio) {// decrease min and decrease max
             this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
             this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
-            //console.log('PATH4 = ', this.movingMinSpeed)
         }
         if (this.currentSpeed < this.movingMaxSpeed && this.currentSpeed > this.movingMinSpeed && this.speedRatio > MiniComptroller.minSpeedRatio) {            
             // in the middle, decrease max and increase min.
-            this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize+FixedPoint.UNIT), MiniComptroller.windowSize)
-            this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize-FixedPoint.UNIT), MiniComptroller.windowSize)
-            //console.log('PATH5 = ', this.movingMinSpeed)
+            this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
+            this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
         }
         // when they cross in the middle, this should not happen.
         var aux = BigInt(0)
@@ -172,9 +165,7 @@ class MiniComptroller implements Comptroller {
             aux = this.movingMaxSpeed
             this.movingMaxSpeed = FixedPoint.mulTrunc(this.movingMinSpeed, (FixedPoint.UNIT + FixedPoint.div(MiniComptroller.minSpeedRatio,BigInt(2))))
             this.movingMinSpeed = FixedPoint.mulTrunc(aux, (FixedPoint.UNIT + FixedPoint.div(MiniComptroller.minSpeedRatio,BigInt(2))))
-            console.log('DEBUG: Unexpected Speed Cross!!!: this.movingMaxSpeed < this.movingMinSpeed')
         }
-        //console.log('MOVINGMINSPEED = ', this.movingMinSpeed)
         this.speedRatio = FixedPoint.divTrunc(this.movingMaxSpeed, this.movingMinSpeed)
 
         if (newMovingMaxSpeed && newMovingMinSpeed && newSpeedRatio){
@@ -284,6 +275,14 @@ class MiniComptroller implements Comptroller {
 
     getMovingMinSpeed() {
         return this.movingMinSpeed
+    }
+
+    setMovingMaxSpeed(movingMaxSpeed: bigint) {
+        this.movingMaxSpeed = movingMaxSpeed
+    }
+
+    setMovingMinSpeed(movingMinSpeed: bigint) {
+        this.movingMinSpeed = movingMinSpeed
     }
 
 
