@@ -24,7 +24,11 @@ interface Comptroller {
     getMovingMinSpeed()
     setMovingMaxSpeed(movingMaxSpeed: bigint)
     setMovingMinSpeed(movingMinSpeed: bigint)
-    
+    getMaxSpeedRatio()
+    getMinSpeedRatio()
+    setMaxSpeedRatio(maxSpeedRatio: bigint)
+    setMinSpeedRatio(minSpeedRatio: bigint)
+
 }
 
 export { Comptroller };
