@@ -1,6 +1,6 @@
 import '@hyper-hyper-space/node-env';
 
-import { Hashing, HashReference, HashedObject, MutableObject, MutationOp } from '@hyper-hyper-space/core';
+import { Hashing, HashedObject, MutableObject, MutationOp } from '@hyper-hyper-space/core';
 
 import { Identity } from '@hyper-hyper-space/core';
 
@@ -86,9 +86,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     let op = new BlockchainValueOp(this, this.currentSeq(), msg.result);
 
                     if (this._lastOp !== undefined) {
-                        op.setPrevOps(new Set([this._lastOp.createReference()]).values());
+                        op.setPrevOps(new Set([this._lastOp]).values());
                     } else {
-                        op.setPrevOps(new Set<HashReference<BlockchainValueOp>>().values());
+                        op.setPrevOps(new Set<MutationOp>().values());
                     }
 
                     await this.applyNewOp(op);
