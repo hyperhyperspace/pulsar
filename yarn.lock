@@ -523,6 +523,13 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
+"@subspace/sloth-permutation@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@subspace/sloth-permutation/-/sloth-permutation-0.1.0.tgz#6512f0f4359cc262fd205c1b892b864c03a30721"
+  integrity sha512-37jk725uuYcPcr/6Hamdtink0FTFIW3YwDhzHOsdz0x9WbeYsQVPJYlTFCtWX5YVkfRzQlk6chTkloW62wKYwA==
+  dependencies:
+    "@types/node" "^12.12.12"
+
 "@subspace/vdf@^0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@subspace/vdf/-/vdf-0.1.0.tgz#f341dc742e84df7eac9bf9653a08ddfea2b615c1"
@@ -606,6 +613,11 @@
   version "11.15.47"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-11.15.47.tgz#c3696f1e31c70dd282b4c3b4a7dc3d5b9ba076e9"
   integrity sha512-S4vrkrslntCM+1cw9Q27M/doWQrZklb9lOyo4b+K27SOo5jZYEKY5epdixySx7OI+A67DMJ8W/XBiLMBiI452A==
+
+"@types/node@^12.12.12":
+  version "12.20.11"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-12.20.11.tgz#980832cd56efafff8c18aa148c4085eb02a483f4"
+  integrity sha512-gema+apZ6qLQK7k7F0dGkGCWQYsL0qqKORWOQO6tq46q+x+1C0vbOiOqOwRVlh4RAdbQwV/j/ryr3u5NOG1fPQ==
 
 "@types/normalize-package-data@^2.4.0":
   version "2.4.0"

@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@hyper-hyper-space/node-env": "^0.8.0",
+    "@subspace/sloth-permutation": "^0.1.0",
     "@subspace/vdf": "^0.1.0",
     "tslib": "^2.1.0"
   },
