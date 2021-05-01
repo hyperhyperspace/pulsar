@@ -51,8 +51,8 @@ class MiniComptroller implements Comptroller {
     static initialBlockTimeFactor: bigint = BigInt(2000) * FixedPoint.UNIT;
     static initialBlockReward: bigint = BigInt(10) * FixedPoint.UNIT;
 
-    static minBlockTimeFactor: bigint = BigInt(20) * FixedPoint.UNIT;
-    static maxBlockTimeFactor: bigint = BigInt(200000) * FixedPoint.UNIT;
+    static minBlockTimeFactor: bigint = BigInt(10) * FixedPoint.UNIT;
+    static maxBlockTimeFactor: bigint = BigInt(100000) * FixedPoint.UNIT;
 
     private maxSpeedRatio: bigint = BigInt(31) * (FixedPoint.UNIT/BigInt(10)); // 3.1 * UNIT
     private minSpeedRatio: bigint = BigInt(13) * (FixedPoint.UNIT/BigInt(10)); // 1.3 * UNIT
@@ -256,7 +256,6 @@ class MiniComptroller implements Comptroller {
         return this.blockTimeFactor
     }
 
-
     getSpeedRatio() {
         return this.speedRatio
     }
@@ -301,6 +300,9 @@ class MiniComptroller implements Comptroller {
         this.minSpeedRatio = minSpeedRatio
     }
 
+    setBlockReward(blockReward: bigint) {
+        this.blockReward = blockReward
+    }
 
 
 }

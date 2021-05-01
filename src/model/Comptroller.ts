@@ -28,6 +28,7 @@ interface Comptroller {
     getMinSpeedRatio()
     setMaxSpeedRatio(maxSpeedRatio: bigint)
     setMinSpeedRatio(minSpeedRatio: bigint)
+    setBlockReward(blockReward: bigint)
 
 }
 
