@@ -1,4 +1,5 @@
 
+import {createHash} from "crypto";
 import { Hashing, Hash, HashedObject, MutationOp } from '@hyper-hyper-space/core';
 //import { Logger, LogLevel } from '@hyper-hyper-space/core';
 
@@ -6,7 +7,7 @@ import { Blockchain } from './Blockchain';
 import { VDF } from './VDF';
 import { vdfStepsByStakeDiscreteProtected } from './stakes';
 
-const createVdf = require('@subspace/vdf').default;
+import {SlothPermutationWrapper} from './SlothPermutationWrapper';
 (global as any).document = { }; // yikes!
 
 class BlockchainValueOp extends MutationOp {
@@ -16,7 +17,7 @@ class BlockchainValueOp extends MutationOp {
     static className = 'hhs/v0/examples/BlockchainValueOp';
 
     static vdfInit = async () => {
-        BlockchainValueOp.vdfVerifier = await createVdf();
+        BlockchainValueOp.vdfVerifier = await SlothPermutationWrapper.instantiate();
     };
     static vdfVerifier: any;
     static coins: bigint = BigInt(10);
@@ -108,11 +109,11 @@ class BlockchainValueOp extends MutationOp {
             challenge = Hashing.toHex(prev.hash());
         }
 
-        // using the challenge as temporary VRF seed.
+        // TODO: using the challenge as temporary VRF seed. Replace this with VRF seed hashed with prev hash block!
         const steps = vdfStepsByStakeDiscreteProtected(
             BlockchainValueOp.coins,
             BigInt((this.getTarget() as Blockchain).totalCoins as string),
-            BigInt( '0x'+challenge )
+            BigInt( '0x'+challenge ) // TODO: replace with VRF seed + hashing with prev block hash.
             ); 
         console.log( 'Verify Steps = ' + steps );
         //(this.getTarget() as Blockchain).steps as number;
@@ -124,8 +125,11 @@ class BlockchainValueOp extends MutationOp {
 
         const challengeBuffer = Buffer.from(challenge, 'hex');
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
+        // TODO: using the challenge as temporary VRF seed. Replace this with VRF seed hashed with prev hash block!
+        const randomSeedVRF = createHash('sha512').update(challenge).digest();
 
-        if (!BlockchainValueOp.vdfVerifier.verify(Number(steps), challengeBuffer, resultBuffer, VDF.BITS, true)) {
+        if (!BlockchainValueOp.vdfVerifier.verifyProofVDF(randomSeedVRF, Number(steps), challengeBuffer, resultBuffer)) {
+        //if (!BlockchainValueOp.vdfVerifier.verify(Number(steps), challengeBuffer, resultBuffer, VDF.BITS, true)) {
             console.log('VDF verification failed.');
             return false;
         }

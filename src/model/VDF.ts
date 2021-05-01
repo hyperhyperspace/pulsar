@@ -1,6 +1,7 @@
 //import { Logger, LogLevel } from "util/logging";
 
-const createVdf = require('@subspace/vdf').default;
+import {createHash} from "crypto";
+import {SlothPermutationWrapper} from './SlothPermutationWrapper';
 (global as any).document = { }; // yikes!
 
 class VDF {
@@ -11,19 +12,21 @@ class VDF {
 
     static async compute(challenge: string, steps: number): Promise<string> {
 
-        
-
         console.log('Creating VDF instance...');
-        const vdfInstance = await createVdf();
+        const vdfInstance = await SlothPermutationWrapper.instantiate();
         console.log('Computing VDF...');
         const tGen = Date.now();
-        const result = vdfInstance.generate(steps, Buffer.from(challenge, 'hex'), VDF.BITS, true);
+
+        // TODO: warning !using the challenge as temporary VRF seed. Replace this with VRF seed hashed with prev hash block!
+        const randomSeedVRF = createHash('sha512').update(challenge).digest();
+
+        const result = vdfInstance.generateProofVDF(randomSeedVRF,steps, Buffer.from(challenge, 'hex'));
         const elapsedGen = Date.now() - tGen;
         console.log('Done computing VDF, took ' + elapsedGen + ' millis');
 
         const tVerif = Date.now();
 
-        console.log('VDF self verification: ' + vdfInstance.verify(steps, Buffer.from(challenge, 'hex'), result, VDF.BITS, true));
+        console.log('VDF self verification: ' + vdfInstance.verifyProofVDF(randomSeedVRF, steps, Buffer.from(challenge, 'hex'), result));
 
         const elapsedVerif = Date.now() - tVerif;
 
