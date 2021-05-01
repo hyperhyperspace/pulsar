@@ -4,6 +4,7 @@ import { Hashing, Hash, HashedObject, MutationOp } from '@hyper-hyper-space/core
 //import { Logger, LogLevel } from '@hyper-hyper-space/core';
 
 import { Blockchain } from './Blockchain';
+import { MiniComptroller } from './MiniComptroller';
 import { VDF } from './VDF';
 import { vdfStepsByStakeDiscreteProtected } from './stakes';
 
@@ -19,9 +20,12 @@ class BlockchainValueOp extends MutationOp {
     static vdfInit = async () => {
         const blockSize = 256
         BlockchainValueOp.vdfVerifier = await SlothPermutation.instantiate(blockSize);
+        BlockchainValueOp.comptroller = new MiniComptroller();
     };
     static vdfVerifier: any;
-    static coins: bigint = BigInt(10);
+    static comptroller: any;
+    static coins: bigint = BigInt(0);
+    static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(100);
 
     seq?: number;
     vdfResult?: string;
@@ -110,11 +114,12 @@ class BlockchainValueOp extends MutationOp {
             challenge = Hashing.toHex(prev.hash());
         }
 
-        // TODO: using the challenge as temporary VRF seed. Replace this with VRF seed hashed with prev hash block!
-        const steps = vdfStepsByStakeDiscreteProtected(
+        // TODO: warning! using the challenge as temporary VRF seed. Replace this with VRF seed hashed with prev hash block!
+        const seedVRF = BigInt( '0x'+challenge ) // TODO: warning! replace with VRF seed + hashing with prev block hash.
+        const steps = BlockchainValueOp.comptroller.getConsensusDifficulty(
             BlockchainValueOp.coins,
-            BigInt((this.getTarget() as Blockchain).totalCoins as string),
-            BigInt( '0x'+challenge ) // TODO: replace with VRF seed + hashing with prev block hash.
+            BlockchainValueOp.totalCoins,
+            seedVRF,
             ); 
         console.log( 'Verify Steps = ' + steps );
         //(this.getTarget() as Blockchain).steps as number;

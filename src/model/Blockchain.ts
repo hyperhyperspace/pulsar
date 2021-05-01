@@ -67,12 +67,13 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     race() {
         if (this._computation === undefined) {
 
-            // using the challenge as temporary VRF seed.
-            const steps = vdfStepsByStakeDiscreteProtected(
+            // TODO: warning! using the challenge as temporary VRF seed. Replace this with VRF seed hashed with prev hash block!
+            const seedVRF = BigInt( '0x'+this.currentChallenge() ) // TODO: warning! replace with VRF seed + hashing with prev block hash.
+            const steps = BlockchainValueOp.comptroller.getConsensusDifficulty(
                 BlockchainValueOp.coins,
-                BigInt(this.totalCoins),
-                BigInt( '0x'+this.currentChallenge() )
-             ); 
+                BlockchainValueOp.totalCoins,
+                seedVRF,
+                ); 
 
             console.log('Racing for challenge (' + steps + ' steps): "' + this.currentChallenge() + '".');
 
