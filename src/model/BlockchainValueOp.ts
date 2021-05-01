@@ -7,7 +7,7 @@ import { Blockchain } from './Blockchain';
 import { VDF } from './VDF';
 import { vdfStepsByStakeDiscreteProtected } from './stakes';
 
-import {SlothPermutationWrapper} from './SlothPermutationWrapper';
+import {SlothPermutation} from '@hyper-hyper-space/sloth-permutation';
 (global as any).document = { }; // yikes!
 
 class BlockchainValueOp extends MutationOp {
@@ -17,7 +17,8 @@ class BlockchainValueOp extends MutationOp {
     static className = 'hhs/v0/examples/BlockchainValueOp';
 
     static vdfInit = async () => {
-        BlockchainValueOp.vdfVerifier = await SlothPermutationWrapper.instantiate();
+        const blockSize = 256
+        BlockchainValueOp.vdfVerifier = await SlothPermutation.instantiate(blockSize);
     };
     static vdfVerifier: any;
     static coins: bigint = BigInt(10);
@@ -125,11 +126,7 @@ class BlockchainValueOp extends MutationOp {
 
         const challengeBuffer = Buffer.from(challenge, 'hex');
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
-        // TODO: using the challenge as temporary VRF seed. Replace this with VRF seed hashed with prev hash block!
-        const randomSeedVRF = createHash('sha512').update(challenge).digest();
-
-        if (!BlockchainValueOp.vdfVerifier.verifyProofVDF(randomSeedVRF, Number(steps), challengeBuffer, resultBuffer)) {
-        //if (!BlockchainValueOp.vdfVerifier.verify(Number(steps), challengeBuffer, resultBuffer, VDF.BITS, true)) {
+        if (!BlockchainValueOp.vdfVerifier.verifyProofVDF(Number(steps), challengeBuffer, resultBuffer)) {
             console.log('VDF verification failed.');
             return false;
         }
