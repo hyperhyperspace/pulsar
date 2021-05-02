@@ -17,16 +17,15 @@ class BlockchainValueOp extends MutationOp {
     static className = 'hhs/v0/examples/BlockchainValueOp';
 
     static vdfInit = async () => {
-        const blockSize = 256
+        const blockSize = 64
         BlockchainValueOp.vdfVerifier = await SlothPermutation.instantiate(blockSize);
         BlockchainValueOp.comptroller = new MiniComptroller();
     };
     static vdfVerifier: any;
     static comptroller: any;
     static coins: bigint = BigInt(0);
-    static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(5);
+    static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(2);
 
-    
     vdfResult?: string;
     
     blockNumber?: bigint;
@@ -161,7 +160,8 @@ class BlockchainValueOp extends MutationOp {
 
         const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
         const challengeBuffer = Buffer.from(challenge, 'hex');
-        const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer])
+        //const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer])
+        const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer])
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
         const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
         if (!BlockchainValueOp.vdfVerifier.verifyProofVDF(Number(steps), challenge256, resultBuffer)) {
@@ -207,9 +207,9 @@ class BlockchainValueOp extends MutationOp {
             comptroller.setMovingMinSpeed(prevOp.movingMinSpeed as bigint);
             comptroller.setBlockTimeFactor(prevOp.blockTimeFactor as bigint);
         } else {
-            comptroller.setBlockTimeFactor(BigInt(1000) * FixedPoint.UNIT)
-            comptroller.setMovingMaxSpeed(BigInt(10000) * FixedPoint.UNIT);
-            comptroller.setMovingMinSpeed(BigInt(5000) * FixedPoint.UNIT);
+            comptroller.setBlockTimeFactor(BigInt(100) * FixedPoint.UNIT)
+            comptroller.setMovingMaxSpeed(BigInt(750) * FixedPoint.UNIT);
+            comptroller.setMovingMinSpeed(BigInt(500) * FixedPoint.UNIT);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         }
 

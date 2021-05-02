@@ -12,13 +12,15 @@ class VDF {
     static async compute(challenge: string, steps: number): Promise<string> {
 
         console.log('Creating VDF instance...');
-        const blockSize = 256
+        const blockSize = 64
         const vdfInstance = await SlothPermutation.instantiate(blockSize);
         console.log('Computing VDF...');
         const tGen = Date.now();
 
         const bufferChallenge = Buffer.from(challenge, 'hex')
-        const challenge256 = Buffer.concat([bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge])
+        //const challenge256 = Buffer.concat([bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge])
+        const challenge256 = Buffer.concat([bufferChallenge,bufferChallenge])
+        console.log('VDF Steps: ' + steps + ' steps');
         const result = vdfInstance.generateProofVDF(steps, challenge256);
         const elapsedGen = Date.now() - tGen;
         console.log('Done computing VDF, took ' + elapsedGen + ' millis');
