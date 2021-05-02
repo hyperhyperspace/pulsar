@@ -179,9 +179,9 @@ class BlockchainValueOp extends MutationOp {
         let challenge: string;
 
         if (prevOpHash === undefined) {
-            challenge = this.getTarget().getId() as string;
+            challenge = Hashing.sha.sha256hex(this.getTarget().getId() as string);
         } else {
-            challenge = Hashing.toHex(prevOpHash);
+            challenge = Hashing.sha.sha256hex(prevOpHash);
         }
 
         return challenge;
