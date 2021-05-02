@@ -1,12 +1,11 @@
 
-import {createHash} from "crypto";
+//import {createHash} from "crypto";
 import { Hashing, Hash, HashedObject, MutationOp } from '@hyper-hyper-space/core';
 //import { Logger, LogLevel } from '@hyper-hyper-space/core';
 
 import { Blockchain } from './Blockchain';
-import { MiniComptroller } from './MiniComptroller';
-import { VDF } from './VDF';
-import { vdfStepsByStakeDiscreteProtected } from './stakes';
+import { MiniComptroller, FixedPoint } from './MiniComptroller';
+//import { VDF } from './VDF';
 
 import {SlothPermutation} from '@hyper-hyper-space/sloth-permutation';
 (global as any).document = { }; // yikes!
@@ -25,18 +24,46 @@ class BlockchainValueOp extends MutationOp {
     static vdfVerifier: any;
     static comptroller: any;
     static coins: bigint = BigInt(0);
-    static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(100);
+    static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(5);
 
-    seq?: number;
+    
     vdfResult?: string;
     
-    constructor(target?: Blockchain, seq?: number, vdfResult?: string) {
+    blockNumber?: bigint;
+    movingMaxSpeed?: bigint;
+    movingMinSpeed?: bigint;
+    blockTimeFactor?: bigint;
+
+    timestampSeconds?: number; 
+
+    _comptroller?: MiniComptroller;
+
+    constructor(target?: Blockchain, prevOp?: BlockchainValueOp, vdfResult?: string) {
         super(target);
 
-        if (seq !== undefined && vdfResult !== undefined) {
-            this.seq = seq;
-            this.vdfResult = vdfResult.toUpperCase();
+        if (target !== undefined && vdfResult !== undefined) {
+
+            this.timestampSeconds = Date.now() / 1000;
+
+            const blocktime = prevOp !== undefined? 
+                                BigInt(this.timestampSeconds - (prevOp.timestampSeconds as number))
+                            :
+                                MiniComptroller.targetBlockTime; // FIXME: initial block time
+
+            const comp = this.initializeComptroller(prevOp);
+
+            const challenge = this.getChallenge(prevOp?.hash());
+            // TODO: warning! replace with VRF seed + hashing with prev block hash.
+            const steps = this.getVDFSteps(challenge)
+
+            comp.addBlockSample(blocktime, steps);
+
+            this.blockNumber = comp.getBlockNumber();
+            this.movingMaxSpeed = comp.getMovingMaxSpeed();
+            this.movingMinSpeed = comp.getMovingMinSpeed();
+            this.blockTimeFactor = comp.getBlockTimeFactor();
         }
+
     }
 
     getClassName(): string {
@@ -49,13 +76,18 @@ class BlockchainValueOp extends MutationOp {
 
     validate(references: Map<Hash, HashedObject>): boolean {
 
-        if (this.seq === undefined || this.vdfResult === undefined) {
+        if (this.blockNumber === undefined || this.vdfResult === undefined) {
             console.log('Object is incomplete.');
             return false;
         }
 
-        if (this.seq < 0) {
+        if (this.blockNumber < 0) {
             console.log('Sequence number is negative.');
+            return false;
+        }
+
+        if (this.timestampSeconds === undefined) {
+            console.log('Missing timestamp');
             return false;
         }
 
@@ -79,22 +111,16 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
 
-        let challenge: string;
+        let prev: HashedObject | undefined = undefined;
         
-        if (this.prevOps.size() === 0) {
-            if (this.seq !== 0) {
-                console.log('PrevOps is empty and sequence is not 0.');
-                return false;
-            }
+        if (this.prevOps.size() > 0) {
 
-            challenge = this.getTarget().getId() as string;
-        } else {
             if (this.prevOps.size() !== 1) {
                 console.log('PrevOps size is not 0 or 1.');
                 return false;
             }
 
-            let prev = references.get(this.prevOps.values().next().value.hash);
+            prev = references.get(this.prevOps.values().next().value.hash);
 
             if (!(prev instanceof BlockchainValueOp)) {
                 console.log('prevOP is not an instance of BlockchainValueOp.');
@@ -105,40 +131,88 @@ class BlockchainValueOp extends MutationOp {
                 console.log('The prevOp and this op targets differ.');
                 return false;
             }
+        }
 
-            if ((prev.seq as number) + 1 !== this.seq) {
-                console.log('Sequence number is not prevOps + 1.');
+        const prevOp: BlockchainValueOp | undefined = prev;
+
+        {
+            
+            const blocktime = prevOp !== undefined? 
+                                    BigInt((this.timestampSeconds as number) - (prevOp.timestampSeconds as number))
+                                :
+                                    MiniComptroller.targetBlockTime; // FIXME: initial block time
+                            
+            const comp = this.initializeComptroller(prev);
+
+            if (!comp.updateOrTestBlockTimeActionable(blocktime)) {
+                console.log('Comptroller rejected blockTimeFactor');
                 return false;
             }
 
-            challenge = Hashing.toHex(prev.hash());
-        }
+            if (!comp.updateOrTestSpeedRatioTarget(this.movingMaxSpeed, this.movingMinSpeed)) {
 
-        // TODO: warning! using the challenge as temporary VRF seed. Replace this with VRF seed hashed with prev hash block!
-        const seedVRF = BigInt( '0x'+challenge ) // TODO: warning! replace with VRF seed + hashing with prev block hash.
-        const steps = BlockchainValueOp.comptroller.getConsensusDifficulty(
-            BlockchainValueOp.coins,
-            BlockchainValueOp.totalCoins,
-            seedVRF,
-            ); 
-        console.log( 'Verify Steps = ' + steps );
-        //(this.getTarget() as Blockchain).steps as number;
+            }
+
+        }
 
         if (this.vdfResult.toUpperCase() !== this.vdfResult) {
             console.log('VDF result is not uppercase');
             return false;
         }
 
+        const challenge = this.getChallenge(prevOp?.hash());
         const challengeBuffer = Buffer.from(challenge, 'hex');
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
+        const steps = this.getVDFSteps(challenge)
         if (!BlockchainValueOp.vdfVerifier.verifyProofVDF(Number(steps), challengeBuffer, resultBuffer)) {
             console.log('VDF verification failed.');
             return false;
         }
 
-        console.log('Successfully received proof for sequence number ' + this.seq + '.');
+        console.log('Successfully received proof for sequence number ' + this.blockNumber + '.');
 
         return true;
+
+    }
+
+    private getChallenge(prevOpHash?: Hash) {
+        let challenge: string;
+
+        if (prevOpHash === undefined) {
+            challenge = this.getTarget().getId() as string;
+        } else {
+            challenge = Hashing.toHex(prevOpHash);
+        }
+
+        return challenge;
+    }
+
+    private getVDFSteps(challenge: string) {
+        // TODO: warning! using the challenge as temporary VRF seed. Replace this with VRF seed hashed with prev hash block!
+        const seedVRF = BigInt( '0x'+challenge ) // TODO: warning! replace with VRF seed + hashing with prev block hash.
+        const steps = BlockchainValueOp.comptroller.getConsensusDifficulty(
+                                                        BlockchainValueOp.coins,
+                                                        BlockchainValueOp.totalCoins,
+                                                        seedVRF,
+                                                    );
+        return steps;
+    }
+
+    private initializeComptroller(prevOp?: BlockchainValueOp): MiniComptroller {
+        const comptroller = new MiniComptroller();
+
+        if (prevOp !== undefined) {
+            comptroller.setBlockNumber(prevOp.blockNumber as bigint);
+            comptroller.setMovingMaxSpeed(prevOp.movingMaxSpeed as bigint);
+            comptroller.setMovingMinSpeed(prevOp.movingMinSpeed as bigint);
+            comptroller.setBlockTimeFactor(prevOp.blockTimeFactor as bigint);
+        } else {
+            comptroller.setBlockTimeFactor(BigInt(1000) * FixedPoint.UNIT)
+        }
+
+        comptroller.setMaxSpeedRatio(BigInt(4) * FixedPoint.UNIT);
+
+        return comptroller;
 
     }
 

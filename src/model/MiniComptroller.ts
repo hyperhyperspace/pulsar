@@ -67,7 +67,7 @@ class MiniComptroller implements Comptroller {
     ///////////
 
     // basic metrics
-    private blockNumber: bigint = BigInt(1);
+    private blockNumber: bigint = BigInt(0);
     private difficulty: bigint = BigInt(1);
 
     // complex metrics
@@ -133,7 +133,14 @@ class MiniComptroller implements Comptroller {
     }
 
 
-    updateOrTestSpeedRatioTarget(newMovingMaxSpeed?: bigint, newMovingMinSpeed?: bigint, newSpeedRatio?: bigint): boolean {
+    updateOrTestSpeedRatioTarget(newMovingMaxSpeed?: bigint, newMovingMinSpeed?: bigint): boolean {
+        
+        if (newMovingMaxSpeed === undefined || newMovingMinSpeed === undefined) {
+            return false;
+        }
+
+        const newSpeedRatio = FixedPoint.divTrunc(newMovingMaxSpeed, newMovingMinSpeed)
+        
         // backup
         var backupMovingMaxSpeed = this.movingMaxSpeed
         var backupMovingMinSpeed = this.movingMinSpeed
@@ -262,6 +269,10 @@ class MiniComptroller implements Comptroller {
 
     setBlockNumber(blockNumber: bigint){
         this.blockNumber = blockNumber
+    }
+
+    getBlockNumber() {
+        return this.blockNumber;
     }
 
     setBlockTimeFactor(blockTimeFactor: bigint){
