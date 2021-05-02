@@ -17,7 +17,7 @@ import { BlockchainValueOp as BlockchainValueOp } from './BlockchainValueOp';
 
 import { Worker } from 'worker_threads';
 //import { Logger, LogLevel } from 'util/logging';
-import { vdfStepsByStakeDiscreteProtected } from './stakes';
+//import { vdfStepsByStakeDiscreteProtected } from './stakes';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
 
@@ -128,14 +128,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             return this.getId() as string;
         } else {
             return Hashing.toHex(this._lastOp.hash());
-        }
-    }
-
-    private currentSeq() {
-        if (this._lastOp === undefined) {
-            return 0;
-        } else {
-            return (this._lastOp.blockNumber as number) + 1;
         }
     }
 
