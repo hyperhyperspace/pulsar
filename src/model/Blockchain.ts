@@ -17,7 +17,6 @@ import { BlockchainValueOp as BlockchainValueOp } from './BlockchainValueOp';
 
 import { Worker } from 'worker_threads';
 //import { Logger, LogLevel } from 'util/logging';
-import { vdfStepsByStakeDiscreteProtected } from './stakes';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
 
@@ -84,7 +83,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 console.log('Solved challenge "' + msg.challenge + '" with: "' + msg.result + '".');
 
                 if (msg.challenge === this.currentChallenge()) {
-                    let op = new BlockchainValueOp(this, this.currentSeq(), msg.result);
+                    let op = new BlockchainValueOp(this, this._lastOp, msg.result);
 
                     if (this._lastOp !== undefined) {
                         op.setPrevOps(new Set([this._lastOp]).values());
@@ -131,6 +130,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         }
     }
 
+    /*
     private currentSeq() {
         if (this._lastOp === undefined) {
             return 0;
@@ -138,7 +138,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             return (this._lastOp.seq as number) + 1;
         }
     }
-
+    */
 
     async mutate(op: MutationOp, _isNew: boolean): Promise<boolean> {
        
