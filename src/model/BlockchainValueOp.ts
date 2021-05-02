@@ -1,6 +1,6 @@
 
 //import {createHash} from "crypto";
-import { Hashing, Hash, HashedObject, MutationOp } from '@hyper-hyper-space/core';
+import { Hash, HashedObject, Hashing, MutationOp } from '@hyper-hyper-space/core';
 //import { Logger, LogLevel } from '@hyper-hyper-space/core';
 
 import { Blockchain } from './Blockchain';
@@ -175,11 +175,11 @@ class BlockchainValueOp extends MutationOp {
 
     }
 
-    private getChallenge(prevOpHash?: Hash) {
+    getChallenge(prevOpHash?: Hash) {
         let challenge: string;
 
         if (prevOpHash === undefined) {
-            challenge = Hashing.sha.sha256hex(this.getTarget().getId() as string);
+            challenge = (this.getTarget() as Blockchain).getInitialChallenge();
         } else {
             challenge = Hashing.sha.sha256hex(prevOpHash);
         }
