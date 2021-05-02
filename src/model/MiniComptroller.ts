@@ -191,7 +191,7 @@ class MiniComptroller /*implements Comptroller*/ {
     // Difficulty internal
     slotByStake(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint {
         if (this.blockNumber < MiniComptroller.bootstrapPeriod)
-            totalCoins += MiniComptroller.bootstrapVirtualStake
+            coins += MiniComptroller.bootstrapVirtualStake
         var slots: bigint = FixedPoint.divTrunc(totalCoins, coins) 
         if (FixedPoint.mulTrunc(slots, coins) < totalCoins)
             slots += FixedPoint.UNIT
@@ -217,7 +217,7 @@ class MiniComptroller /*implements Comptroller*/ {
 
     slotByStakeWithNoise(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint {
         if (this.blockNumber < MiniComptroller.bootstrapPeriod)
-            totalCoins += MiniComptroller.bootstrapVirtualStake
+            coins += MiniComptroller.bootstrapVirtualStake
         var slots: bigint = FixedPoint.divTrunc(totalCoins, coins) 
         if (FixedPoint.mulTrunc(slots, coins) < totalCoins)
             slots += FixedPoint.UNIT
