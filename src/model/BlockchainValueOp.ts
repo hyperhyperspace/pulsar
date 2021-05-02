@@ -48,11 +48,11 @@ class BlockchainValueOp extends MutationOp {
                             :
                                 MiniComptroller.targetBlockTime; // FIXME: initial block time
 
-            const comp = this.initializeComptroller(prevOp);
+            const comp = BlockchainValueOp.initializeComptroller(prevOp);
 
-            const challenge = this.getChallenge(prevOp?.hash());
+            const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
             // TODO: warning! replace with VRF seed + hashing with prev block hash.
-            const steps = this.getVDFSteps(challenge)
+            const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
 
             comp.addBlockSample(blocktime, steps);
 
@@ -133,37 +133,37 @@ class BlockchainValueOp extends MutationOp {
 
         const prevOp: BlockchainValueOp | undefined = prev;
 
-        {
+        
             
-            const blocktime = prevOp !== undefined? 
-                                    BigInt((this.timestampSeconds as number) - (prevOp.timestampSeconds as number))
-                                :
-                                    MiniComptroller.targetBlockTime; // FIXME: initial block time
-                            
-            const comp = this.initializeComptroller(prev);
+        const blocktime = prevOp !== undefined? 
+                                BigInt((this.timestampSeconds as number) - (prevOp.timestampSeconds as number))
+                            :
+                                MiniComptroller.targetBlockTime; // FIXME: initial block time
+                        
+        const comp = BlockchainValueOp.initializeComptroller(prev);
 
-            if (!comp.updateOrTestBlockTimeActionable(blocktime)) {
-                console.log('Comptroller rejected blockTimeFactor');
-                return false;
-            }
-
-            if (!comp.updateOrTestSpeedRatioTarget(this.movingMaxSpeed, this.movingMinSpeed)) {
-                console.log('Comptroller rejected movingMaxSpeed/movingMinSpeed');
-                return false;
-            }
-
+        if (!comp.updateOrTestBlockTimeActionable(blocktime)) {
+            console.log('Comptroller rejected blockTimeFactor');
+            return false;
         }
+
+        if (!comp.updateOrTestSpeedRatioTarget(this.movingMaxSpeed, this.movingMinSpeed)) {
+            console.log('Comptroller rejected movingMaxSpeed/movingMinSpeed');
+            return false;
+        }
+
+        
 
         if (this.vdfResult.toUpperCase() !== this.vdfResult) {
             console.log('VDF result is not uppercase');
             return false;
         }
 
-        const challenge = this.getChallenge(prevOp?.hash());
+        const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
         const challengeBuffer = Buffer.from(challenge, 'hex');
         const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer])
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
-        const steps = this.getVDFSteps(challenge)
+        const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
         if (!BlockchainValueOp.vdfVerifier.verifyProofVDF(Number(steps), challenge256, resultBuffer)) {
             console.log('VDF verification failed.');
             return false;
@@ -175,11 +175,11 @@ class BlockchainValueOp extends MutationOp {
 
     }
 
-    getChallenge(prevOpHash?: Hash) {
+    static getChallenge(target: Blockchain, prevOpHash?: Hash) {
         let challenge: string;
 
         if (prevOpHash === undefined) {
-            challenge = (this.getTarget() as Blockchain).getInitialChallenge();
+            challenge = target.getInitialChallenge();
         } else {
             challenge = Hashing.sha.sha256hex(prevOpHash);
         }
@@ -187,18 +187,18 @@ class BlockchainValueOp extends MutationOp {
         return challenge;
     }
 
-    private getVDFSteps(challenge: string) {
+    static getVDFSteps(comp: MiniComptroller, challenge: string) {
         // TODO: warning! using the challenge as temporary VRF seed. Replace this with VRF seed hashed with prev hash block!
         const seedVRF = BigInt( '0x'+challenge ) // TODO: warning! replace with VRF seed + hashing with prev block hash.
-        const steps = BlockchainValueOp.comptroller.getConsensusDifficulty(
-                                                        BlockchainValueOp.coins,
-                                                        BlockchainValueOp.totalCoins,
-                                                        seedVRF,
-                                                    );
+        const steps = comp.getConsensusDifficulty(
+                                            BlockchainValueOp.coins,
+                                            BlockchainValueOp.totalCoins,
+                                            seedVRF,
+                                        );
         return steps;
     }
 
-    private initializeComptroller(prevOp?: BlockchainValueOp): MiniComptroller {
+    static initializeComptroller(prevOp?: BlockchainValueOp): MiniComptroller {
         const comptroller = new MiniComptroller();
 
         if (prevOp !== undefined) {
