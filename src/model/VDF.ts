@@ -17,6 +17,7 @@ class VDF {
         console.log('Computing VDF...');
         const tGen = Date.now();
 
+        
         const result = vdfInstance.generateProofVDF(steps, Buffer.from(challenge, 'hex'));
         const elapsedGen = Date.now() - tGen;
         console.log('Done computing VDF, took ' + elapsedGen + ' millis');

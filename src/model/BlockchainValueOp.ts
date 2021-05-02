@@ -48,7 +48,7 @@ class BlockchainValueOp extends MutationOp {
                             :
                                 MiniComptroller.targetBlockTime; // FIXME: initial block time
 
-            BlockchainValueOp.comptroller = this.initializeComptroller(prevOp);
+            const comp = this.initializeComptroller(prevOp);
 
             const challenge = this.getChallenge(prevOp?.hash());
             // TODO: warning! replace with VRF seed + hashing with prev block hash.

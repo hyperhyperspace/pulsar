@@ -1,5 +1,5 @@
 //import { JSEncrypt } from 'jsencrypt';
-import { Comptroller } from './Comptroller';
+//import { Comptroller } from './Comptroller';
 
 class FixedPoint {
 
@@ -32,7 +32,7 @@ class FixedPoint {
 }
 
 
-class MiniComptroller implements Comptroller {
+class MiniComptroller /*implements Comptroller*/ {
 
       ////////////////
      // Parameters //
