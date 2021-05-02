@@ -17,14 +17,15 @@ class VDF {
         console.log('Computing VDF...');
         const tGen = Date.now();
 
-        
-        const result = vdfInstance.generateProofVDF(steps, Buffer.from(challenge, 'hex'));
+        const bufferChallenge = Buffer.from(challenge, 'hex')
+        const challenge256 = Buffer.concat([bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge])
+        const result = vdfInstance.generateProofVDF(steps, challenge256);
         const elapsedGen = Date.now() - tGen;
         console.log('Done computing VDF, took ' + elapsedGen + ' millis');
 
         const tVerif = Date.now();
 
-        console.log('VDF self verification: ' + vdfInstance.verifyProofVDF(steps, Buffer.from(challenge, 'hex'), result));
+        console.log('VDF self verification: ' + vdfInstance.verifyProofVDF(steps, challenge256, result));
 
         const elapsedVerif = Date.now() - tVerif;
 

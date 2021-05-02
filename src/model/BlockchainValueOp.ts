@@ -161,9 +161,10 @@ class BlockchainValueOp extends MutationOp {
 
         const challenge = this.getChallenge(prevOp?.hash());
         const challengeBuffer = Buffer.from(challenge, 'hex');
+        const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer])
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
         const steps = this.getVDFSteps(challenge)
-        if (!BlockchainValueOp.vdfVerifier.verifyProofVDF(Number(steps), challengeBuffer, resultBuffer)) {
+        if (!BlockchainValueOp.vdfVerifier.verifyProofVDF(Number(steps), challenge256, resultBuffer)) {
             console.log('VDF verification failed.');
             return false;
         }
