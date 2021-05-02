@@ -150,7 +150,8 @@ class BlockchainValueOp extends MutationOp {
             }
 
             if (!comp.updateOrTestSpeedRatioTarget(this.movingMaxSpeed, this.movingMinSpeed)) {
-
+                console.log('Comptroller rejected movingMaxSpeed/movingMinSpeed');
+                return false;
             }
 
         }
