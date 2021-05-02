@@ -268,6 +268,10 @@ class MiniComptroller implements Comptroller {
         this.blockNumber = blockNumber
     }
 
+    getBlockNumber() {
+        return this.blockNumber;
+    }
+
     setBlockTimeFactor(blockTimeFactor: bigint){
         this.blockTimeFactor = blockTimeFactor
     }

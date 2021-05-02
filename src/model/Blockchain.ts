@@ -72,7 +72,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 BlockchainValueOp.coins,
                 BlockchainValueOp.totalCoins,
                 seedVRF,
-                ); 
+                );
 
             console.log('Racing for challenge (' + steps + ' steps): "' + this.currentChallenge() + '".');
 
