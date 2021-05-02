@@ -18,6 +18,7 @@ interface Comptroller {
     getConsensusBlockReward(): bigint;
     getBlockTimeFactor(): bigint;
     getSpeedRatio(): bigint;
+    setSpeedRatio(speedRatio: bigint): void;
     setBlockNumber(blockNumber: bigint): void;
     setBlockTimeFactor(blockTimeFactor: bigint): void
     getMovingMaxSpeed(): bigint
