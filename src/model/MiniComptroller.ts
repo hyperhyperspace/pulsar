@@ -1,5 +1,5 @@
 //import { JSEncrypt } from 'jsencrypt';
-//import { Comptroller } from './Comptroller';
+import { Comptroller } from './Comptroller';
 
 class FixedPoint {
 
@@ -32,7 +32,7 @@ class FixedPoint {
 }
 
 
-class MiniComptroller /*implements Comptroller*/ {
+class MiniComptroller implements Comptroller {
 
       ////////////////
      // Parameters //
@@ -57,8 +57,8 @@ class MiniComptroller /*implements Comptroller*/ {
     private maxSpeedRatio: bigint = BigInt(31) * (FixedPoint.UNIT/BigInt(10)); // 3.1 * UNIT
     private minSpeedRatio: bigint = BigInt(13) * (FixedPoint.UNIT/BigInt(10)); // 1.3 * UNIT
     static initialMovingMaxSpeed: bigint = BigInt(15000) * FixedPoint.UNIT;
-    static initialMovingMinSpeed: bigint = BigInt(5000) * FixedPoint.UNIT;
-    static speedRatio = MiniComptroller.initialMovingMaxSpeed / MiniComptroller.initialMovingMinSpeed;
+    static initialMovingMinSpeed: bigint = BigInt(5000) * FixedPoint.UNIT
+    static speedRatio = FixedPoint.divTrunc( MiniComptroller.initialMovingMaxSpeed, MiniComptroller.initialMovingMinSpeed);
 
     static noiseFractionSlots: bigint = BigInt(10) * (FixedPoint.UNIT/BigInt(10**2)); // 0.10 * UNIT
 
@@ -67,7 +67,7 @@ class MiniComptroller /*implements Comptroller*/ {
     ///////////
 
     // basic metrics
-    private blockNumber: bigint = BigInt(0);
+    private blockNumber: bigint = BigInt(1);
     private difficulty: bigint = BigInt(1);
 
     // complex metrics
@@ -133,14 +133,7 @@ class MiniComptroller /*implements Comptroller*/ {
     }
 
 
-    updateOrTestSpeedRatioTarget(newMovingMaxSpeed?: bigint, newMovingMinSpeed?: bigint): boolean {
-        
-        if (newMovingMaxSpeed === undefined || newMovingMinSpeed === undefined) {
-            return false;
-        }
-
-        const newSpeedRatio = FixedPoint.divTrunc(newMovingMaxSpeed, newMovingMinSpeed)
-        
+    updateOrTestSpeedRatioTarget(newMovingMaxSpeed?: bigint, newMovingMinSpeed?: bigint, newSpeedRatio?: bigint): boolean {
         // backup
         var backupMovingMaxSpeed = this.movingMaxSpeed
         var backupMovingMinSpeed = this.movingMinSpeed
@@ -191,7 +184,7 @@ class MiniComptroller /*implements Comptroller*/ {
     // Difficulty internal
     slotByStake(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint {
         if (this.blockNumber < MiniComptroller.bootstrapPeriod)
-            coins += MiniComptroller.bootstrapVirtualStake
+            totalCoins += MiniComptroller.bootstrapVirtualStake
         var slots: bigint = FixedPoint.divTrunc(totalCoins, coins) 
         if (FixedPoint.mulTrunc(slots, coins) < totalCoins)
             slots += FixedPoint.UNIT
@@ -217,7 +210,7 @@ class MiniComptroller /*implements Comptroller*/ {
 
     slotByStakeWithNoise(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint {
         if (this.blockNumber < MiniComptroller.bootstrapPeriod)
-            coins += MiniComptroller.bootstrapVirtualStake
+            totalCoins += MiniComptroller.bootstrapVirtualStake
         var slots: bigint = FixedPoint.divTrunc(totalCoins, coins) 
         if (FixedPoint.mulTrunc(slots, coins) < totalCoins)
             slots += FixedPoint.UNIT
@@ -263,16 +256,16 @@ class MiniComptroller /*implements Comptroller*/ {
         return this.blockTimeFactor
     }
 
-    getSpeedRatio() {
+    getSpeedRatio(): bigint {
         return this.speedRatio
+    }
+
+    setSpeedRatio(speedRatio: bigint): void {
+        this.speedRatio = speedRatio
     }
 
     setBlockNumber(blockNumber: bigint){
         this.blockNumber = blockNumber
-    }
-
-    getBlockNumber() {
-        return this.blockNumber;
     }
 
     setBlockTimeFactor(blockTimeFactor: bigint){
