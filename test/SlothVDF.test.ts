@@ -123,13 +123,12 @@ describe('[SlothVDF]', () => {
     test('[VDF07] bigint export/import from buffers of arbitrary size = 256 bits and VDF test', () => {
 
         let challenge = Buffer.from('c8774beca835214089860e8b01157c6c883c70f4a25e83d190b577f7f56bcfd3', 'hex')
-        const t = BigInt(653) // 65368
+        const t = BigInt(200) // 65368
         const sloth = new SlothPermutation();    
         // 256 bits prime
-        SlothPermutation.p = BigInt('62862552810010221080253752317266219938884120069061220269924174176771311327197') 
+        SlothPermutation.p = BigInt('64106875808534963770974826322234655855469213855659218736479077548818158667371') 
         let proof = sloth.generateBufferProofVDF(t, challenge, 32)
         expect(sloth.verifyBufferProofVDF(t, challenge, proof, 32)).toBeTruthy();
-        /*
         challenge = proof
         let proof2 = sloth.generateBufferProofVDF(t, challenge, 32)
         expect(sloth.verifyBufferProofVDF(t, challenge, proof2, 32)).toBeTruthy();
@@ -152,9 +151,30 @@ describe('[SlothVDF]', () => {
         expect(proof3 === proof4 ).toEqual(false)
         expect(proof3 === proof5 ).toEqual(false)
         expect(proof4 === proof5 ).toEqual(false)
-        */
     
     });
+
+    test('[VDF08] bigint export/import from buffers of arbitrary size = 128 bits and VDF test', () => {
+
+        let challenge = Buffer.from('137010851887946622574152571239132315287', 'hex')
+        const t = BigInt(200)   
+        const sloth = new SlothPermutation();    
+        SlothPermutation.p = BigInt('297010851887946822574352571639152315287') 
+        let proof = sloth.generateBufferProofVDF(t, challenge, 16)
+        expect(sloth.verifyBufferProofVDF(t, challenge, proof, 16)).toBeTruthy();
+    });
+
+    test('[VDF09] bigint export/import from buffers of arbitrary size = 256 bits and VDF test many steps', () => {
+
+        let challenge = Buffer.from('c8774beca835214089860e8b01157c6c883c70f4a25e83d190b577f7f56bcfd3', 'hex')
+        const t = BigInt(200) // 65368
+        const sloth = new SlothPermutation();    
+        // 256 bits prime
+        SlothPermutation.p = BigInt('64106875808534963770974826322234655855469213855659218736479077548818158667371') 
+        let proof = sloth.generateBufferProofVDF(t, challenge, 32)
+        expect(sloth.verifyBufferProofVDF(t, challenge, proof, 32)).toBeTruthy();
+    });
+
 
 
 });

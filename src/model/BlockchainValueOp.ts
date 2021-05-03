@@ -166,7 +166,7 @@ class BlockchainValueOp extends MutationOp {
         const challengeBuffer = Buffer.from(challenge, 'hex');
         console.log('Challenge length (bytes) = ', challengeBuffer.length)
         //const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer])
-        const challenge256bits = challengeBuffer //Buffer.concat([challengeBuffer,challengeBuffer])
+        const challenge256bits = Buffer.concat([challengeBuffer,challengeBuffer])
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
         console.log('Result proof length (bytes) = ', this.vdfResult.length)
         const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
@@ -190,7 +190,7 @@ class BlockchainValueOp extends MutationOp {
             challenge = Hashing.sha.sha256hex(prevOpHash);
         }
 
-        return challenge //challenge.slice(0,challenge.length);
+        return challenge //.slice(0,challenge.length/2);
     }
 
     static getVDFSteps(comp: MiniComptroller, challenge: string) {
@@ -212,9 +212,10 @@ class BlockchainValueOp extends MutationOp {
             comptroller.setMovingMaxSpeed(prevOp.movingMaxSpeed as bigint);
             comptroller.setMovingMinSpeed(prevOp.movingMinSpeed as bigint);
             comptroller.setBlockTimeFactor(prevOp.blockTimeFactor as bigint);
+            comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         } else {
-            comptroller.setBlockTimeFactor(BigInt(20000) * FixedPoint.UNIT)
-            comptroller.setMovingMaxSpeed(BigInt(1000) * FixedPoint.UNIT);
+            comptroller.setBlockTimeFactor(BigInt(200) * FixedPoint.UNIT)
+            comptroller.setMovingMaxSpeed(BigInt(750) * FixedPoint.UNIT);
             comptroller.setMovingMinSpeed(BigInt(500) * FixedPoint.UNIT);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         }
