@@ -163,16 +163,12 @@ class BlockchainValueOp extends MutationOp {
 
         const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
         const challengeBuffer = Buffer.from(challenge, 'hex');
+        console.log('Challenge length (bytes) = ', challenge.length)
         //const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer])
-        const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer])
+        const challenge256bits = challengeBuffer //Buffer.concat([challengeBuffer,challengeBuffer])
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
         const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
-        if (!BlockchainValueOp.vdfVerifier.verifyProofVDF(
-                Number(steps),
-                BlockchainValueOp.vdfVerifier.readBigUInt64LE(challenge256),
-                BlockchainValueOp.vdfVerifier.readBigUInt64LE(resultBuffer),
-                )
-            ) {
+        if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(Number(steps), challenge256bits, resultBuffer)) {
             console.log('VDF verification failed.');
             return false;
         }
@@ -215,7 +211,7 @@ class BlockchainValueOp extends MutationOp {
             comptroller.setMovingMinSpeed(prevOp.movingMinSpeed as bigint);
             comptroller.setBlockTimeFactor(prevOp.blockTimeFactor as bigint);
         } else {
-            comptroller.setBlockTimeFactor(BigInt(100000) * FixedPoint.UNIT)
+            comptroller.setBlockTimeFactor(BigInt(20000) * FixedPoint.UNIT)
             comptroller.setMovingMaxSpeed(BigInt(1000) * FixedPoint.UNIT);
             comptroller.setMovingMinSpeed(BigInt(500) * FixedPoint.UNIT);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));

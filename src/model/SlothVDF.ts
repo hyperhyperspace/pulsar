@@ -10,7 +10,12 @@ class SlothPermutation {
    // Parameters //
   ////////////////
  
-    static p: bigint = BigInt('15464611967049520469') //BigInt('73237431696005972674723595250817150843') //BigInt(73237431696005972674723595250817150843)
+    // 256 bits
+    static p: bigint = BigInt('62862552810010221080253752317266219938884120069061220269924174176771311327197') 
+    // 128 bits
+    //static p: bigint = BigInt('297010851887946822574352571639152315287') //BigInt('73237431696005972674723595250817150843') //BigInt(73237431696005972674723595250817150843)
+    // 64 bits
+    //static p: bigint = BigInt('15464611967049520469') //BigInt('73237431696005972674723595250817150843') //BigInt(73237431696005972674723595250817150843)
 
     sqrt_mod_p_verify(y: bigint, x: bigint, p: bigint): boolean {
         if ( (y**BigInt(2)) % p != (x % p)) //(this.fast_pow(y, BigInt(2), p) != (x % p))
@@ -79,6 +84,16 @@ class SlothPermutation {
         return this.mod_verif(y, x, t)
     }
 
+    generateBufferProofVDF(t: bigint, x: Buffer, byteLen: number = 32): Buffer {
+        let ret: Buffer = Buffer.from(new Uint8Array(byteLen))
+        this.writeBigUIntLE(this.mod_op(this.readBigUIntLE(x, byteLen), t), ret, byteLen)
+        return ret
+    }
+
+    verifyBufferProofVDF(t: bigint, x: Buffer, y: Buffer, byteLen: number = 32): boolean {
+        return this.mod_verif(this.readBigUIntLE(y, byteLen), this.readBigUIntLE(x, byteLen), t)
+    }
+
     readBigUInt64LE(buffer: Buffer, offset = 0) {
         const first = buffer[offset];
         const last = buffer[offset + 7];
@@ -118,7 +133,7 @@ class SlothPermutation {
 
     }
 
-    readBigUIntLE(buffer: Buffer, byteLen: number, offset = 0) {
+    readBigUIntLE(buffer: Buffer, byteLen: number, offset = 0): bigint {
       
         if (offset + byteLen > buffer.length) {
             throw new Error('Out of bounds');

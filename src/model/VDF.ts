@@ -17,17 +17,18 @@ class VDF {
         const tGen = Date.now();
 
         const bufferChallenge = Buffer.from(challenge, 'hex')
+        console.log('Challenge length (bytes) = ', challenge.length)
         //const challenge256 = Buffer.concat([bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge])
-        const challenge256 = Buffer.concat([bufferChallenge,bufferChallenge])
+        const challenge256bits = bufferChallenge//Buffer.concat([bufferChallenge,bufferChallenge])
         console.log('VDF Steps: ' + steps + ' steps');
-        let result = Buffer.from(new Uint8Array(8))
-        result.writeBigUInt64LE( vdfInstance.generateProofVDF(BigInt(steps), vdfInstance.readBigUInt64LE(challenge256) ))
+        const result = vdfInstance.generateBufferProofVDF(BigInt(steps), challenge256bits )
         const elapsedGen = Date.now() - tGen;
         console.log('Done computing VDF, took ' + elapsedGen + ' millis');
 
         const tVerif = Date.now();
+        console.log('Result Proof length (bytes) = ', result.length)
 
-        console.log('VDF self verification: ' + vdfInstance.verifyProofVDF(BigInt(steps), vdfInstance.readBigUInt64LE(challenge256), vdfInstance.readBigUInt64LE(result)));
+        console.log('VDF self verification: ' + vdfInstance.verifyBufferProofVDF(BigInt(steps), challenge256bits, result));
 
         const elapsedVerif = Date.now() - tVerif;
 
