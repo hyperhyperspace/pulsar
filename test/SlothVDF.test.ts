@@ -93,20 +93,20 @@ describe('[SlothVDF]', () => {
         const t = BigInt(200)   
         const sloth = new SlothPermutation();    
         SlothPermutation.p = BigInt('297010851887946822574352571639152315287') 
-        let proof = sloth.generateBufferProofVDF(t, challenge)
+        let proof = sloth.generateBufferProofVDF(t, challenge, 16)
         expect(sloth.verifyBufferProofVDF(t, challenge, proof, 16)).toBeTruthy();
         challenge = proof
         let proof2 = sloth.generateBufferProofVDF(t, challenge)
-        expect(sloth.verifyBufferProofVDF(t, challenge, proof2)).toBeTruthy();
+        expect(sloth.verifyBufferProofVDF(t, challenge, proof2, 16)).toBeTruthy();
         challenge = proof2
-        let proof3 = sloth.generateBufferProofVDF(t, challenge)
-        expect(sloth.verifyBufferProofVDF(t, challenge, proof3)).toBeTruthy();
+        let proof3 = sloth.generateBufferProofVDF(t, challenge, 16)
+        expect(sloth.verifyBufferProofVDF(t, challenge, proof3, 16)).toBeTruthy();
         challenge = proof3
-        let proof4 = sloth.generateBufferProofVDF(t, challenge)
-        expect(sloth.verifyBufferProofVDF(t, challenge, proof4)).toBeTruthy();
+        let proof4 = sloth.generateBufferProofVDF(t, challenge, 16)
+        expect(sloth.verifyBufferProofVDF(t, challenge, proof4, 16)).toBeTruthy();
         challenge = proof4
-        let proof5 = sloth.generateBufferProofVDF(t, challenge)
-        expect(sloth.verifyBufferProofVDF(t, challenge, proof5)).toBeTruthy();
+        let proof5 = sloth.generateBufferProofVDF(t, challenge, 16)
+        expect(sloth.verifyBufferProofVDF(t, challenge, proof5, 16)).toBeTruthy();
         expect(proof === proof2 ).toEqual(false)
         expect(proof === proof3 ).toEqual(false)
         expect(proof === proof4 ).toEqual(false)
