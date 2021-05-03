@@ -87,6 +87,39 @@ describe('[SlothVDF]', () => {
 
     });
 
+    test('[VDF06] bigint export/import from buffers of arbitrary size = 128 bits and VDF test', () => {
+
+        let challenge = Buffer.from('137010851887946622574152571239132315287', 'hex')
+        const t = BigInt(200)   
+        const sloth = new SlothPermutation();    
+        SlothPermutation.p = BigInt('297010851887946822574352571639152315287') 
+        let proof = sloth.generateBufferProofVDF(t, challenge)
+        expect(sloth.verifyBufferProofVDF(t, challenge, proof, 16)).toBeTruthy();
+        challenge = proof
+        let proof2 = sloth.generateBufferProofVDF(t, challenge)
+        expect(sloth.verifyBufferProofVDF(t, challenge, proof2)).toBeTruthy();
+        challenge = proof2
+        let proof3 = sloth.generateBufferProofVDF(t, challenge)
+        expect(sloth.verifyBufferProofVDF(t, challenge, proof3)).toBeTruthy();
+        challenge = proof3
+        let proof4 = sloth.generateBufferProofVDF(t, challenge)
+        expect(sloth.verifyBufferProofVDF(t, challenge, proof4)).toBeTruthy();
+        challenge = proof4
+        let proof5 = sloth.generateBufferProofVDF(t, challenge)
+        expect(sloth.verifyBufferProofVDF(t, challenge, proof5)).toBeTruthy();
+        expect(proof === proof2 ).toEqual(false)
+        expect(proof === proof3 ).toEqual(false)
+        expect(proof === proof4 ).toEqual(false)
+        expect(proof === proof5 ).toEqual(false)
+        expect(proof2 === proof3 ).toEqual(false)
+        expect(proof2 === proof4 ).toEqual(false)
+        expect(proof2 === proof5 ).toEqual(false)
+        expect(proof3 === proof4 ).toEqual(false)
+        expect(proof3 === proof5 ).toEqual(false)
+        expect(proof4 === proof5 ).toEqual(false)
+    
+    });
+
 
 });
 

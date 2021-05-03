@@ -125,11 +125,13 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     }
 
     private currentChallenge(): string {
+        let ret = ''
         if (this._lastOp === undefined) {
-            return this.getInitialChallenge();
+            ret = this.getInitialChallenge();
         } else {
-            return Hashing.sha.sha256hex(this._lastOp.hash());
+            ret = Hashing.sha.sha256hex(this._lastOp.hash());
         }
+        return ret.slice(0, ret.length/2)
     }
 
     /*

@@ -53,6 +53,7 @@ class BlockchainValueOp extends MutationOp {
             const comp = BlockchainValueOp.initializeComptroller(prevOp);
 
             const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
+            console.log('Challenge length (bytes) = ', challenge.length / 2 )
             // TODO: warning! replace with VRF seed + hashing with prev block hash.
             const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
 
@@ -163,10 +164,11 @@ class BlockchainValueOp extends MutationOp {
 
         const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
         const challengeBuffer = Buffer.from(challenge, 'hex');
-        console.log('Challenge length (bytes) = ', challenge.length)
+        console.log('Challenge length (bytes) = ', challengeBuffer.length)
         //const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer])
         const challenge256bits = challengeBuffer //Buffer.concat([challengeBuffer,challengeBuffer])
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
+        console.log('Result proof length (bytes) = ', this.vdfResult.length)
         const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
         if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(Number(steps), challenge256bits, resultBuffer)) {
             console.log('VDF verification failed.');
@@ -188,7 +190,7 @@ class BlockchainValueOp extends MutationOp {
             challenge = Hashing.sha.sha256hex(prevOpHash);
         }
 
-        return challenge;
+        return challenge.slice(0,challenge.length/2);
     }
 
     static getVDFSteps(comp: MiniComptroller, challenge: string) {
