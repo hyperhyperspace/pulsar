@@ -190,7 +190,7 @@ class BlockchainValueOp extends MutationOp {
             challenge = Hashing.sha.sha256hex(prevOpHash);
         }
 
-        return challenge.slice(0,challenge.length/2);
+        return challenge //challenge.slice(0,challenge.length);
     }
 
     static getVDFSteps(comp: MiniComptroller, challenge: string) {

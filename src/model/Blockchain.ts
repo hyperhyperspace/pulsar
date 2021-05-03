@@ -131,7 +131,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         } else {
             ret = Hashing.sha.sha256hex(this._lastOp.hash());
         }
-        return ret.slice(0, ret.length/2)
+        return ret //.slice(0, ret.length/2)
     }
 
     /*

@@ -17,7 +17,6 @@ class VDF {
         const tGen = Date.now();
 
         const bufferChallenge = Buffer.from(challenge, 'hex')
-        console.log('Challenge length (bytes) = ', challenge.length)
         //const challenge256 = Buffer.concat([bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge])
         const challenge256bits = bufferChallenge//Buffer.concat([bufferChallenge,bufferChallenge])
         console.log('VDF Steps: ' + steps + ' steps');

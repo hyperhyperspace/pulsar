@@ -11,9 +11,9 @@ class SlothPermutation {
   ////////////////
  
     // 256 bits
-    //static p: bigint = BigInt('62862552810010221080253752317266219938884120069061220269924174176771311327197') 
+    static p: bigint = BigInt('62862552810010221080253752317266219938884120069061220269924174176771311327197') 
     // 128 bits
-    static p: bigint = BigInt('297010851887946822574352571639152315287') //BigInt('73237431696005972674723595250817150843') //BigInt(73237431696005972674723595250817150843)
+    //static p: bigint = BigInt('297010851887946822574352571639152315287') //BigInt('73237431696005972674723595250817150843') //BigInt(73237431696005972674723595250817150843)
     // 64 bits
     //static p: bigint = BigInt('15464611967049520469') //BigInt('73237431696005972674723595250817150843') //BigInt(73237431696005972674723595250817150843)
 
@@ -84,13 +84,13 @@ class SlothPermutation {
         return this.mod_verif(y, x, t)
     }
 
-    generateBufferProofVDF(t: bigint, x: Buffer, byteLen: number = 16): Buffer {
+    generateBufferProofVDF(t: bigint, x: Buffer, byteLen: number = 32): Buffer {
         let ret: Buffer = Buffer.from(new Uint8Array(byteLen))
         this.writeBigUIntLE(this.mod_op(this.readBigUIntLE(x, byteLen), t), ret, byteLen)
         return ret
     }
 
-    verifyBufferProofVDF(t: bigint, x: Buffer, y: Buffer, byteLen: number = 16): boolean {
+    verifyBufferProofVDF(t: bigint, x: Buffer, y: Buffer, byteLen: number = 32): boolean {
         return this.mod_verif(this.readBigUIntLE(y, byteLen), this.readBigUIntLE(x, byteLen), t)
     }
 
