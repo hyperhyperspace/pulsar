@@ -43,13 +43,13 @@ class BlockchainValueOp extends MutationOp {
             this.timestampSeconds = Date.now();
 
             let blocktime = prevOp !== undefined? 
-                                BigInt(Math.floor(this.timestampSeconds - (prevOp.timestampSeconds as number))) * (FixedPoint.UNIT / (BigInt(2)**BigInt(2)))
+                                BigInt(Math.floor(this.timestampSeconds - (prevOp.timestampSeconds as number))) * (FixedPoint.UNIT / (BigInt(10)**BigInt(3)))
                             :
                                 MiniComptroller.targetBlockTime; // FIXME: initial block time
             // TODO: use milliseconds
             if (blocktime == BigInt(0))
                 blocktime = BigInt(1) * FixedPoint.UNIT
-            console.log('Verifying block with blockTime (secs) = ', blocktime)
+            console.log('Verifying block with blockTime (secs) = ', Number(blocktime) / Number(FixedPoint.UNIT) )
             const comp = BlockchainValueOp.initializeComptroller(prevOp);
 
             const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
