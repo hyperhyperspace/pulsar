@@ -4,30 +4,32 @@ interface Comptroller {
     // TODO: check if blockTime will come in seconds or milliseconds, better ms.
     addBlockSample(blockTime: bigint, difficulty: bigint) : void;
     setSpeed(blockTime: bigint, difficulty: bigint): void;
-    updateOrTestBlockTimeActionable(newBlockTimeFactor?: bigint);
-    updateOrTestSpeedRatioTarget(newMovingMaxSpeed?: bigint, newMovingMinSpeed?: bigint, newSpeedRatio?: bigint);
+    updateOrTestBlockTimeActionable(newBlockTimeFactor?: bigint): boolean;
+    updateOrTestSpeedRatioTarget(newMovingMaxSpeed?: bigint, newMovingMinSpeed?: bigint, newSpeedRatio?: bigint): boolean;
 
     // Difficulty internal
-    slotByStake(coins: bigint, totalCoins: bigint, vrfSeed: bigint);
-    noise(vrfSeed: bigint);
-    slotByStakeWithNoise(coins, totalCoins, vrfSeed);
-    slotByStakeProtected(coins, totalCoins, vrfSeed);
+    slotByStake(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint;
+    noise(vrfSeed: bigint): bigint;
+    slotByStakeWithNoise(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint;
+    slotByStakeProtected(coins: bigint, totalCoins: bigint, vrfSeed: bigint): number;
 
     // Consensus Getter
-    getConsensusDifficulty(coins, totalCoins, vrfSeed);
-    getConsensusBlockReward();
-    getBlockTimeFactor();
-    getSpeedRatio();
-    setBlockNumber(blockNumber: bigint);
-    setBlockTimeFactor(blockTimeFactor: bigint)
-    getMovingMaxSpeed()
-    getMovingMinSpeed()
-    setMovingMaxSpeed(movingMaxSpeed: bigint)
-    setMovingMinSpeed(movingMinSpeed: bigint)
-    getMaxSpeedRatio()
-    getMinSpeedRatio()
-    setMaxSpeedRatio(maxSpeedRatio: bigint)
-    setMinSpeedRatio(minSpeedRatio: bigint)
+    getConsensusDifficulty(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint;
+    getConsensusBlockReward(): bigint;
+    getBlockTimeFactor(): bigint;
+    getSpeedRatio(): bigint;
+    setSpeedRatio(speedRatio: bigint): void;
+    setBlockNumber(blockNumber: bigint): void;
+    setBlockTimeFactor(blockTimeFactor: bigint): void
+    getMovingMaxSpeed(): bigint
+    getMovingMinSpeed(): bigint
+    setMovingMaxSpeed(movingMaxSpeed: bigint): void
+    setMovingMinSpeed(movingMinSpeed: bigint): void
+    getMaxSpeedRatio(): bigint
+    getMinSpeedRatio(): bigint
+    setMaxSpeedRatio(maxSpeedRatio: bigint): void
+    setMinSpeedRatio(minSpeedRatio: bigint): void
+    setBlockReward(blockReward: bigint): void
 
 }
 

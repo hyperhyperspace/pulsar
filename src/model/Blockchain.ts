@@ -17,7 +17,6 @@ import { BlockchainValueOp as BlockchainValueOp } from './BlockchainValueOp';
 
 import { Worker } from 'worker_threads';
 //import { Logger, LogLevel } from 'util/logging';
-import { vdfStepsByStakeDiscreteProtected } from './stakes';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
 
@@ -67,12 +66,11 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     race() {
         if (this._computation === undefined) {
 
-            // using the challenge as temporary VRF seed.
-            const steps = vdfStepsByStakeDiscreteProtected(
-                BlockchainValueOp.coins,
-                BigInt(this.totalCoins),
-                BigInt( '0x'+this.currentChallenge() )
-             ); 
+            const comp = BlockchainValueOp.initializeComptroller(this._lastOp);
+
+            const challenge = BlockchainValueOp.getChallenge(this, this._lastOp?.hash());
+            // TODO: warning! replace with VRF seed + hashing with prev block hash.
+            const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
 
             console.log('Racing for challenge (' + steps + ' steps): "' + this.currentChallenge() + '".');
 
@@ -83,7 +81,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 console.log('Solved challenge "' + msg.challenge + '" with: "' + msg.result + '".');
 
                 if (msg.challenge === this.currentChallenge()) {
-                    let op = new BlockchainValueOp(this, this.currentSeq(), msg.result);
+                    let op = new BlockchainValueOp(this, this._lastOp, msg.result);
 
                     if (this._lastOp !== undefined) {
                         op.setPrevOps(new Set([this._lastOp]).values());
@@ -122,14 +120,19 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         }
     }
 
+    getInitialChallenge(): string {
+        return Hashing.sha.sha256hex(this.getId() as string);
+    }
+
     private currentChallenge(): string {
         if (this._lastOp === undefined) {
-            return this.getId() as string;
+            return this.getInitialChallenge();
         } else {
-            return Hashing.toHex(this._lastOp.hash());
+            return Hashing.sha.sha256hex(this._lastOp.hash());
         }
     }
 
+    /*
     private currentSeq() {
         if (this._lastOp === undefined) {
             return 0;
@@ -137,7 +140,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             return (this._lastOp.seq as number) + 1;
         }
     }
-
+    */
 
     async mutate(op: MutationOp, _isNew: boolean): Promise<boolean> {
        

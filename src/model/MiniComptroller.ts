@@ -51,14 +51,14 @@ class MiniComptroller implements Comptroller {
     static initialBlockTimeFactor: bigint = BigInt(2000) * FixedPoint.UNIT;
     static initialBlockReward: bigint = BigInt(10) * FixedPoint.UNIT;
 
-    static minBlockTimeFactor: bigint = BigInt(20) * FixedPoint.UNIT;
-    static maxBlockTimeFactor: bigint = BigInt(200000) * FixedPoint.UNIT;
+    static minBlockTimeFactor: bigint = BigInt(10) * FixedPoint.UNIT;
+    static maxBlockTimeFactor: bigint = BigInt(100000) * FixedPoint.UNIT;
 
     private maxSpeedRatio: bigint = BigInt(31) * (FixedPoint.UNIT/BigInt(10)); // 3.1 * UNIT
     private minSpeedRatio: bigint = BigInt(13) * (FixedPoint.UNIT/BigInt(10)); // 1.3 * UNIT
     static initialMovingMaxSpeed: bigint = BigInt(15000) * FixedPoint.UNIT;
-    static initialMovingMinSpeed: bigint = BigInt(5000) * FixedPoint.UNIT;
-    static speedRatio = MiniComptroller.initialMovingMaxSpeed / MiniComptroller.initialMovingMinSpeed;
+    static initialMovingMinSpeed: bigint = BigInt(5000) * FixedPoint.UNIT
+    static speedRatio = FixedPoint.divTrunc( MiniComptroller.initialMovingMaxSpeed, MiniComptroller.initialMovingMinSpeed);
 
     static noiseFractionSlots: bigint = BigInt(10) * (FixedPoint.UNIT/BigInt(10**2)); // 0.10 * UNIT
 
@@ -184,7 +184,7 @@ class MiniComptroller implements Comptroller {
     // Difficulty internal
     slotByStake(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint {
         if (this.blockNumber < MiniComptroller.bootstrapPeriod)
-            totalCoins += MiniComptroller.bootstrapVirtualStake
+            coins += MiniComptroller.bootstrapVirtualStake
         var slots: bigint = FixedPoint.divTrunc(totalCoins, coins) 
         if (FixedPoint.mulTrunc(slots, coins) < totalCoins)
             slots += FixedPoint.UNIT
@@ -210,7 +210,7 @@ class MiniComptroller implements Comptroller {
 
     slotByStakeWithNoise(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint {
         if (this.blockNumber < MiniComptroller.bootstrapPeriod)
-            totalCoins += MiniComptroller.bootstrapVirtualStake
+            coins += MiniComptroller.bootstrapVirtualStake
         var slots: bigint = FixedPoint.divTrunc(totalCoins, coins) 
         if (FixedPoint.mulTrunc(slots, coins) < totalCoins)
             slots += FixedPoint.UNIT
@@ -256,13 +256,20 @@ class MiniComptroller implements Comptroller {
         return this.blockTimeFactor
     }
 
-
-    getSpeedRatio() {
+    getSpeedRatio(): bigint {
         return this.speedRatio
+    }
+
+    setSpeedRatio(speedRatio: bigint): void {
+        this.speedRatio = speedRatio
     }
 
     setBlockNumber(blockNumber: bigint){
         this.blockNumber = blockNumber
+    }
+
+    getBlockNumber() {
+        return this.blockNumber;
     }
 
     setBlockTimeFactor(blockTimeFactor: bigint){
@@ -301,6 +308,9 @@ class MiniComptroller implements Comptroller {
         this.minSpeedRatio = minSpeedRatio
     }
 
+    setBlockReward(blockReward: bigint) {
+        this.blockReward = blockReward
+    }
 
 
 }
