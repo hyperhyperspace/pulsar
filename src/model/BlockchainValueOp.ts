@@ -40,13 +40,16 @@ class BlockchainValueOp extends MutationOp {
 
         if (target !== undefined && vdfResult !== undefined) {
 
-            this.timestampSeconds = Date.now() / 1000;
+            this.timestampSeconds = Date.now();
 
-            const blocktime = prevOp !== undefined? 
-                                BigInt(this.timestampSeconds - (prevOp.timestampSeconds as number))
+            let blocktime = prevOp !== undefined? 
+                                BigInt(Math.floor(this.timestampSeconds - (prevOp.timestampSeconds as number))) * (FixedPoint.UNIT / (BigInt(2)**BigInt(2)))
                             :
                                 MiniComptroller.targetBlockTime; // FIXME: initial block time
-
+            // TODO: use milliseconds
+            if (blocktime == BigInt(0))
+                blocktime = BigInt(1) * FixedPoint.UNIT
+            console.log('Verifying block with blockTime (secs) = ', blocktime)
             const comp = BlockchainValueOp.initializeComptroller(prevOp);
 
             const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
@@ -212,8 +215,8 @@ class BlockchainValueOp extends MutationOp {
             comptroller.setMovingMinSpeed(prevOp.movingMinSpeed as bigint);
             comptroller.setBlockTimeFactor(prevOp.blockTimeFactor as bigint);
         } else {
-            comptroller.setBlockTimeFactor(BigInt(100) * FixedPoint.UNIT)
-            comptroller.setMovingMaxSpeed(BigInt(750) * FixedPoint.UNIT);
+            comptroller.setBlockTimeFactor(BigInt(100000) * FixedPoint.UNIT)
+            comptroller.setMovingMaxSpeed(BigInt(1000) * FixedPoint.UNIT);
             comptroller.setMovingMinSpeed(BigInt(500) * FixedPoint.UNIT);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         }
