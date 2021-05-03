@@ -49,6 +49,44 @@ describe('[SlothVDF]', () => {
 
     });
 
+    test('[VDF04] bigint export/import from buffers of arbitrary size = 64', () => {
+
+
+        const x = (BigInt(0x789acdef) << BigInt(32)) + BigInt(0x06543210);
+
+        const sloth = new SlothPermutation();     
+
+        const arr = new Uint8Array(8);
+        const buf = Buffer.from(arr);
+
+
+        sloth.writeBigUIntLE(x, buf, 8);
+        const y = sloth.readBigUIntLE(buf, 8);
+
+        expect(x === y).toBeTruthy();
+
+    });
+
+    test('[VDF05] bigint export/import from buffers of arbitrary size = 128', () => {
+
+
+        let x = (BigInt(0x789acdef) << BigInt(32)) + BigInt(0x06543210);
+
+        x = x + (x << BigInt(64));
+
+        const sloth = new SlothPermutation();     
+
+        const arr = new Uint8Array(16);
+        const buf = Buffer.from(arr);
+
+
+        sloth.writeBigUIntLE(x, buf, 16);
+        const y = sloth.readBigUIntLE(buf, 16);
+
+        expect(x === y).toBeTruthy();
+
+    });
+
 
 });
 
