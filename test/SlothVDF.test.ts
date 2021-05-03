@@ -13,7 +13,7 @@ describe('[SlothVDF]', () => {
         let y = sloth.generateProofVDF(t, x)
         let verified = sloth.verifyProofVDF(t, x, y)
         expect(verified).toEqual( true )
-    })
+    });
 
     test('[VDF02] generate and verify, medium', () => {
         const sloth = new SlothPermutation();        
@@ -29,7 +29,25 @@ describe('[SlothVDF]', () => {
         let verified = sloth.verifyProofVDF(t, x, y)
         //console.log('Verify Elapsed: ',Date.now() - start)
         expect(verified).toEqual( true )
-    })
+    });
+
+    test('[VDF03] bigint export/import from buffers', () => {
+
+
+        const x = (BigInt(0x789acdef) << BigInt(32)) + BigInt(0x06543210);
+
+        const sloth = new SlothPermutation();     
+
+        const arr = new Uint8Array(8);
+        const buf = Buffer.from(arr);
+
+
+        sloth.writeBigUInt64LE(x, buf);
+        const y = sloth.readBigUInt64LE(buf);
+
+        expect(x === y).toBeTruthy();
+
+    });
 
 
 });
