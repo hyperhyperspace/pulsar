@@ -7,7 +7,8 @@ import { Blockchain } from './Blockchain';
 import { MiniComptroller, FixedPoint } from './MiniComptroller';
 //import { VDF } from './VDF';
 
-import {SlothPermutation} from '@hyper-hyper-space/sloth-permutation';
+//import {SlothPermutation} from '@hyper-hyper-space/sloth-permutation';
+import {SlothPermutation} from './SlothVDF';
 (global as any).document = { }; // yikes!
 
 class BlockchainValueOp extends MutationOp {
@@ -17,8 +18,7 @@ class BlockchainValueOp extends MutationOp {
     static className = 'hhs/v0/examples/BlockchainValueOp';
 
     static vdfInit = async () => {
-        const blockSize = 64
-        BlockchainValueOp.vdfVerifier = await SlothPermutation.instantiate(blockSize);
+        BlockchainValueOp.vdfVerifier = new SlothPermutation();
         BlockchainValueOp.comptroller = new MiniComptroller();
     };
     static vdfVerifier: any;
@@ -164,7 +164,12 @@ class BlockchainValueOp extends MutationOp {
         const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer])
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
         const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
-        if (!BlockchainValueOp.vdfVerifier.verifyProofVDF(Number(steps), challenge256, resultBuffer)) {
+        if (!BlockchainValueOp.vdfVerifier.verifyProofVDF(
+                Number(steps),
+                BlockchainValueOp.vdfVerifier.readBigUInt64LE(challenge256),
+                BlockchainValueOp.vdfVerifier.readBigUInt64LE(resultBuffer),
+                )
+            ) {
             console.log('VDF verification failed.');
             return false;
         }

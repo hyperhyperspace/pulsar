@@ -1,6 +1,6 @@
 //import { Logger, LogLevel } from "util/logging";
 
-import {SlothPermutation} from '@hyper-hyper-space/sloth-permutation';
+import {SlothPermutation} from './SlothVDF';
 (global as any).document = { }; // yikes!
 
 class VDF {
@@ -12,8 +12,7 @@ class VDF {
     static async compute(challenge: string, steps: number): Promise<string> {
 
         console.log('Creating VDF instance...');
-        const blockSize = 64
-        const vdfInstance = await SlothPermutation.instantiate(blockSize);
+        const vdfInstance = new SlothPermutation();
         console.log('Computing VDF...');
         const tGen = Date.now();
 
@@ -21,13 +20,14 @@ class VDF {
         //const challenge256 = Buffer.concat([bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge])
         const challenge256 = Buffer.concat([bufferChallenge,bufferChallenge])
         console.log('VDF Steps: ' + steps + ' steps');
-        const result = vdfInstance.generateProofVDF(steps, challenge256);
+        let result = Buffer.from(new Uint8Array(8))
+        result.writeBigUInt64LE( vdfInstance.generateProofVDF(BigInt(steps), vdfInstance.readBigUInt64LE(challenge256) ))
         const elapsedGen = Date.now() - tGen;
         console.log('Done computing VDF, took ' + elapsedGen + ' millis');
 
         const tVerif = Date.now();
 
-        console.log('VDF self verification: ' + vdfInstance.verifyProofVDF(steps, challenge256, result));
+        console.log('VDF self verification: ' + vdfInstance.verifyProofVDF(BigInt(steps), vdfInstance.readBigUInt64LE(challenge256), vdfInstance.readBigUInt64LE(result)));
 
         const elapsedVerif = Date.now() - tVerif;
 
