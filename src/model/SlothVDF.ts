@@ -97,7 +97,58 @@ class SlothPermutation {
           last * 2 ** 24;
       
         return BigInt(lo) + (BigInt(hi) << BigInt(32));
-      }
+    }
+
+    writeBigUInt64LE(x: bigint, buffer: Buffer, offset = 0) {
+
+        const first = buffer[offset];
+        const last = buffer[offset + 7];
+        if (first === undefined || last === undefined) {
+          throw new Error('Out of bounds');
+        }
+
+        let y = BigInt(x);
+        const big256 = BigInt(256);
+        const big8   = BigInt(8);
+        
+        for (let i=0; i<8; i++) {
+            buffer[offset+i] = Number(y % big256);
+            y = y >> big8;
+        }
+
+    }
+
+    readBigUIntLE(buffer: Buffer, byteLen: number, offset = 0) {
+      
+        if (offset + byteLen > buffer.length) {
+            throw new Error('Out of bounds');
+        }
+
+        let result = BigInt(0);
+
+        for (let i=0; i<byteLen; i++) {
+            result = result + BigInt(buffer[offset + i]) * BigInt(2) ** BigInt(i*8);
+        }
+      
+        return result;
+    }
+
+    writeBigUIntLE(x: bigint, buffer: Buffer, byteLen: number, offset = 0) {
+
+        if (offset + byteLen > buffer.length) {
+            throw new Error('Out of bounds');
+        }
+
+        let y = BigInt(x);
+        const big256 = BigInt(256);
+        const big8   = BigInt(8);
+
+        for (let i=0; i<byteLen; i++) {
+            buffer[offset+i] = Number(y % big256);
+            y = y >> big8;
+        }
+
+    }
 
 }
 
