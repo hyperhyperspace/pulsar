@@ -75,7 +75,7 @@ class BlockchainValueOp extends MutationOp {
         
     }
 
-    validate(references: Map<Hash, HashedObject>): boolean {
+    async validate(references: Map<Hash, HashedObject>): Promise<boolean> {
 
         if (this.blockNumber === undefined || this.vdfResult === undefined) {
             console.log('Object is incomplete.');

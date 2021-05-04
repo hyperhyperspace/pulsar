@@ -204,7 +204,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         
     }
 
-    validate(references: Map<string, HashedObject>): boolean {
+    async validate(references: Map<string, HashedObject>): Promise<boolean> {
        references;
 
        return this.totalCoins !== undefined && this.getId() !== undefined;

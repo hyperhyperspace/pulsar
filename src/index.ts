@@ -15,8 +15,8 @@ import { BlockchainValueOp } from './model/BlockchainValueOp';
 import * as readline from 'readline';
 import { VDF } from './model/VDF';
 
-function initResources(): Resources {
-    return new Resources();
+async function initResources(): Promise<Resources> {
+    return Resources.create();
 }
 
 async function createBlockchainSpace(resources: Resources): Promise<Space> {
@@ -24,7 +24,7 @@ async function createBlockchainSpace(resources: Resources): Promise<Space> {
     console.log('Generating new Blockchain...');
     let blockchain = new Blockchain(new RNGImpl().randomHexString(160));
     
-    const keyPair = RSAKeyPair.generate(1024);
+    const keyPair = await RSAKeyPair.generate(1024);
     const localIdentity = Identity.fromKeyPair({}, keyPair);
     console.log('Generated keys.')
 
@@ -48,7 +48,7 @@ async function createBlockchainSpace(resources: Resources): Promise<Space> {
 }
 
 async function joinBlockchainSpace(resources: Resources, wordcode: string[]): Promise<Space> {
-    const keyPair = RSAKeyPair.generate(1024);
+    const keyPair = await RSAKeyPair.generate(1024);
     const localIdentity = Identity.fromKeyPair({}, keyPair);
     resources.config.id = localIdentity;
     console.log();
@@ -77,7 +77,7 @@ async function main() {
 
     await BlockchainValueOp.vdfInit();
 
-    let resources = initResources();
+    let resources = await initResources();
 
     let rl = readline.createInterface({
         input: process.stdin,
