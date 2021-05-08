@@ -70,6 +70,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             // TODO: warning! replace with VRF seed + hashing with prev block hash.
             const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
 
+            console.log('# Block Number = ', comp.getBlockNumber())
             console.log('Racing for challenge (' + steps + ' steps): "' + this.currentChallenge() + '".');
 
             this._computation = new Worker('./dist/model/worker.js');
