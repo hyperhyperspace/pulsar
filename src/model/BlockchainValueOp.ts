@@ -149,13 +149,28 @@ class BlockchainValueOp extends MutationOp {
                         
         const comp = BlockchainValueOp.initializeComptroller(prev);
 
-        if (!comp.updateOrTestBlockTimeActionable(blocktime)) {
-            console.log('Comptroller rejected blockTimeFactor');
+        const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
+        const steps = BlockchainValueOp.getVDFSteps(comp, challenge);
+
+        comp.addBlockSample(blocktime, steps);
+
+        if (this.blockNumber?.getValue() !== comp.getBlockNumber()) {
+            console.log('Comptroller rejected blockNumber');
             return false;
         }
 
-        if (!comp.updateOrTestSpeedRatioTarget(this.movingMaxSpeed?.getValue(), this.movingMinSpeed?.getValue())) {
-            console.log('Comptroller rejected movingMaxSpeed/movingMinSpeed');
+        if (this.movingMaxSpeed?.getValue() !== comp.getMovingMaxSpeed()) {
+            console.log('Comptroller rejected movingMaxSpeed');
+            return false;
+        }
+        
+        if (this.movingMinSpeed?.getValue() !== comp.getMovingMinSpeed()) {
+            console.log('Comptroller rejected movingMinSpeed');
+            return false;
+        }
+
+        if (this.blockTimeFactor?.getValue() !== comp.getBlockTimeFactor()) {
+            console.log('Comptroller rejected blockTimeFactor');
             return false;
         }
 
@@ -164,14 +179,12 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
 
-        const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
         const challengeBuffer = Buffer.from(challenge, 'hex');
         console.log('Challenge length (bytes) = ', challengeBuffer.length)
         //const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer])
         const challenge256bits = Buffer.concat([challengeBuffer,challengeBuffer])
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
         console.log('Result proof length (bytes) = ', this.vdfResult.length)
-        const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
 
         if (1+1===3 && !BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(Number(steps), challenge256bits, resultBuffer)) {
             console.log('VDF verification failed.');
