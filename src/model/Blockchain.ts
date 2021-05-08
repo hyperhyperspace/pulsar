@@ -70,25 +70,25 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             let challenge = BlockchainValueOp.getChallenge(this, this._lastOp?.hash());
 
+            console.log('-------------------------------------------------------------')
+
             // Bootstrap Period Protection pre-VDF.
-            // Boostrap VDF
             let resultBootstrap = ''
-            if (BlockchainValueOp.comptroller.isBootstrapPeriod()) {
+            if (comp.isBootstrapPeriod()) {
                 const bufferChallenge = Buffer.from(challenge, 'hex')
-                //const challenge256 = Buffer.concat([bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge])
                 const challenge256bits = Buffer.concat([bufferChallenge,bufferChallenge])        
-                const boostrapSteps = BlockchainValueOp.comptroller.getConsensusBoostrapDifficulty()
+                const boostrapSteps = comp.getConsensusBoostrapDifficulty()
                 console.log('Boostrap VDF Steps: ' + boostrapSteps + ' steps');
                 const tGen = Date.now();
                 const resultBootstrapBuffer = BlockchainValueOp.vdfVerifier.generateBufferProofVDF(BigInt(boostrapSteps), challenge256bits )
                 resultBootstrap = resultBootstrapBuffer.toString('hex')
                 const elapsedGen = Date.now() - tGen;
-                console.log('Done computing Boostrap VDF, took ' + elapsedGen + ' millis')  ;
+                console.log('Done computing Boostrap VDF, took ' + elapsedGen + ' millisecs')  ;
                 const tVerif = Date.now();
                 console.log('Result Proof length (bytes) = ', resultBootstrapBuffer.length)
                 console.log('Boostrap VDF self verification: ' + BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(BigInt(boostrapSteps), challenge256bits, resultBootstrapBuffer));
                 const elapsedVerif = Date.now() - tVerif;
-                console.log('verification took ' + elapsedVerif + ' millis');
+                console.log('verification took ' + elapsedVerif + ' millisecs');
                 challenge = resultBootstrap
             }
             
