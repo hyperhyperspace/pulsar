@@ -51,7 +51,6 @@ class BlockchainValueOp extends MutationOp {
                                 BigInt(Math.floor(this.timestampSeconds - (prevOp.timestampSeconds as number))) * (FixedPoint.UNIT / (BigInt(10)**BigInt(3)))
                             :
                                 MiniComptroller.targetBlockTime; // FIXME: initial block time
-            // TODO: use milliseconds
             if (blocktime == BigInt(0))
                 blocktime = BigInt(1) * FixedPoint.UNIT
             console.log('Verifying block with blockTime (secs) = ', Number(blocktime) / Number(FixedPoint.UNIT) )
@@ -140,13 +139,13 @@ class BlockchainValueOp extends MutationOp {
         }
 
         const prevOp: BlockchainValueOp | undefined = prev;
-
-        
             
-        const blocktime = prevOp !== undefined? 
-                                BigInt((this.timestampSeconds as number) - (prevOp.timestampSeconds as number))
-                            :
-                                MiniComptroller.targetBlockTime; // FIXME: initial block time
+        let blocktime = prevOp !== undefined? 
+                            BigInt(Math.floor(this.timestampSeconds - (prevOp.timestampSeconds as number))) * (FixedPoint.UNIT / (BigInt(10)**BigInt(3)))
+                        :
+                            MiniComptroller.targetBlockTime; // FIXME: initial block time
+        if (blocktime == BigInt(0))
+            blocktime = BigInt(1) * FixedPoint.UNIT
                         
         const comp = BlockchainValueOp.initializeComptroller(prev);
 
@@ -159,8 +158,6 @@ class BlockchainValueOp extends MutationOp {
             console.log('Comptroller rejected movingMaxSpeed/movingMinSpeed');
             return false;
         }
-
-        
 
         if (this.vdfResult.toLowerCase() !== this.vdfResult) {
             console.log('VDF result is not lowercase');
