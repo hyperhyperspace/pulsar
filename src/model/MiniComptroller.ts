@@ -234,7 +234,7 @@ class MiniComptroller implements Comptroller {
     }
 
 
-    // Consensus Getter
+    // Consensus Getters
 
 
     getConsensusDifficulty(coins: bigint, totalCoins: bigint, vrfSeed: bigint) {
@@ -251,6 +251,18 @@ class MiniComptroller implements Comptroller {
         return this.blockReward // static 10 coins
     }
 
+    isBootstrapPeriod(): boolean {
+        return this.blockNumber < MiniComptroller.bootstrapPeriod 
+    }
+
+    getConsensusBoostrapDifficulty(): bigint {
+        if (this.blockNumber >= MiniComptroller.bootstrapPeriod) // boostrap period ended
+            return BigInt(0)
+        let meanBlockDifficulty = (this.maxSpeedRatio + this.minSpeedRatio) / BigInt(2) // middle point
+        // times blockTime seconds
+        meanBlockDifficulty = FixedPoint.mulTrunc(meanBlockDifficulty, MiniComptroller.targetBlockTime) / FixedPoint.UNIT
+        return meanBlockDifficulty / BigInt(2) // 50%
+    }
 
     getBlockTimeFactor() {
         return this.blockTimeFactor

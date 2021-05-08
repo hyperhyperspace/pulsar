@@ -133,7 +133,7 @@ class SlothPermutation {
 
     }
 
-    readBigUIntLE(buffer: Buffer, byteLen: number, offset = 0): bigint {
+    readBigUIntLE(buffer: Buffer, byteLen: number = 32, offset = 0): bigint {
       
         if (offset + byteLen > buffer.length) {
             throw new Error('Out of bounds');
@@ -148,7 +148,7 @@ class SlothPermutation {
         return result;
     }
 
-    writeBigUIntLE(x: bigint, buffer: Buffer, byteLen: number, offset = 0) {
+    writeBigUIntLE(x: bigint, buffer: Buffer, byteLen: number = 32, offset = 0) {
 
         if (offset + byteLen > buffer.length) {
             throw new Error('Out of bounds');

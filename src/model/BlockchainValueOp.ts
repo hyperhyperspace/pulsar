@@ -28,6 +28,7 @@ class BlockchainValueOp extends MutationOp {
     static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(2);
 
     vdfResult?: string;
+    vdfBootstrapResult?: string;
     
     blockNumber?: HashedBigInt;
     movingMaxSpeed?: HashedBigInt;
@@ -36,10 +37,10 @@ class BlockchainValueOp extends MutationOp {
 
     timestampSeconds?: number; 
 
-    constructor(target?: Blockchain, prevOp?: BlockchainValueOp, vdfResult?: string) {
+    constructor(target?: Blockchain, prevOp?: BlockchainValueOp, vdfResult?: string, vdfBoostrapResult?: string) {
         super(target);
 
-        if (target !== undefined && vdfResult !== undefined) {
+        if (target !== undefined && vdfResult !== undefined && vdfBoostrapResult !== undefined) {
 
             this.timestampSeconds = Date.now();
 
@@ -78,7 +79,7 @@ class BlockchainValueOp extends MutationOp {
 
     async validate(references: Map<Hash, HashedObject>): Promise<boolean> {
 
-        if (this.blockNumber === undefined || this.vdfResult === undefined) {
+        if (this.blockNumber === undefined || this.vdfResult === undefined || this.vdfBootstrapResult === undefined) {
             console.log('Object is incomplete.');
             return false;
         }
@@ -136,8 +137,6 @@ class BlockchainValueOp extends MutationOp {
         }
 
         const prevOp: BlockchainValueOp | undefined = prev;
-
-        
             
         const blocktime = prevOp !== undefined? 
                                 BigInt((this.timestampSeconds as number) - (prevOp.timestampSeconds as number))
@@ -156,18 +155,38 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
 
-        
-
         if (this.vdfResult.toUpperCase() !== this.vdfResult) {
             console.log('VDF result is not uppercase');
             return false;
         }
 
+        if (this.vdfBootstrapResult.toUpperCase() !== this.vdfBootstrapResult) {
+            console.log('VDF boostrap result is not uppercase');
+            return false;
+        }
+
+        if ((this.vdfBootstrapResult !== '') === comp.isBootstrapPeriod()) {
+            console.log('VDF boostrap result is only empty when boostrap period ended.');
+            return false;
+        }
+
         const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
-        const challengeBuffer = Buffer.from(challenge, 'hex');
-        console.log('Challenge length (bytes) = ', challengeBuffer.length)
-        //const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer])
+        let challengeBuffer = Buffer.from(challenge, 'hex');
+        console.log('Bootstrap Challenge length (bytes) = ', challengeBuffer.length)
         const challenge256bits = Buffer.concat([challengeBuffer,challengeBuffer])
+        
+        // Boostrap period Protection check
+        // In boostrap period do a pre-VDF with 50% blockTime.
+        if (comp.isBootstrapPeriod()) {
+            const resultBoostrapBuffer = Buffer.from(this.vdfBootstrapResult, 'hex');
+            const boostrapSteps = comp.getConsensusBoostrapDifficulty()
+            if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(Number(boostrapSteps), challenge256bits, resultBoostrapBuffer)) {
+                console.log('Boostrap VDF verification failed.');
+                return false;
+            }
+            challengeBuffer = resultBoostrapBuffer;
+        }
+
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
         console.log('Result proof length (bytes) = ', this.vdfResult.length)
         const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
@@ -216,8 +235,8 @@ class BlockchainValueOp extends MutationOp {
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         } else {
             comptroller.setBlockTimeFactor(BigInt(20000) * FixedPoint.UNIT)
-            comptroller.setMovingMaxSpeed(BigInt(7500) * FixedPoint.UNIT);
-            comptroller.setMovingMinSpeed(BigInt(5000) * FixedPoint.UNIT);
+            comptroller.setMovingMaxSpeed(BigInt(750000) * FixedPoint.UNIT);
+            comptroller.setMovingMinSpeed(BigInt(500000) * FixedPoint.UNIT);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         }
 
