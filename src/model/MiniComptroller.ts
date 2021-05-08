@@ -56,8 +56,8 @@ class MiniComptroller implements Comptroller {
 
     private maxSpeedRatio: bigint = BigInt(31) * (FixedPoint.UNIT/BigInt(10)); // 3.1 * UNIT
     private minSpeedRatio: bigint = BigInt(13) * (FixedPoint.UNIT/BigInt(10)); // 1.3 * UNIT
-    static initialMovingMaxSpeed: bigint = BigInt(15000) * FixedPoint.UNIT;
-    static initialMovingMinSpeed: bigint = BigInt(5000) * FixedPoint.UNIT
+    static initialMovingMaxSpeed: bigint = BigInt(1500) * FixedPoint.UNIT;
+    static initialMovingMinSpeed: bigint = BigInt(500) * FixedPoint.UNIT
     static speedRatio = FixedPoint.divTrunc( MiniComptroller.initialMovingMaxSpeed, MiniComptroller.initialMovingMinSpeed);
 
     static noiseFractionSlots: bigint = BigInt(10) * (FixedPoint.UNIT/BigInt(10**2)); // 0.10 * UNIT
@@ -258,9 +258,12 @@ class MiniComptroller implements Comptroller {
     getConsensusBoostrapDifficulty(): bigint {
         if (this.blockNumber >= MiniComptroller.bootstrapPeriod) // boostrap period ended
             return BigInt(0)
-        let meanBlockDifficulty = (this.maxSpeedRatio + this.minSpeedRatio) / BigInt(2) // middle point
+        console.log('this.movingMaxSpeed = ', this.movingMaxSpeed )
+        console.log('this.movingMinSpeed = ', this.movingMinSpeed )
+        let meanBlockDifficulty = (this.movingMaxSpeed + this.movingMinSpeed) / BigInt(2) // middle point
         // times blockTime seconds
         meanBlockDifficulty = FixedPoint.mulTrunc(meanBlockDifficulty, MiniComptroller.targetBlockTime) / FixedPoint.UNIT
+        console.log('MEAN BLOCK DIFFICULTY = ', meanBlockDifficulty / BigInt(2) )
         return meanBlockDifficulty / BigInt(2) // 50%
     }
 
