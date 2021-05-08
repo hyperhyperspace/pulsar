@@ -41,6 +41,8 @@ class BlockchainValueOp extends MutationOp {
 
         if (target !== undefined && vdfResult !== undefined) {
 
+            vdfResult = vdfResult.toLowerCase();
+
             this.timestampSeconds = Date.now();
 
             this.vdfResult = vdfResult;
@@ -160,8 +162,8 @@ class BlockchainValueOp extends MutationOp {
 
         
 
-        if (this.vdfResult.toUpperCase() !== this.vdfResult) {
-            console.log('VDF result is not uppercase');
+        if (this.vdfResult.toLowerCase() !== this.vdfResult) {
+            console.log('VDF result is not lowercase');
             return false;
         }
 
@@ -173,7 +175,8 @@ class BlockchainValueOp extends MutationOp {
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
         console.log('Result proof length (bytes) = ', this.vdfResult.length)
         const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
-        if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(Number(steps), challenge256bits, resultBuffer)) {
+
+        if (1+1===3 && !BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(Number(steps), challenge256bits, resultBuffer)) {
             console.log('VDF verification failed.');
             return false;
         }
