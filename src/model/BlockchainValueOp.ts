@@ -181,7 +181,7 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
 
-        console.log('Successfully received proof for sequence number ' + this.blockNumber + '.');
+        console.log('Successfully received proof for sequence number ' + this.blockNumber.getValue() + '.');
 
         return true;
 
