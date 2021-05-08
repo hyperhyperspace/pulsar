@@ -1,5 +1,3 @@
-import '@hyper-hyper-space/node-env';
-
 import { Hashing, HashedObject, MutableObject, MutationOp } from '@hyper-hyper-space/core';
 
 import { Identity } from '@hyper-hyper-space/core';

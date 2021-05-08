@@ -43,6 +43,8 @@ class BlockchainValueOp extends MutationOp {
 
             this.timestampSeconds = Date.now();
 
+            this.vdfResult = vdfResult;
+
             let blocktime = prevOp !== undefined? 
                                 BigInt(Math.floor(this.timestampSeconds - (prevOp.timestampSeconds as number))) * (FixedPoint.UNIT / (BigInt(10)**BigInt(3)))
                             :
