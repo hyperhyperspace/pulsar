@@ -1,6 +1,7 @@
 
 //import {createHash} from "crypto";
 import { Hash, HashedObject, Hashing, MutationOp } from '@hyper-hyper-space/core';
+import { HashedBigInt } from './HashedBigInt';
 //import { Logger, LogLevel } from '@hyper-hyper-space/core';
 
 import { Blockchain } from './Blockchain';
@@ -15,7 +16,7 @@ class BlockchainValueOp extends MutationOp {
 
     //static log = new Logger(BlockchainValueOp.name, LogLevel.TRACE)
 
-    static className = 'hhs/v0/examples/BlockchainValueOp';
+    static className = 'hhs/v0/soliton/BlockchainValueOp';
 
     static vdfInit = async () => {
         BlockchainValueOp.vdfVerifier = new SlothPermutation();
@@ -28,10 +29,10 @@ class BlockchainValueOp extends MutationOp {
 
     vdfResult?: string;
     
-    blockNumber?: bigint;
-    movingMaxSpeed?: bigint;
-    movingMinSpeed?: bigint;
-    blockTimeFactor?: bigint;
+    blockNumber?: HashedBigInt;
+    movingMaxSpeed?: HashedBigInt;
+    movingMinSpeed?: HashedBigInt;
+    blockTimeFactor?: HashedBigInt;
 
     timestampSeconds?: number; 
 
@@ -59,10 +60,10 @@ class BlockchainValueOp extends MutationOp {
 
             comp.addBlockSample(blocktime, steps);
 
-            this.blockNumber = comp.getBlockNumber();
-            this.movingMaxSpeed = comp.getMovingMaxSpeed();
-            this.movingMinSpeed = comp.getMovingMinSpeed();
-            this.blockTimeFactor = comp.getBlockTimeFactor();
+            this.blockNumber = new HashedBigInt(comp.getBlockNumber());
+            this.movingMaxSpeed = new HashedBigInt(comp.getMovingMaxSpeed());
+            this.movingMinSpeed = new HashedBigInt(comp.getMovingMinSpeed());
+            this.blockTimeFactor = new HashedBigInt(comp.getBlockTimeFactor());
         }
 
     }
@@ -82,7 +83,7 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
 
-        if (this.blockNumber < 0) {
+        if (this.blockNumber.getValue() < BigInt(0)) {
             console.log('Sequence number is negative.');
             return false;
         }
@@ -150,7 +151,7 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
 
-        if (!comp.updateOrTestSpeedRatioTarget(this.movingMaxSpeed, this.movingMinSpeed)) {
+        if (!comp.updateOrTestSpeedRatioTarget(this.movingMaxSpeed?.getValue(), this.movingMinSpeed?.getValue())) {
             console.log('Comptroller rejected movingMaxSpeed/movingMinSpeed');
             return false;
         }
@@ -208,10 +209,10 @@ class BlockchainValueOp extends MutationOp {
         const comptroller = new MiniComptroller();
 
         if (prevOp !== undefined) {
-            comptroller.setBlockNumber(prevOp.blockNumber as bigint);
-            comptroller.setMovingMaxSpeed(prevOp.movingMaxSpeed as bigint);
-            comptroller.setMovingMinSpeed(prevOp.movingMinSpeed as bigint);
-            comptroller.setBlockTimeFactor(prevOp.blockTimeFactor as bigint);
+            comptroller.setBlockNumber(prevOp.blockNumber?.getValue() as bigint);
+            comptroller.setMovingMaxSpeed(prevOp.movingMaxSpeed?.getValue() as bigint);
+            comptroller.setMovingMinSpeed(prevOp.movingMinSpeed?.getValue() as bigint);
+            comptroller.setBlockTimeFactor(prevOp.blockTimeFactor?.getValue() as bigint);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         } else {
             comptroller.setBlockTimeFactor(BigInt(200) * FixedPoint.UNIT)

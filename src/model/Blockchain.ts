@@ -23,7 +23,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     //static log = new Logger(Blockchain.name, LogLevel.DEBUG)
     
 
-    static className = 'hhs/v0/examples/Blockchain';
+    static className = 'hhs/v0/soliton/Blockchain';
     static opClasses = [BlockchainValueOp.className];
 
     totalCoins?: string;
