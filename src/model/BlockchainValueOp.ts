@@ -179,7 +179,24 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
 
+        const challengeBuffer = Buffer.from(challenge, 'hex');
+        console.log('Challenge length (bytes) = ', challengeBuffer.length)
+        //const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer])
+        const challenge256bits = Buffer.concat([challengeBuffer,challengeBuffer])
+        const resultBuffer = Buffer.from(this.vdfResult, 'hex');
+        console.log('Result proof length (bytes) = ', this.vdfResult.length)
 
+        console.log('Will check (steps =' + steps + ') challenge ' + challenge + ' with result ' + this.vdfResult);
+
+        console.log(BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, resultBuffer));
+
+        if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, resultBuffer)) {
+            console.log('VDF verification failed.');
+            return false;
+        }
+
+
+/*
         let proofArr    = new Uint8Array(32);
         let proofBuffer =     Buffer.from(proofArr);
         SlothPermutation.writeBigUIntLE(BigInt('0x' + this.vdfResult), proofBuffer, 32);
@@ -202,6 +219,7 @@ class BlockchainValueOp extends MutationOp {
             console.log('VDF verification failed.');
             return false;
         }
+        */
 
         console.log('Successfully received proof for sequence number ' + this.blockNumber.getValue() + '.');
 
