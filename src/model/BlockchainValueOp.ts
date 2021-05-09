@@ -22,8 +22,8 @@ class BlockchainValueOp extends MutationOp {
         BlockchainValueOp.vdfVerifier = new SlothPermutation();
         BlockchainValueOp.comptroller = new MiniComptroller();
     };
-    static vdfVerifier: any;
-    static comptroller: any;
+    static vdfVerifier: SlothPermutation;
+    static comptroller: MiniComptroller;
     static coins: bigint = BigInt(0);
     static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(2);
 
@@ -188,9 +188,9 @@ class BlockchainValueOp extends MutationOp {
 
         console.log('Will check (steps =' + steps + ') challenge ' + challenge + ' with result ' + this.vdfResult);
 
-        console.log(BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(Number(steps), challenge256bits, resultBuffer));
+        console.log(BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, resultBuffer));
 
-        if (1+1===3 && !BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(Number(steps), challenge256bits, resultBuffer)) {
+        if (1+1===3 && !BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, resultBuffer)) {
             console.log('VDF verification failed.');
             return false;
         }
