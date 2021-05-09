@@ -86,12 +86,12 @@ class SlothPermutation {
 
     generateBufferProofVDF(t: bigint, x: Buffer, byteLen: number = 32): Buffer {
         let ret: Buffer = Buffer.from(new Uint8Array(byteLen))
-        this.writeBigUIntLE(this.mod_op(this.readBigUIntLE(x, byteLen), t), ret, byteLen)
+        SlothPermutation.writeBigUIntLE(this.mod_op(SlothPermutation.readBigUIntLE(x, byteLen), t), ret, byteLen)
         return ret
     }
 
     verifyBufferProofVDF(t: bigint, x: Buffer, y: Buffer, byteLen: number = 32): boolean {
-        return this.mod_verif(this.readBigUIntLE(y, byteLen), this.readBigUIntLE(x, byteLen), t)
+        return this.mod_verif(SlothPermutation.readBigUIntLE(y, byteLen), SlothPermutation.readBigUIntLE(x, byteLen), t)
     }
 
     readBigUInt64LE(buffer: Buffer, offset = 0) {
@@ -133,7 +133,7 @@ class SlothPermutation {
 
     }
 
-    readBigUIntLE(buffer: Buffer, byteLen: number, offset = 0): bigint {
+    static readBigUIntLE(buffer: Buffer, byteLen: number, offset = 0): bigint {
       
         if (offset + byteLen > buffer.length) {
             throw new Error('Out of bounds');
@@ -148,7 +148,7 @@ class SlothPermutation {
         return result;
     }
 
-    writeBigUIntLE(x: bigint, buffer: Buffer, byteLen: number, offset = 0) {
+    static writeBigUIntLE(x: bigint, buffer: Buffer, byteLen: number, offset = 0) {
 
         if (offset + byteLen > buffer.length) {
             throw new Error('Out of bounds');

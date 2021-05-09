@@ -186,7 +186,7 @@ class BlockchainValueOp extends MutationOp {
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
         console.log('Result proof length (bytes) = ', this.vdfResult.length)
 
-        console.log('Will check challenge ' + challenge + ' with result ' + this.vdfResult);
+        console.log('Will check (steps =' + steps + ') challenge ' + challenge + ' with result ' + this.vdfResult);
 
         console.log(BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(Number(steps), challenge256bits, resultBuffer));
 

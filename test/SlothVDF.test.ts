@@ -52,16 +52,14 @@ describe('[SlothVDF]', () => {
     test('[VDF04] bigint export/import from buffers of arbitrary size = 64', () => {
 
 
-        const x = (BigInt(0x789acdef) << BigInt(32)) + BigInt(0x06543210);
-
-        const sloth = new SlothPermutation();     
+        const x = (BigInt(0x789acdef) << BigInt(32)) + BigInt(0x06543210); 
 
         const arr = new Uint8Array(8);
         const buf = Buffer.from(arr);
 
 
-        sloth.writeBigUIntLE(x, buf, 8);
-        const y = sloth.readBigUIntLE(buf, 8);
+        SlothPermutation.writeBigUIntLE(x, buf, 8);
+        const y = SlothPermutation.readBigUIntLE(buf, 8);
 
         expect(x === y).toBeTruthy();
 
@@ -74,14 +72,12 @@ describe('[SlothVDF]', () => {
 
         x = x + (x << BigInt(64));
 
-        const sloth = new SlothPermutation();     
-
         const arr = new Uint8Array(16);
         const buf = Buffer.from(arr);
 
 
-        sloth.writeBigUIntLE(x, buf, 16);
-        const y = sloth.readBigUIntLE(buf, 16);
+        SlothPermutation.writeBigUIntLE(x, buf, 16);
+        const y = SlothPermutation.readBigUIntLE(buf, 16);
 
         expect(x === y).toBeTruthy();
 
@@ -177,8 +173,16 @@ describe('[SlothVDF]', () => {
 
     test('[VDF10] Ad-hoc 256 bits, >30,000 steps', () => {
 
-        let challenge = Buffer.from('3e7e01eac01f9067fcfb638ee1a9a4b17ccf4d3910d86823453dc008843104ef', 'hex')
-        let proof =     Buffer.from('709ae52da193411c044cd213cff8a1896b758cf242e3bf65578ad4ed3516b974', 'hex')
+        const challengeStr = '3e7e01eac01f9067fcfb638ee1a9a4b17ccf4d3910d86823453dc008843104ef';
+        const proofStr     = '709ae52da193411c044cd213cff8a1896b758cf242e3bf65578ad4ed3516b974';
+        let challenge = Buffer.from(challengeStr, 'hex');
+        let proof =     Buffer.from(proofStr, 'hex');
+
+        let challengeBigInt = SlothPermutation.readBigUIntLE(challenge, 32);
+        let challengeStr2   = challengeBigInt.toString(16);
+
+        expect(challengeStr).toEqual(challengeStr2);
+
         const t = BigInt(30298) 
         const sloth = new SlothPermutation();    
         // 256 bits prime
