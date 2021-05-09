@@ -175,8 +175,16 @@ describe('[SlothVDF]', () => {
 
         const challengeStr = '3e7e01eac01f9067fcfb638ee1a9a4b17ccf4d3910d86823453dc008843104ef';
         const proofStr     = '709ae52da193411c044cd213cff8a1896b758cf242e3bf65578ad4ed3516b974';
-        let challenge = Buffer.from(challengeStr, 'hex');
-        let proof =     Buffer.from(proofStr, 'hex');
+        //let challenge = Buffer.from(challengeStr, 'hex');
+        
+        let proofArr = new Uint8Array(32);
+        let proof =     Buffer.from(proofArr);
+
+        let challengeArr = new Uint8Array(32);
+        let challenge = Buffer.from(challengeArr);
+
+        SlothPermutation.writeBigUIntLE(BigInt('0x' + challengeStr), challenge, 32);
+        SlothPermutation.writeBigUIntLE(BigInt('0x' + proofStr), proof, 32);
 
         let challengeBigInt = SlothPermutation.readBigUIntLE(challenge, 32);
         let challengeStr2   = challengeBigInt.toString(16);
