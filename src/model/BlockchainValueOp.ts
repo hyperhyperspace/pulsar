@@ -184,7 +184,7 @@ class BlockchainValueOp extends MutationOp {
         //const challenge256 = Buffer.concat([challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer,challengeBuffer])
         const challenge256bits = Buffer.concat([challengeBuffer,challengeBuffer])
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
-        console.log('Result proof length (bytes) = ', this.vdfResult.length)
+        console.log('Result proof length (bytes) = ', this.vdfResult.length / 2)
 
         console.log('Will check (steps =' + steps + ') challenge ' + challenge + ' with result ' + this.vdfResult);
 
