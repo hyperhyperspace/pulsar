@@ -65,6 +65,7 @@ class SlothPermutation {
     }
 
     mod_verif(y: bigint, x: bigint, t: bigint): boolean {
+        x = x % SlothPermutation.p
         for (var i = 0; i < t; i++) {
             y = (y ** BigInt(2)) % SlothPermutation.p //this.fast_pow(y, BigInt(2),SlothVDF.p)
         }
