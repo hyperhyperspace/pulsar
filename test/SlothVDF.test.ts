@@ -175,6 +175,18 @@ describe('[SlothVDF]', () => {
         expect(sloth.verifyBufferProofVDF(t, challenge, proof, 32)).toBeTruthy();
     });
 
+    test('[VDF10] Ad-hoc 256 bits, >30,000 steps', () => {
+
+        let challenge = Buffer.from('3e7e01eac01f9067fcfb638ee1a9a4b17ccf4d3910d86823453dc008843104ef', 'hex')
+        let proof =     Buffer.from('709ae52da193411c044cd213cff8a1896b758cf242e3bf65578ad4ed3516b974', 'hex')
+        const t = BigInt(30298) 
+        const sloth = new SlothPermutation();    
+        // 256 bits prime
+        SlothPermutation.p = BigInt('64106875808534963770974826322234655855469213855659218736479077548818158667371') 
+        let goodProof = sloth.generateBufferProofVDF(t, challenge, 32)
+        expect(goodProof).toEqual(proof)
+        expect(sloth.verifyBufferProofVDF(t, challenge, goodProof, 32)).toBeTruthy();
+    });
 
 
 });
