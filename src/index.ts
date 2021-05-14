@@ -1,4 +1,4 @@
-
+import '@hyper-hyper-space/node-env';
 
 import { Identity } from '@hyper-hyper-space/core';
 import { RSAKeyPair } from '@hyper-hyper-space/core';

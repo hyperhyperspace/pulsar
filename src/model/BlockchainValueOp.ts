@@ -22,8 +22,8 @@ class BlockchainValueOp extends MutationOp {
         BlockchainValueOp.vdfVerifier = new SlothPermutation();
         BlockchainValueOp.comptroller = new MiniComptroller();
     };
-    static vdfVerifier: any;
-    static comptroller: any;
+    static vdfVerifier: SlothPermutation;
+    static comptroller: MiniComptroller;
     static coins: bigint = BigInt(0);
     static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(2);
 
@@ -42,13 +42,16 @@ class BlockchainValueOp extends MutationOp {
 
         if (target !== undefined && vdfResult !== undefined && vdfBoostrapResult !== undefined) {
 
+            vdfResult = vdfResult.toLowerCase();
+
             this.timestampSeconds = Date.now();
+
+            this.vdfResult = vdfResult;
 
             let blocktime = prevOp !== undefined? 
                                 BigInt(Math.floor(this.timestampSeconds - (prevOp.timestampSeconds as number))) * (FixedPoint.UNIT / (BigInt(10)**BigInt(3)))
                             :
                                 MiniComptroller.targetBlockTime; // FIXME: initial block time
-            // TODO: use milliseconds
             if (blocktime == BigInt(0))
                 blocktime = BigInt(1) * FixedPoint.UNIT
             console.log('Verifying block with blockTime (secs) = ', Number(blocktime) / Number(FixedPoint.UNIT) )
@@ -138,28 +141,40 @@ class BlockchainValueOp extends MutationOp {
 
         const prevOp: BlockchainValueOp | undefined = prev;
             
-        const blocktime = prevOp !== undefined? 
-                                BigInt((this.timestampSeconds as number) - (prevOp.timestampSeconds as number))
-                            :
-                                MiniComptroller.targetBlockTime; // FIXME: initial block time
+        let blocktime = prevOp !== undefined? 
+                            BigInt(Math.floor(this.timestampSeconds - (prevOp.timestampSeconds as number))) * (FixedPoint.UNIT / (BigInt(10)**BigInt(3)))
+                        :
+                            MiniComptroller.targetBlockTime; // FIXME: initial block time
+        if (blocktime == BigInt(0))
+            blocktime = BigInt(1) * FixedPoint.UNIT
                         
         const comp = BlockchainValueOp.initializeComptroller(prev);
 
-        if (!comp.updateOrTestBlockTimeActionable(blocktime)) {
+        const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
+        const steps = BlockchainValueOp.getVDFSteps(comp, challenge);
+
+        comp.addBlockSample(blocktime, steps);
+
+        if (this.blockNumber?.getValue() !== comp.getBlockNumber()) {
+            console.log('Comptroller rejected blockNumber');
+            return false;
+        }
+
+        if (this.movingMaxSpeed?.getValue() !== comp.getMovingMaxSpeed()) {
+            console.log('Comptroller rejected movingMaxSpeed');
+            return false;
+        }
+                                                         
+        if (this.movingMinSpeed?.getValue() !== comp.getMovingMinSpeed()) {
+            console.log('Comptroller rejected movingMinSpeed');
+            return false;
+        }
+                                                         
+        if (this.blockTimeFactor?.getValue() !== comp.getBlockTimeFactor()) {
             console.log('Comptroller rejected blockTimeFactor');
             return false;
         }
-
-        if (!comp.updateOrTestSpeedRatioTarget(this.movingMaxSpeed?.getValue(), this.movingMinSpeed?.getValue())) {
-            console.log('Comptroller rejected movingMaxSpeed/movingMinSpeed');
-            return false;
-        }
-
-        if (this.vdfResult.toUpperCase() !== this.vdfResult) {
-            console.log('VDF result is not uppercase');
-            return false;
-        }
-
+                                                         
         if (this.vdfBootstrapResult.toUpperCase() !== this.vdfBootstrapResult) {
             console.log('VDF boostrap result is not uppercase');
             return false;
@@ -170,7 +185,6 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
 
-        const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
         let challengeBuffer = Buffer.from(challenge, 'hex');
         console.log('Bootstrap Challenge length (bytes) = ', challengeBuffer.length)
         const challenge256bits = Buffer.concat([challengeBuffer,challengeBuffer])
@@ -188,20 +202,50 @@ class BlockchainValueOp extends MutationOp {
         }
 
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
-        console.log('Result proof length (bytes) = ', this.vdfResult.length)
-        const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
-        if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(Number(steps), challenge256bits, resultBuffer)) {
+        console.log('Result proof length (bytes) = ', this.vdfResult.length / 2)
+
+        console.log('Will check (steps =' + steps + ') challenge ' + challenge + ' with result ' + this.vdfResult);
+
+        console.log(BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, resultBuffer));
+
+        if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, resultBuffer)) {
             console.log('VDF verification failed.');
             return false;
         }
 
-        console.log('Successfully received proof for sequence number ' + this.blockNumber + '.');
+
+/*
+        let proofArr    = new Uint8Array(32);
+        let proofBuffer =     Buffer.from(proofArr);
+        SlothPermutation.writeBigUIntLE(BigInt('0x' + this.vdfResult), proofBuffer, 32);
+
+        let challengeArr    = new Uint8Array(32);
+        let challengeBuffer = Buffer.from(challengeArr);
+        SlothPermutation.writeBigUIntLE(BigInt('0x' + challenge), challengeBuffer, 32);
+
+        console.log('Challenge length (bytes) = ', challengeBuffer.length)
+        const challenge256bits = Buffer.concat([challengeBuffer,challengeBuffer])
+        
+
+        console.log('Result proof length (bytes) = ', this.vdfResult.length)
+
+        console.log('Will check (steps =' + steps + ') challenge ' + challenge + ' with result ' + this.vdfResult);
+
+        console.log(BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, proofBuffer));
+
+        if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, proofBuffer)) {
+            console.log('VDF verification failed.');
+            return false;
+        }
+        */
+
+        console.log('Successfully received proof for sequence number ' + this.blockNumber.getValue() + '.');
 
         return true;
 
     }
 
-    static getChallenge(target: Blockchain, prevOpHash?: Hash) {
+    static getChallenge(target: Blockchain, prevOpHash?: Hash): string {
         let challenge: string;
 
         if (prevOpHash === undefined) {

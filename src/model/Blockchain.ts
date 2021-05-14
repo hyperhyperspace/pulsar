@@ -1,5 +1,3 @@
-import '@hyper-hyper-space/node-env';
-
 import { Hashing, HashedObject, MutableObject, MutationOp } from '@hyper-hyper-space/core';
 
 import { Identity } from '@hyper-hyper-space/core';
@@ -96,6 +94,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
 
             console.log('Racing for challenge (' + steps + ' steps): "' + challenge + '".');
+            console.log('# Block Number = ', comp.getBlockNumber())
+
             this._computation = new Worker('./dist/model/worker.js');
             this._computation.on('error', (err: Error) => { console.log('ERR');console.log(err)});
             this._computation.on('message', async (msg: {challenge: string, result: string}) => {

@@ -50,7 +50,7 @@ class HashedBigInt extends HashedObject {
 
         return this.hexValue !== undefined && typeof(this.hexValue) === 'string' &&
                this.positive !== undefined && typeof(this.positive) === 'boolean' &&
-               /[0-9a-f]+/.test(this.hexValue) && !/0[0-9a-f]+/.test(this.hexValue);               
+               /^[0-9a-f]+$/.test(this.hexValue) && !/^0[0-9a-f]+$/.test(this.hexValue);
     }
 
     getValue(): bigint {

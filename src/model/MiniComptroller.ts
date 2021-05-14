@@ -133,7 +133,7 @@ class MiniComptroller implements Comptroller {
             validBlockTimeFactor = MiniComptroller.maxBlockTimeFactor
         // test or update
         if (newBlockTimeFactor != undefined)
-            return newBlockTimeFactor == validBlockTimeFactor
+            return newBlockTimeFactor == validBlockTimeFactor;
         else
             this.blockTimeFactor = validBlockTimeFactor
             return true

@@ -52,16 +52,14 @@ describe('[SlothVDF]', () => {
     test('[VDF04] bigint export/import from buffers of arbitrary size = 64', () => {
 
 
-        const x = (BigInt(0x789acdef) << BigInt(32)) + BigInt(0x06543210);
-
-        const sloth = new SlothPermutation();     
+        const x = (BigInt(0x789acdef) << BigInt(32)) + BigInt(0x06543210); 
 
         const arr = new Uint8Array(8);
         const buf = Buffer.from(arr);
 
 
-        sloth.writeBigUIntLE(x, buf, 8);
-        const y = sloth.readBigUIntLE(buf, 8);
+        SlothPermutation.writeBigUIntLE(x, buf, 8);
+        const y = SlothPermutation.readBigUIntLE(buf, 8);
 
         expect(x === y).toBeTruthy();
 
@@ -74,14 +72,12 @@ describe('[SlothVDF]', () => {
 
         x = x + (x << BigInt(64));
 
-        const sloth = new SlothPermutation();     
-
         const arr = new Uint8Array(16);
         const buf = Buffer.from(arr);
 
 
-        sloth.writeBigUIntLE(x, buf, 16);
-        const y = sloth.readBigUIntLE(buf, 16);
+        SlothPermutation.writeBigUIntLE(x, buf, 16);
+        const y = SlothPermutation.readBigUIntLE(buf, 16);
 
         expect(x === y).toBeTruthy();
 
@@ -175,7 +171,20 @@ describe('[SlothVDF]', () => {
         expect(sloth.verifyBufferProofVDF(t, challenge, proof, 32)).toBeTruthy();
     });
 
+    test('[VDF09b] bigint export/import from buffers of arbitrary size = 256 bits and VDF test many steps', () => {
 
+        let challenge = BigInt('64528909272528537054813745700492621300445458085274430251275671551785582282347')
+        const t = BigInt(10) // 65368
+        const sloth = new SlothPermutation();    
+        // 256 bits prime
+        SlothPermutation.p = BigInt('64106875808534963770974826322234655855469213855659218736479077548818158667371') 
+
+        for (let i = 0; i < 8; i++) {
+            challenge = challenge + BigInt(2) ** BigInt(252)
+            let proof = sloth.generateProofVDF(t, challenge)
+            expect(sloth.verifyProofVDF(t, challenge, proof)).toBeTruthy();
+        }
+    });
 
 });
 
