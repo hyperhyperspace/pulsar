@@ -74,17 +74,18 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             let resultBootstrap = ''
             if (comp.isBootstrapPeriod()) {
                 const bufferChallenge = Buffer.from(challenge, 'hex')
-                const challenge256bits = Buffer.concat([bufferChallenge,bufferChallenge])        
-                const boostrapSteps = comp.getConsensusBoostrapDifficulty()
-                console.log('Boostrap VDF Steps: ' + boostrapSteps + ' steps');
+                const challenge256bits = bufferChallenge //Buffer.concat([bufferChallenge,bufferChallenge])        
+                const bootstrapSteps = comp.getConsensusBoostrapDifficulty()
+                console.log('Boostrap VDF Steps: ' + bootstrapSteps + ' steps');
+                console.log('Racing for bootstrap challenge (' + bootstrapSteps + ' steps): "' + challenge + '".');
                 const tGen = Date.now();
-                const resultBootstrapBuffer = BlockchainValueOp.vdfVerifier.generateBufferProofVDF(BigInt(boostrapSteps), challenge256bits )
+                const resultBootstrapBuffer = BlockchainValueOp.vdfVerifier.generateBufferProofVDF(BigInt(bootstrapSteps), challenge256bits )
                 resultBootstrap = resultBootstrapBuffer.toString('hex')
                 const elapsedGen = Date.now() - tGen;
                 console.log('Done computing Boostrap VDF, took ' + elapsedGen + ' millisecs')  ;
                 const tVerif = Date.now();
                 console.log('Result Proof length (bytes) = ', resultBootstrapBuffer.length)
-                console.log('Boostrap VDF self verification: ' + BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(BigInt(boostrapSteps), challenge256bits, resultBootstrapBuffer));
+                console.log('Boostrap VDF self verification: ' + BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(BigInt(bootstrapSteps), challenge256bits, resultBootstrapBuffer));
                 const elapsedVerif = Date.now() - tVerif;
                 console.log('verification took ' + elapsedVerif + ' millisecs');
                 challenge = resultBootstrap

@@ -18,7 +18,7 @@ class VDF {
 
         const bufferChallenge = Buffer.from(challenge, 'hex')
         //const challenge256 = Buffer.concat([bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge,bufferChallenge])
-        const challenge256bits = Buffer.concat([bufferChallenge,bufferChallenge])
+        const challenge256bits = bufferChallenge // Buffer.concat([bufferChallenge,bufferChallenge])
         
         console.log('VDF Steps: ' + steps + ' steps');
         const result = vdfInstance.generateBufferProofVDF(BigInt(steps), challenge256bits )

@@ -82,15 +82,12 @@ class BlockchainValueOp extends MutationOp {
 
     async validate(references: Map<Hash, HashedObject>): Promise<boolean> {
 
-        references
-        this.blockNumber?.getValue()
-        return true
-        
-        /*
+
         if (this.blockNumber === undefined || this.vdfResult === undefined || this.vdfBootstrapResult === undefined) {
             console.log('Object is incomplete.');
             return false;
         }
+
 
         if (this.blockNumber.getValue() < BigInt(0)) {
             console.log('Sequence number is negative.');
@@ -190,9 +187,13 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
 
+        references
+        return true
+
+        /*
         let challengeBuffer = Buffer.from(challenge, 'hex');
         console.log('Bootstrap Challenge length (bytes) = ', challengeBuffer.length)
-        const challenge256bits = Buffer.concat([challengeBuffer,challengeBuffer])
+        let challenge256bits = challengeBuffer // Buffer.concat([challengeBuffer,challengeBuffer])
         
         // Boostrap period Protection check
         // In boostrap period do a pre-VDF with 50% blockTime.
@@ -203,7 +204,7 @@ class BlockchainValueOp extends MutationOp {
                 console.log('Boostrap VDF verification failed.');
                 return false;
             }
-            challengeBuffer = resultBoostrapBuffer;
+            challenge256bits = resultBoostrapBuffer;
         }
 
         const resultBuffer = Buffer.from(this.vdfResult, 'hex');
@@ -217,7 +218,6 @@ class BlockchainValueOp extends MutationOp {
             console.log('VDF verification failed.');
             return false;
         }
-        */
 
 /*
         let proofArr    = new Uint8Array(32);
@@ -229,7 +229,7 @@ class BlockchainValueOp extends MutationOp {
         SlothPermutation.writeBigUIntLE(BigInt('0x' + challenge), challengeBuffer, 32);
 
         console.log('Challenge length (bytes) = ', challengeBuffer.length)
-        const challenge256bits = Buffer.concat([challengeBuffer,challengeBuffer])
+        const challenge256bits = challengeBuffer //Buffer.concat([challengeBuffer,challengeBuffer])
         
 
         console.log('Result proof length (bytes) = ', this.vdfResult.length)
@@ -246,7 +246,8 @@ class BlockchainValueOp extends MutationOp {
 
         //console.log('Successfully received proof for sequence number ' + this.blockNumber.getValue() + '.');
 
-        return true;
+        //return true;
+    
 
     }
 
