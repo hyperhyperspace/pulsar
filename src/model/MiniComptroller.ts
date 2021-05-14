@@ -45,7 +45,7 @@ class MiniComptroller implements Comptroller {
     static bootstrapVirtualStake: bigint = BigInt(10000) * FixedPoint.UNIT;
 
     // Rationale: want something robust but flexible, 24 sounds to flexible and 1 week to rigid, 48 hrs sounds a tradeoff.
-    static windowSize: bigint = BigInt(60 * 60 * 24 * 7) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // 15120 blocks
+    static windowSize: bigint = BigInt(60 * 60 * 24 * 7 ) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // 15120 blocks
     static windowExtraBuffer: bigint = MiniComptroller.windowSize; // buffer blocks for reorgs to under block adds.
 
     static initialBlockTimeFactor: bigint = BigInt(2000) * FixedPoint.UNIT;
@@ -93,8 +93,10 @@ class MiniComptroller implements Comptroller {
         this.blockNumber += BigInt(1)
 
         // append to buffers
-        this.currentBlockTime = blockTime * FixedPoint.UNIT
+        this.currentBlockTime = blockTime // * FixedPoint.UNIT
         this.difficulty = difficulty * FixedPoint.UNIT
+        //console.log( 'this.difficulty', this.difficulty / FixedPoint.UNIT  )
+        //console.log( 'this.currentBlockTime', this.currentBlockTime / FixedPoint.UNIT  )
         this.currentSpeed = FixedPoint.divTrunc(this.difficulty, this.currentBlockTime) 
 
         // update block time control
@@ -114,9 +116,14 @@ class MiniComptroller implements Comptroller {
 
     updateOrTestBlockTimeActionable(newBlockTimeFactor?: bigint): boolean {
         var validBlockTimeFactor = BigInt(0)
-        if (this.currentBlockTime > MiniComptroller.targetBlockTime)
+        //console.log('this.blockTimeFactor = ', this.blockTimeFactor)
+        let auxTargetBlockTime: bigint = MiniComptroller.targetBlockTime
+        if (this.isBootstrapPeriod()) 
+            auxTargetBlockTime = MiniComptroller.targetBlockTime / BigInt(2)
+
+        if (this.currentBlockTime > auxTargetBlockTime)
             validBlockTimeFactor = FixedPoint.div(FixedPoint.mul(this.blockTimeFactor, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
-        else if (this.currentBlockTime < MiniComptroller.targetBlockTime)
+        else if (this.currentBlockTime < auxTargetBlockTime)
             validBlockTimeFactor = FixedPoint.div(FixedPoint.mul(this.blockTimeFactor, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
         else // ==
             validBlockTimeFactor = this.blockTimeFactor  
@@ -138,6 +145,8 @@ class MiniComptroller implements Comptroller {
         var backupMovingMaxSpeed = this.movingMaxSpeed
         var backupMovingMinSpeed = this.movingMinSpeed
         var backupSpeedRatio = this.speedRatio
+
+        //console.log('this.currentSpeed = ', this.currentSpeed / FixedPoint.UNIT )
 
         if (this.currentSpeed > this.movingMaxSpeed && this.speedRatio < this.maxSpeedRatio) {// increase max
             this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
@@ -234,7 +243,7 @@ class MiniComptroller implements Comptroller {
     }
 
 
-    // Consensus Getter
+    // Consensus Getters
 
 
     getConsensusDifficulty(coins: bigint, totalCoins: bigint, vrfSeed: bigint) {
@@ -251,6 +260,22 @@ class MiniComptroller implements Comptroller {
         return this.blockReward // static 10 coins
     }
 
+    isBootstrapPeriod(): boolean {
+        return this.blockNumber < MiniComptroller.bootstrapPeriod 
+    }
+
+    getConsensusBoostrapDifficulty(): bigint {
+        if (this.blockNumber >= MiniComptroller.bootstrapPeriod) // boostrap period ended
+            return BigInt(0)
+        let meanBlockDifficulty = (this.movingMaxSpeed + this.movingMinSpeed) / BigInt(2) // middle point
+        //console.log('movingMaxSpeed = ', this.movingMaxSpeed / FixedPoint.UNIT)
+        //console.log('movingMinSpeed = ', this.movingMinSpeed / FixedPoint.UNIT)
+        //console.log('meanSpeed = ', meanBlockDifficulty / FixedPoint.UNIT)
+        
+        // times blockTime seconds
+        meanBlockDifficulty = FixedPoint.mulTrunc(meanBlockDifficulty, MiniComptroller.targetBlockTime) / FixedPoint.UNIT
+        return meanBlockDifficulty / BigInt(2) // 50%
+    }
 
     getBlockTimeFactor() {
         return this.blockTimeFactor

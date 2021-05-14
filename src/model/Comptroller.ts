@@ -16,6 +16,8 @@ interface Comptroller {
     // Consensus Getter
     getConsensusDifficulty(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint;
     getConsensusBlockReward(): bigint;
+    getConsensusBoostrapDifficulty(): bigint
+    isBootstrapPeriod(): boolean
     getBlockTimeFactor(): bigint;
     getSpeedRatio(): bigint;
     setSpeedRatio(speedRatio: bigint): void;

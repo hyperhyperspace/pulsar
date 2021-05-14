@@ -66,21 +66,42 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             const comp = BlockchainValueOp.initializeComptroller(this._lastOp);
 
-            const challenge = BlockchainValueOp.getChallenge(this, this._lastOp?.hash());
+            let challenge = BlockchainValueOp.getChallenge(this, this._lastOp?.hash());
+
+            console.log('-------------------------------------------------------------')
+
+            // Bootstrap Period Protection pre-VDF.
+            let resultBootstrap = ''
+            if (comp.isBootstrapPeriod()) {
+                const bufferChallenge = Buffer.from(challenge, 'hex')
+                const challenge256bits = Buffer.concat([bufferChallenge,bufferChallenge])        
+                const boostrapSteps = comp.getConsensusBoostrapDifficulty()
+                console.log('Boostrap VDF Steps: ' + boostrapSteps + ' steps');
+                const tGen = Date.now();
+                const resultBootstrapBuffer = BlockchainValueOp.vdfVerifier.generateBufferProofVDF(BigInt(boostrapSteps), challenge256bits )
+                resultBootstrap = resultBootstrapBuffer.toString('hex')
+                const elapsedGen = Date.now() - tGen;
+                console.log('Done computing Boostrap VDF, took ' + elapsedGen + ' millisecs')  ;
+                const tVerif = Date.now();
+                console.log('Result Proof length (bytes) = ', resultBootstrapBuffer.length)
+                console.log('Boostrap VDF self verification: ' + BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(BigInt(boostrapSteps), challenge256bits, resultBootstrapBuffer));
+                const elapsedVerif = Date.now() - tVerif;
+                console.log('verification took ' + elapsedVerif + ' millisecs');
+                challenge = resultBootstrap
+            }
+            
             // TODO: warning! replace with VRF seed + hashing with prev block hash.
             const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
 
+            console.log('Racing for challenge (' + steps + ' steps): "' + challenge + '".');
             console.log('# Block Number = ', comp.getBlockNumber())
-            console.log('Racing for challenge (' + steps + ' steps): "' + this.currentChallenge() + '".');
 
             this._computation = new Worker('./dist/model/worker.js');
             this._computation.on('error', (err: Error) => { console.log('ERR');console.log(err)});
             this._computation.on('message', async (msg: {challenge: string, result: string}) => {
-                
                 console.log('Solved challenge "' + msg.challenge + '" with: "' + msg.result + '".');
-
-                if (msg.challenge === this.currentChallenge()) {
-                    let op = new BlockchainValueOp(this, this._lastOp, msg.result);
+                if (msg.challenge === challenge ) {
+                    let op = new BlockchainValueOp(this, this._lastOp, msg.result, resultBootstrap);
 
                     if (this._lastOp !== undefined) {
                         op.setPrevOps(new Set([this._lastOp]).values());
@@ -95,7 +116,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     console.log('Mismatched challenge - could be normal.');
                 }
             });
-            this._computation.postMessage({steps: Number(steps), challenge: this.currentChallenge()});
+            this._computation.postMessage({steps: Number(steps), challenge: challenge});
             
         } else {
             console.log('Race was called but a computation is running.');
@@ -123,6 +144,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         return Hashing.sha.sha256hex(this.getId() as string);
     }
 
+    /*
     private currentChallenge(): string {
         let ret = ''
         if (this._lastOp === undefined) {
@@ -132,7 +154,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         }
         return ret //.slice(0, ret.length/2)
     }
-
+    */
     /*
     private currentSeq() {
         if (this._lastOp === undefined) {
