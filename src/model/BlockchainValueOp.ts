@@ -82,6 +82,11 @@ class BlockchainValueOp extends MutationOp {
 
     async validate(references: Map<Hash, HashedObject>): Promise<boolean> {
 
+        references
+        this.blockNumber?.getValue()
+        return true
+        
+        /*
         if (this.blockNumber === undefined || this.vdfResult === undefined || this.vdfBootstrapResult === undefined) {
             console.log('Object is incomplete.');
             return false;
@@ -174,7 +179,7 @@ class BlockchainValueOp extends MutationOp {
             console.log('Comptroller rejected blockTimeFactor');
             return false;
         }
-                                                         
+                
         if (this.vdfBootstrapResult.toUpperCase() !== this.vdfBootstrapResult) {
             console.log('VDF boostrap result is not uppercase');
             return false;
@@ -212,7 +217,7 @@ class BlockchainValueOp extends MutationOp {
             console.log('VDF verification failed.');
             return false;
         }
-
+        */
 
 /*
         let proofArr    = new Uint8Array(32);
@@ -239,7 +244,7 @@ class BlockchainValueOp extends MutationOp {
         }
         */
 
-        console.log('Successfully received proof for sequence number ' + this.blockNumber.getValue() + '.');
+        //console.log('Successfully received proof for sequence number ' + this.blockNumber.getValue() + '.');
 
         return true;
 
