@@ -193,8 +193,8 @@ class BlockchainValueOp extends MutationOp {
         // In boostrap period do a pre-VDF with 50% blockTime.
         if (comp.isBootstrapPeriod()) {
             const resultBoostrapBuffer = Buffer.from(this.vdfBootstrapResult, 'hex');
-            const boostrapSteps = comp.getConsensusBoostrapDifficulty()
-            if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(Number(boostrapSteps), challenge256bits, resultBoostrapBuffer)) {
+            const bootstrapSteps = comp.getConsensusBoostrapDifficulty()
+            if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(bootstrapSteps, challenge256bits, resultBoostrapBuffer)) {
                 console.log('Boostrap VDF verification failed.');
                 return false;
             }
