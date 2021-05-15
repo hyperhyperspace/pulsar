@@ -71,8 +71,17 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             console.log('-------------------------------------------------------------')
 
             // Bootstrap Period Protection pre-VDF.
-            let resultBootstrap = ''
-            if (comp.isBootstrapPeriod()) {
+            const bootstrap = comp.isBootstrapPeriod();
+            
+            let bootstrapSteps: bigint|undefined = undefined;
+
+            if (bootstrap) {
+                bootstrapSteps = comp.getConsensusBoostrapDifficulty();
+            }
+            
+            
+
+            /*if (comp.isBootstrapPeriod()) {
                 const bufferChallenge = Buffer.from(challenge, 'hex')
                 const challenge256bits = bufferChallenge //Buffer.concat([bufferChallenge,bufferChallenge])        
                 const bootstrapSteps = comp.getConsensusBoostrapDifficulty()
@@ -89,7 +98,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 const elapsedVerif = Date.now() - tVerif;
                 console.log('verification took ' + elapsedVerif + ' millisecs');
                 challenge = resultBootstrap
-            }
+            }*/
             
             // TODO: warning! replace with VRF seed + hashing with prev block hash.
             const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
@@ -99,10 +108,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             this._computation = new Worker('./dist/model/worker.js');
             this._computation.on('error', (err: Error) => { console.log('ERR');console.log(err)});
-            this._computation.on('message', async (msg: {challenge: string, result: string}) => {
+            this._computation.on('message', async (msg: {challenge: string, result: string, bootstrapResult?: string}) => {
                 console.log('Solved challenge "' + msg.challenge + '" with: "' + msg.result + '".');
                 if (msg.challenge === challenge ) {
-                    let op = new BlockchainValueOp(this, this._lastOp, msg.result, resultBootstrap);
+                    let op = new BlockchainValueOp(this, this._lastOp, msg.result, msg.bootstrapResult);
 
                     if (this._lastOp !== undefined) {
                         op.setPrevOps(new Set([this._lastOp]).values());
@@ -117,7 +126,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     console.log('Mismatched challenge - could be normal.');
                 }
             });
-            this._computation.postMessage({steps: Number(steps), challenge: challenge});
+            this._computation.postMessage({steps: steps, challenge: challenge, bootstrap: bootstrap, bootstrapSteps: bootstrapSteps});
             
         } else {
             console.log('Race was called but a computation is running.');

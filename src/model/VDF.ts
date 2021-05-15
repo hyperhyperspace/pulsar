@@ -9,7 +9,7 @@ class VDF {
 
     //static log = new Logger(VDF.name, LogLevel.TRACE)
 
-    static async compute(challenge: string, steps: number): Promise<string> {
+    static async compute(challenge: string, steps: bigint): Promise<string> {
 
         console.log('Creating VDF instance...');
         const vdfInstance = new SlothPermutation();
@@ -21,17 +21,28 @@ class VDF {
         const challenge256bits = bufferChallenge // Buffer.concat([bufferChallenge,bufferChallenge])
         
         console.log('VDF Steps: ' + steps + ' steps');
-        const result = vdfInstance.generateBufferProofVDF(BigInt(steps), challenge256bits )
+        const result = vdfInstance.generateBufferProofVDF(steps, challenge256bits )
         const elapsedGen = Date.now() - tGen;
         console.log('Done computing VDF, took ' + elapsedGen + ' millis');
         const tVerif = Date.now();
         console.log('Result Proof length (bytes) = ', result.length)
-        console.log('VDF self verification: ' + vdfInstance.verifyBufferProofVDF(BigInt(steps), challenge256bits, result));
+        console.log('VDF self verification: ' + vdfInstance.verifyBufferProofVDF(steps, challenge256bits, result));
         const elapsedVerif = Date.now() - tVerif;
         console.log('verification took ' + elapsedVerif + ' millis');
 
         return Buffer.from(result).toString('hex');
     }
+
+    static async verify(challenge: string, steps: bigint, result: string): Promise<boolean> {
+
+        const vdfInstance = new SlothPermutation();
+        const bufferChallenge = Buffer.from(challenge, 'hex')
+        const bufferResult = Buffer.from(result, 'hex')
+
+        return vdfInstance.verifyBufferProofVDF(steps, bufferChallenge, bufferResult);
+
+    }
 }
+
 
 export { VDF };

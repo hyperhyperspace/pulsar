@@ -10,6 +10,7 @@ import { MiniComptroller, FixedPoint } from './MiniComptroller';
 
 //import {SlothPermutation} from '@hyper-hyper-space/sloth-permutation';
 import {SlothPermutation} from './SlothVDF';
+import { VDF } from './VDF';
 (global as any).document = { }; // yikes!
 
 class BlockchainValueOp extends MutationOp {
@@ -40,7 +41,7 @@ class BlockchainValueOp extends MutationOp {
     constructor(target?: Blockchain, prevOp?: BlockchainValueOp, vdfResult?: string, vdfBoostrapResult?: string) {
         super(target);
 
-        if (target !== undefined && vdfResult !== undefined && vdfBoostrapResult !== undefined) {
+        if (target !== undefined && vdfResult !== undefined) {
 
             vdfResult = vdfResult.toLowerCase();
 
@@ -68,6 +69,10 @@ class BlockchainValueOp extends MutationOp {
             this.movingMaxSpeed = new HashedBigInt(comp.getMovingMaxSpeed());
             this.movingMinSpeed = new HashedBigInt(comp.getMovingMinSpeed());
             this.blockTimeFactor = new HashedBigInt(comp.getBlockTimeFactor());
+
+            if (vdfBoostrapResult) {
+                this.vdfBootstrapResult = vdfBoostrapResult;
+            }
         }
 
     }
@@ -82,12 +87,17 @@ class BlockchainValueOp extends MutationOp {
 
     async validate(references: Map<Hash, HashedObject>): Promise<boolean> {
 
+        references;
 
         if (this.blockNumber === undefined || this.vdfResult === undefined || this.vdfBootstrapResult === undefined) {
+            console.log();
             console.log('Object is incomplete.');
+            console.log(this.blockNumber);
+            console.log(this.vdfResult);
+            console.log(this.vdfBootstrapResult);
+            console.log();
             return false;
         }
-
 
         if (this.blockNumber.getValue() < BigInt(0)) {
             console.log('Sequence number is negative.');
@@ -177,17 +187,33 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
                 
-        if (this.vdfBootstrapResult.toUpperCase() !== this.vdfBootstrapResult) {
-            console.log('VDF boostrap result is not uppercase');
+        if (this.vdfBootstrapResult.toLowerCase() !== this.vdfBootstrapResult) {
+            console.log('VDF boostrap result is not lowercase');
             return false;
         }
 
-        if ((this.vdfBootstrapResult !== '') === comp.isBootstrapPeriod()) {
+        if ((this.vdfBootstrapResult !== undefined) !== comp.isBootstrapPeriod()) {
             console.log('VDF boostrap result is only empty when boostrap period ended.');
             return false;
         }
 
-        references
+        if (this.vdfBootstrapResult !== undefined) {
+            const bootstrapSteps = comp.getConsensusBoostrapDifficulty();
+            if (!VDF.verify(challenge, bootstrapSteps, this.vdfBootstrapResult)) {
+                console.log('Failed bootstrap VDF verification');
+                return false;
+            }
+            if (!VDF.verify(this.vdfBootstrapResult, steps, this.vdfResult)) {
+                console.log('Failed VDF verification (using bootstrap period result as challenge)');
+                return false;
+            }
+        } else {
+            if (!VDF.verify(challenge, steps, this.vdfResult)) {
+                console.log('Failed VDF verification');
+                return false;
+            }
+        }
+        
         return true
 
         /*

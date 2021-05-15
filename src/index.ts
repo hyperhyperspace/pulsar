@@ -99,7 +99,7 @@ async function main() {
 
         console.log('starting self test...');
         console.log();
-        await VDF.compute(new RNGImpl().randomHexString(160), 10000);
+        await VDF.compute(new RNGImpl().randomHexString(160), BigInt(10000));
         console.log();
         console.log('self test done');
 
