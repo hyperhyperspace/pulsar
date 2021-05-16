@@ -1,4 +1,4 @@
-import { Hashing, HashedObject, MutableObject, MutationOp } from '@hyper-hyper-space/core';
+import { Hashing, HashedObject, MutableObject, MutationOp, LiteralContext } from '@hyper-hyper-space/core';
 
 import { Identity } from '@hyper-hyper-space/core';
 
@@ -22,7 +22,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     
 
     static className = 'hhs/v0/soliton/Blockchain';
-    static opClasses = [BlockchainValueOp.className];
 
     totalCoins?: string;
 
@@ -37,7 +36,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     _peerGroup?: PeerGroupInfo;
 
     constructor(seed?: string, totalCoins?: string) {
-        super(Blockchain.opClasses);
+        super([BlockchainValueOp.className]);
 
         if (seed !== undefined) {
             this.setId(seed);
@@ -72,11 +71,11 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             // Bootstrap Period Protection pre-VDF.
             const bootstrap = comp.isBootstrapPeriod();
-            
-            let bootstrapSteps: bigint|undefined = undefined;
 
-            if (bootstrap) {
-                bootstrapSteps = comp.getConsensusBoostrapDifficulty();
+            let prevOpContext: LiteralContext | undefined;
+
+            if (this._lastOp !== undefined) {
+                prevOpContext = this._lastOp.toLiteralContext();
             }
             
             // TODO: warning! replace with VRF seed + hashing with prev block hash.
@@ -105,7 +104,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     console.log('Mismatched challenge - could be normal.');
                 }
             });
-            this._computation.postMessage({steps: steps, challenge: challenge, bootstrap: bootstrap, bootstrapSteps: bootstrapSteps});
+            this._computation.postMessage({steps: steps, challenge: challenge, prevOpContext: prevOpContext, bootstrap: bootstrap});
             
         } else {
             console.log('Race was called but a computation is running.');
@@ -274,4 +273,4 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
 HashedObject.registerClass(Blockchain.className, Blockchain);
 
-export { Blockchain as Blockchain };
+export { Blockchain };

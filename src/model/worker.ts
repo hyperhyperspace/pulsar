@@ -1,19 +1,33 @@
+import { HashedObject, LiteralContext } from '@hyper-hyper-space/core';
 import { parentPort } from 'worker_threads';
+//import { Blockchain } from './Blockchain';
+import { BlockchainValueOp } from './BlockchainValueOp';
 import { VDF } from './VDF';
+
 
 class VDFWorker {
     static start() {
     
-            parentPort?.on('message', async (q: {challenge: string, steps: bigint, bootstrap: boolean, bootstrapSteps?: bigint}) => {
+            parentPort?.on('message', async (q: {challenge: string, steps: bigint, prevOpContext?: LiteralContext, bootstrap: boolean}) => {
 
+                let prevOp: BlockchainValueOp | undefined;
+
+                if (q.prevOpContext !== undefined) {
+                    prevOp = HashedObject.fromLiteralContext(q.prevOpContext) as BlockchainValueOp;
+                }
+
+                const comp = BlockchainValueOp.initializeComptroller(prevOp);
 
                 let challenge: string;
 
                 if (q.bootstrap) {
-                    console.log('Boostrap VDF Steps: ' + q.bootstrapSteps + ' steps');
-                    console.log('Racing for bootstrap challenge (' + q.bootstrapSteps + ' steps): "' + q.challenge + '".');
+
+                    const bootstrapSteps = comp.getConsensusBoostrapDifficulty();
+
+                    console.log('Boostrap VDF Steps: ' + bootstrapSteps + ' steps');
+                    console.log('Racing for bootstrap challenge (' + bootstrapSteps + ' steps): "' + q.challenge + '".');
                     const tGen = Date.now();
-                    challenge = await VDF.compute(q.challenge, q.bootstrapSteps as bigint);
+                    challenge = await VDF.compute(q.challenge, bootstrapSteps as bigint);
                     const elapsedGen = Date.now() - tGen;
                     console.log('Done computing Boostrap VDF, took ' + elapsedGen + ' millisecs')  ;
                     const tVerif = Date.now();
