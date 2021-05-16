@@ -3,10 +3,10 @@ import math
 import sys
 
 def rabinMiller(n):
-     s = n-1
+     s = int(n-1)
      t = 0
      while s&1 == 0:
-         s = s/2
+         s = s // 2
          t +=1
      k = 0
      while k<128:
@@ -63,4 +63,4 @@ def generateLargePrime(k):
              return n
      return "Failure after "+str(r_) + " tries."
 
-print(generateLargePrime(256))
+print(generateLargePrime(1024))

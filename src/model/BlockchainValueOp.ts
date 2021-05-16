@@ -286,7 +286,7 @@ class BlockchainValueOp extends MutationOp {
             challenge = Hashing.sha.sha256hex(prevOpHash);
         }
 
-        return challenge //.slice(0,challenge.length/2);
+        return challenge + challenge + challenge + challenge 
     }
 
     static getVDFSteps(comp: MiniComptroller, challenge: string) {
@@ -310,9 +310,9 @@ class BlockchainValueOp extends MutationOp {
             comptroller.setBlockTimeFactor(prevOp.blockTimeFactor?.getValue() as bigint);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         } else {
-            comptroller.setBlockTimeFactor(BigInt(20000) * FixedPoint.UNIT)
-            comptroller.setMovingMaxSpeed(BigInt(1500) * FixedPoint.UNIT);
-            comptroller.setMovingMinSpeed(BigInt(1400) * FixedPoint.UNIT);
+            comptroller.setBlockTimeFactor(BigInt(1000) * FixedPoint.UNIT)
+            comptroller.setMovingMaxSpeed(BigInt(75) * FixedPoint.UNIT);
+            comptroller.setMovingMinSpeed(BigInt(70) * FixedPoint.UNIT);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         }
 
