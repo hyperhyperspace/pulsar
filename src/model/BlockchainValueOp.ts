@@ -213,67 +213,10 @@ class BlockchainValueOp extends MutationOp {
                 return false;
             }
         }
+
+        console.log('Successfully received proof for sequence number ' + this.blockNumber.getValue() + '.');
         
         return true
-
-        /*
-        let challengeBuffer = Buffer.from(challenge, 'hex');
-        console.log('Bootstrap Challenge length (bytes) = ', challengeBuffer.length)
-        let challenge256bits = challengeBuffer // Buffer.concat([challengeBuffer,challengeBuffer])
-        
-        // Boostrap period Protection check
-        // In boostrap period do a pre-VDF with 50% blockTime.
-        if (comp.isBootstrapPeriod()) {
-            const resultBoostrapBuffer = Buffer.from(this.vdfBootstrapResult, 'hex');
-            const bootstrapSteps = comp.getConsensusBoostrapDifficulty()
-            if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(bootstrapSteps, challenge256bits, resultBoostrapBuffer)) {
-                console.log('Boostrap VDF verification failed.');
-                return false;
-            }
-            challenge256bits = resultBoostrapBuffer;
-        }
-
-        const resultBuffer = Buffer.from(this.vdfResult, 'hex');
-        console.log('Result proof length (bytes) = ', this.vdfResult.length / 2)
-
-        console.log('Will check (steps =' + steps + ') challenge ' + challenge + ' with result ' + this.vdfResult);
-
-        console.log(BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, resultBuffer));
-
-        if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, resultBuffer)) {
-            console.log('VDF verification failed.');
-            return false;
-        }
-
-/*
-        let proofArr    = new Uint8Array(32);
-        let proofBuffer =     Buffer.from(proofArr);
-        SlothPermutation.writeBigUIntLE(BigInt('0x' + this.vdfResult), proofBuffer, 32);
-
-        let challengeArr    = new Uint8Array(32);
-        let challengeBuffer = Buffer.from(challengeArr);
-        SlothPermutation.writeBigUIntLE(BigInt('0x' + challenge), challengeBuffer, 32);
-
-        console.log('Challenge length (bytes) = ', challengeBuffer.length)
-        const challenge256bits = challengeBuffer //Buffer.concat([challengeBuffer,challengeBuffer])
-        
-
-        console.log('Result proof length (bytes) = ', this.vdfResult.length)
-
-        console.log('Will check (steps =' + steps + ') challenge ' + challenge + ' with result ' + this.vdfResult);
-
-        console.log(BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, proofBuffer));
-
-        if (!BlockchainValueOp.vdfVerifier.verifyBufferProofVDF(steps, challenge256bits, proofBuffer)) {
-            console.log('VDF verification failed.');
-            return false;
-        }
-        */
-
-        //console.log('Successfully received proof for sequence number ' + this.blockNumber.getValue() + '.');
-
-        //return true;
-    
 
     }
 
