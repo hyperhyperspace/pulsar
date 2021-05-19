@@ -26,7 +26,7 @@ class BlockchainValueOp extends MutationOp {
     static vdfVerifier: SlothPermutation;
     static comptroller: MiniComptroller;
     static coins: bigint = BigInt(0);
-    static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(2);
+    static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(4);
 
     vrfSeed?: string;
 
@@ -311,8 +311,8 @@ class BlockchainValueOp extends MutationOp {
             comptroller.setBlockTimeFactor(prevOp.blockTimeFactor?.getValue() as bigint);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         } else {
-            comptroller.setBlockTimeFactor(BigInt(1000) * FixedPoint.UNIT)
-            comptroller.setMovingMaxSpeed(BigInt(5) * FixedPoint.UNIT);
+            comptroller.setBlockTimeFactor(BigInt(500) * FixedPoint.UNIT)
+            comptroller.setMovingMaxSpeed(BigInt(3) * FixedPoint.UNIT);
             comptroller.setMovingMinSpeed(BigInt(1) * FixedPoint.UNIT);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         }
