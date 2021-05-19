@@ -126,8 +126,10 @@ async function main() {
 
     console.log('Starting VDF computation...');
     console.log();
+    console.log('Using identity ' + resources.config.id.getLastHash());
+    console.log();
 
-    Blockchain.startCompute();
+    Blockchain.startCompute(resources.config.id);
 
 }
 

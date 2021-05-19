@@ -1,6 +1,6 @@
 
 //import {createHash} from "crypto";
-import { Hash, HashedObject, Hashing, MutationOp } from '@hyper-hyper-space/core';
+import { Hash, HashedObject, Hashing, Identity, MutationOp } from '@hyper-hyper-space/core';
 import { HashedBigInt } from './HashedBigInt';
 //import { Logger, LogLevel } from '@hyper-hyper-space/core';
 
@@ -28,6 +28,8 @@ class BlockchainValueOp extends MutationOp {
     static coins: bigint = BigInt(0);
     static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(2);
 
+    vrfSeed?: string;
+
     vdfResult?: string;
     vdfBootstrapResult?: string;
     
@@ -36,14 +38,22 @@ class BlockchainValueOp extends MutationOp {
     movingMinSpeed?: HashedBigInt;
     blockTimeFactor?: HashedBigInt;
 
-    timestampSeconds?: number; 
+    timestampSeconds?: number;
 
-    constructor(target?: Blockchain, prevOp?: BlockchainValueOp, vdfResult?: string, vdfBoostrapResult?: string) {
+    constructor(target?: Blockchain, prevOp?: BlockchainValueOp, steps?: bigint, vdfResult?: string, vdfBoostrapResult?: string, coinbase?: Identity, vrfSeed?: string) {
         super(target);
 
-        if (target !== undefined && vdfResult !== undefined) {
+        if (target !== undefined && vdfResult !== undefined && steps !== undefined && coinbase !== undefined) {
+
+            this.setAuthor(coinbase);
+
+            if (prevOp !== undefined) {
+                this.setPrevOps([prevOp].values());
+            }
 
             vdfResult = vdfResult.toLowerCase();
+
+            this.vrfSeed = vrfSeed;
 
             this.timestampSeconds = Date.now();
 
@@ -56,12 +66,10 @@ class BlockchainValueOp extends MutationOp {
             if (blocktime == BigInt(0))
                 blocktime = BigInt(1) * FixedPoint.UNIT
             console.log('Verifying block with blockTime (secs) = ', Number(blocktime) / Number(FixedPoint.UNIT) )
+            
             const comp = BlockchainValueOp.initializeComptroller(prevOp);
 
-            const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
-            console.log('Challenge length (bytes) = ', challenge.length / 2 )
-            // TODO: warning! replace with VRF seed + hashing with prev block hash.
-            const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
+            
 
             comp.addBlockSample(blocktime, steps);
 
@@ -73,6 +81,9 @@ class BlockchainValueOp extends MutationOp {
             if (vdfBoostrapResult) {
                 this.vdfBootstrapResult = vdfBoostrapResult;
             }
+
+            console.log('prevOps in block ' + this.blockNumber.getValue() + ':');
+            console.log(this.prevOps?.size());
         }
 
     }
@@ -99,8 +110,8 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
 
-        if (this.blockNumber.getValue() < BigInt(0)) {
-            console.log('Sequence number is negative.');
+        if (this.blockNumber.getValue() <= BigInt(0)) {
+            console.log('Sequence number is not positive.');
             return false;
         }
 
@@ -119,7 +130,7 @@ class BlockchainValueOp extends MutationOp {
             return false;
         }
 
-        if (this.getAuthor() !== undefined) {
+        if (this.getAuthor() === undefined) {
             console.log('Author is not undefined as it should be.');
             return false;
         }
@@ -131,14 +142,41 @@ class BlockchainValueOp extends MutationOp {
 
         let prev: HashedObject | undefined = undefined;
         
-        if (this.prevOps.size() > 0) {
-
-            if (this.prevOps.size() !== 1) {
-                console.log('PrevOps size is not 0 or 1.');
+        if (this.blockNumber.getValue() === BigInt(1)) {
+            if (this.prevOps.size() !== 0) {
+                console.log('First block as predecessors.');
                 return false;
             }
 
-            prev = references.get(this.prevOps.values().next().value.hash);
+            if (this.vrfSeed !== undefined) {
+                console.log('First block has a seedVdf but it should not.');
+                return false;
+            }
+        } else {
+            if (this.prevOps.size() !== 1) {
+                console.log('Missing reference to previous block.');
+                console.log(this.prevOps.size());
+                console.log(this.blockNumber.getValue());
+                return false;
+            }
+            
+            if (this.vrfSeed === undefined) {
+                console.log('Missing vrfSeed.');
+                return false;
+            }
+        }
+
+        let prevOpHash: Hash | undefined;
+
+        if (this.prevOps.size() > 0) {
+
+            prevOpHash = this.prevOps.values().next().value.hash;
+
+            if (prevOpHash === undefined) {
+                throw new Error('Prvious block was missing from references.');
+            }
+
+            prev = references.get(prevOpHash as string);
 
             if (!(prev instanceof BlockchainValueOp)) {
                 console.log('prevOP is not an instance of BlockchainValueOp.');
@@ -151,18 +189,25 @@ class BlockchainValueOp extends MutationOp {
             }
         }
 
+
+
         const prevOp: BlockchainValueOp | undefined = prev;
+
+        if (this.vrfSeed !== undefined) {
+            BlockchainValueOp.validateVrfSeed(prevOpHash as Hash, this.vrfSeed, this.getAuthor() as Identity);
+        }
             
         let blocktime = prevOp !== undefined? 
                             BigInt(Math.floor(this.timestampSeconds - (prevOp.timestampSeconds as number))) * (FixedPoint.UNIT / (BigInt(10)**BigInt(3)))
                         :
                             MiniComptroller.targetBlockTime; // FIXME: initial block time
+        
         if (blocktime == BigInt(0))
             blocktime = BigInt(1) * FixedPoint.UNIT
                         
         const comp = BlockchainValueOp.initializeComptroller(prev);
 
-        const challenge = BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), prevOp?.hash());
+        const challenge = await BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), this.vrfSeed);
         const steps = BlockchainValueOp.getVDFSteps(comp, challenge);
 
         comp.addBlockSample(blocktime, steps);
@@ -220,16 +265,29 @@ class BlockchainValueOp extends MutationOp {
 
     }
 
-    static getChallenge(target: Blockchain, prevOpHash?: Hash): string {
+    static getChallenge(target: Blockchain, vrfSeed?: Hash): string {
         let challenge: string;
 
-        if (prevOpHash === undefined) {
+        if (vrfSeed === undefined) {
             challenge = target.getInitialChallenge();
         } else {
-            challenge = Hashing.sha.sha256hex(prevOpHash);
+            challenge = Hashing.sha.sha256hex(vrfSeed);
         }
 
-        return challenge + challenge + challenge + challenge 
+        return challenge + challenge + challenge + challenge;
+    }
+
+    static async computeVrfSeed(author: Identity, prevOpHash?: Hash): Promise<string | undefined> {
+        if (prevOpHash !== undefined) {
+            return author.sign(prevOpHash);
+        } else {
+            return undefined;
+        }
+    }
+        
+
+    static async validateVrfSeed(prevOpHash: Hash, vrfSeed: string, author: Identity): Promise<boolean> {
+        return author.verifySignature(prevOpHash, vrfSeed);
     }
 
     static getVDFSteps(comp: MiniComptroller, challenge: string) {

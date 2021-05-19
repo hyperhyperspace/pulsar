@@ -14,6 +14,7 @@ import { IdentityPeer } from '@hyper-hyper-space/core';
 import { BlockchainValueOp as BlockchainValueOp } from './BlockchainValueOp';
 
 import { Worker } from 'worker_threads';
+import { UsageToken } from '@hyper-hyper-space/core/dist/mesh/service/Mesh';
 //import { Logger, LogLevel } from 'util/logging';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
@@ -25,6 +26,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     totalCoins?: string;
 
+    _coinbase?: Identity;
+
     _lastOp?: BlockchainValueOp;
     _values: string[];
 
@@ -34,6 +37,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _mesh?: Mesh;
     _peerGroup?: PeerGroupInfo;
+
+    _peerGroupUsageToken?: UsageToken;
+    _syncBlockchainUsageToken?: UsageToken;
 
     constructor(seed?: string, totalCoins?: string) {
         super([BlockchainValueOp.className]);
@@ -50,8 +56,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         this._autoCompute = false;
     }
 
-    startCompute() {
+    startCompute(coinbase: Identity) {
         this._autoCompute = true;
+        this._coinbase = coinbase;
         this.race();
     }
 
@@ -65,8 +72,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             const comp = BlockchainValueOp.initializeComptroller(this._lastOp);
 
-            let challenge = BlockchainValueOp.getChallenge(this, this._lastOp?.hash());
-
+            
             console.log('-------------------------------------------------------------')
 
             // Bootstrap Period Protection pre-VDF.
@@ -79,32 +85,46 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             }
             
             // TODO: warning! replace with VRF seed + hashing with prev block hash.
-            const steps = BlockchainValueOp.getVDFSteps(comp, challenge)
 
-            console.log('Racing for challenge (' + steps + ' steps): "' + challenge + '".');
-            console.log('# Block Number = ', comp.getBlockNumber())
-
-            this._computation = new Worker('./dist/model/worker.js');
-            this._computation.on('error', (err: Error) => { console.log('ERR');console.log(err)});
-            this._computation.on('message', async (msg: {challenge: string, result: string, bootstrapResult?: string}) => {
-                console.log('Solved challenge "' + msg.challenge + '" with: "' + msg.result + '".');
-                if (msg.challenge === challenge ) {
-                    let op = new BlockchainValueOp(this, this._lastOp, msg.result, msg.bootstrapResult);
-
-                    if (this._lastOp !== undefined) {
-                        op.setPrevOps(new Set([this._lastOp]).values());
-                    } else {
-                        op.setPrevOps(new Set<MutationOp>().values());
-                    }
-
-                    await this.applyNewOp(op);
-                    await this.getStore().save(this);
+            BlockchainValueOp.computeVrfSeed(this._coinbase as Identity, this._lastOp?.hash())
+                             .then((vrfSeed: (string|undefined)) => 
+            {
+                const challenge = BlockchainValueOp.getChallenge(this, vrfSeed);
+                const steps = BlockchainValueOp.getVDFSteps(comp, challenge);
+                console.log('Racing for challenge (' + steps + ' steps): "' + challenge + '".');
+                console.log('# Block Number = ', comp.getBlockNumber())
+    
+    
+                
+                this._computation = new Worker('./dist/model/worker.js');
+                this._computation.on('error', (err: Error) => { console.log('ERR');console.log(err)});
+                this._computation.on('message', async (msg: {challenge: string, result: string, bootstrapResult?: string}) => {
                     
-                } else {
-                    console.log('Mismatched challenge - could be normal.');
-                }
+                    console.log('Solved challenge "' + msg.challenge + '" with: "' + msg.result + '".');
+                    if (msg.challenge === challenge ) {
+
+                        
+
+                        let op = new BlockchainValueOp(this, this._lastOp, steps, msg.result, msg.bootstrapResult, this._coinbase, vrfSeed);
+    
+                        console.log('⛏️⛏️⛏️⛏️ #' + op.blockNumber?.getValue() + ' mined by ' + this._coinbase?.getLastHash());
+
+                        /*if (this._lastOp !== undefined) {
+                            op.setPrevOps(new Set([this._lastOp]).values());
+                        } else {
+                            op.setPrevOps(new Set<MutationOp>().values());
+                        }*/
+    
+                        await this.applyNewOp(op);
+                        await this.getStore().save(this);
+                        
+                    } else {
+                        console.log('Mismatched challenge - could be normal.');
+                    }
+                });
+                this._computation.postMessage({steps: steps, challenge: challenge, prevOpContext: prevOpContext, bootstrap: bootstrap});
+                
             });
-            this._computation.postMessage({steps: steps, challenge: challenge, prevOpContext: prevOpContext, bootstrap: bootstrap});
             
         } else {
             console.log('Race was called but a computation is running.');
@@ -251,19 +271,24 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             peerSource: peerSource
         }
 
-        this._mesh.joinPeerGroup(this._peerGroup);
-        this._mesh.syncObjectWithPeerGroup(this._peerGroup.id, this);
+        this._peerGroupUsageToken      = this._mesh.joinPeerGroup(this._peerGroup);
+        this._syncBlockchainUsageToken = this._mesh.syncObjectWithPeerGroup(this._peerGroup.id, this);
 
         this.loadAndWatchForChanges();
     }
     
     async stopSync(): Promise<void> {
-
-        const peerGroupId = this._peerGroup?.id as string;
         
-        this._mesh?.stopSyncObjectWithPeerGroup(peerGroupId, this.hash());
+        if (this._syncBlockchainUsageToken !== undefined) {
+            this._mesh?.stopSyncObjectWithPeerGroup(this._syncBlockchainUsageToken);
+        }
+
         this._mesh?.stopObjectBroadcast(this.hash());
-        this._mesh?.leavePeerGroup(peerGroupId);
+
+        if (this._peerGroupUsageToken !== undefined) {
+            this._mesh?.leavePeerGroup(this._peerGroupUsageToken);
+        }
+        
 
         this._mesh = undefined;
         this._peerGroup = undefined;

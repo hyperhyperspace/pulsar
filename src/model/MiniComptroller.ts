@@ -67,7 +67,7 @@ class MiniComptroller implements Comptroller {
     ///////////
 
     // basic metrics
-    private blockNumber: bigint = BigInt(1);
+    private blockNumber: bigint = BigInt(0);
     private difficulty: bigint = BigInt(1);
 
     // complex metrics
