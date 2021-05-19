@@ -311,9 +311,9 @@ class BlockchainValueOp extends MutationOp {
             comptroller.setBlockTimeFactor(prevOp.blockTimeFactor?.getValue() as bigint);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         } else {
-            comptroller.setBlockTimeFactor(BigInt(1000) * FixedPoint.UNIT)
-            comptroller.setMovingMaxSpeed(BigInt(75) * FixedPoint.UNIT);
-            comptroller.setMovingMinSpeed(BigInt(70) * FixedPoint.UNIT);
+            comptroller.setBlockTimeFactor(BigInt(250) * FixedPoint.UNIT)
+            comptroller.setMovingMaxSpeed(BigInt(145) * FixedPoint.UNIT);
+            comptroller.setMovingMinSpeed(BigInt(45) * FixedPoint.UNIT);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         }
 
