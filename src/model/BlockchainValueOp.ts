@@ -27,16 +27,18 @@ class BlockchainValueOp extends MutationOp {
     static comptroller: MiniComptroller;
     static coins: bigint = BigInt(0);
     static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(4);
-
-    vrfSeed?: string;
-
-    vdfResult?: string;
-    vdfBootstrapResult?: string;
     
     blockNumber?: HashedBigInt;
     movingMaxSpeed?: HashedBigInt;
     movingMinSpeed?: HashedBigInt;
     blockTimeFactor?: HashedBigInt;
+
+    vdfSteps?: HashedBigInt;
+
+    vrfSeed?: string;
+
+    vdfResult?: string;
+    vdfBootstrapResult?: string;
 
     timestampSeconds?: number;
 
@@ -57,6 +59,7 @@ class BlockchainValueOp extends MutationOp {
 
             this.timestampSeconds = Date.now();
 
+            this.vdfSteps  = new HashedBigInt(steps);
             this.vdfResult = vdfResult;
 
             let blocktime = prevOp !== undefined? 
@@ -94,6 +97,14 @@ class BlockchainValueOp extends MutationOp {
 
     init(): void {
         
+    }
+
+    getPrevBlockHash(): Hash | undefined {
+        if (this.prevOps?.size() === 1) {
+            return this.prevOps.values().next().value.hash;
+        } else {
+            return undefined;
+        }
     }
 
     async validate(references: Map<Hash, HashedObject>): Promise<boolean> {
@@ -202,13 +213,18 @@ class BlockchainValueOp extends MutationOp {
                         :
                             MiniComptroller.targetBlockTime; // FIXME: initial block time
         
-        if (blocktime == BigInt(0))
+        if (blocktime == BigInt(0)) {
             blocktime = BigInt(1) * FixedPoint.UNIT
+        }
                         
         const comp = BlockchainValueOp.initializeComptroller(prev);
 
         const challenge = await BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), this.vrfSeed);
         const steps = BlockchainValueOp.getVDFSteps(comp, challenge);
+
+        if (this.vdfSteps?._value !== steps) {
+            console.log('VDF Steps are wrong, should be ' + steps + ' but received ' + this.vdfSteps?._value);
+        }
 
         comp.addBlockSample(blocktime, steps);
 

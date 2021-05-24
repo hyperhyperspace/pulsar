@@ -176,13 +176,29 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     */
 
     async mutate(op: MutationOp, _isNew: boolean): Promise<boolean> {
-       
-        let mutated = false;
+
+        let accept = false;
 
         if (op instanceof BlockchainValueOp) {
 
-            if (this._lastOp === undefined ||
-                !this._lastOp.equals(op)) {
+            if (this._lastOp === undefined) {
+                accept = true;
+            } else {
+                
+                const lastOpHash        = this._lastOp.hash()
+                const lastOpBlocknumber = this._lastOp.blockNumber?._value as bigint;
+                const lastOpSteps       = this._lastOp.vdfSteps?._value as bigint;
+
+                const newOpHash        = op.hash()
+                const newOpBlocknumber = op.blockNumber?._value as bigint;                
+                const newOpSteps       = op.vdfSteps?._value as bigint;
+                
+                accept = (newOpBlocknumber > lastOpBlocknumber) ||
+                         (newOpBlocknumber === lastOpBlocknumber && newOpSteps < lastOpSteps) ||
+                         (newOpBlocknumber === lastOpBlocknumber && newOpSteps === lastOpSteps &&
+                          newOpHash.localeCompare(lastOpHash) < 0);
+            }
+            if (accept) {
 
                 if (op.prevOps === undefined) {
                     throw new Error('BlockchainValueOp must have a defined prevOps set (even if it is empty).');
@@ -219,12 +235,11 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 }
 
                 //console.log('Challenge now is "' + this.currentChallenge() + '" for Blockchain position ' + this.currentSeq() + '.');
-                mutated = true;
             }
 
         }
 
-        return mutated;
+        return accept;
     }
 
     getClassName(): string {
@@ -329,8 +344,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     }
                 }
             }
-
-            
 
             const forkChoiceState = new CausalHistoryState(mut, filteredOpHistories);
 
