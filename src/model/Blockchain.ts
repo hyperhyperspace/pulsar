@@ -1,4 +1,4 @@
-import { Hashing, HashedObject, MutableObject, MutationOp, LiteralContext } from '@hyper-hyper-space/core';
+import { Hashing, HashedObject, MutableObject, MutationOp, LiteralContext, StateFilter, Store, Hash } from '@hyper-hyper-space/core';
 
 import { Identity } from '@hyper-hyper-space/core';
 
@@ -15,6 +15,8 @@ import { BlockchainValueOp as BlockchainValueOp } from './BlockchainValueOp';
 
 import { Worker } from 'worker_threads';
 import { UsageToken } from '@hyper-hyper-space/core/dist/mesh/service/Mesh';
+import { CausalHistoryState } from '@hyper-hyper-space/core/dist/mesh/agents/state/causal/CausalHistoryState';
+import { OpCausalHistory } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
 //import { Logger, LogLevel } from 'util/logging';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
@@ -292,6 +294,51 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
         this._mesh = undefined;
         this._peerGroup = undefined;
+    }
+
+    getSyncAgentStateFilter(): StateFilter {
+        const forkChoiceFilter: StateFilter = async (state: CausalHistoryState, store: Store) => {
+
+            const mut = state.mutableObj as Hash;
+
+            const local = await store.loadTerminalOpsForMutable(mut);
+
+            let maxHeight = 0;
+
+            if (local?.terminalOps !== undefined) {
+                for (const opHash of local?.terminalOps) {
+                    const opHistory = await store.loadOpCausalHistory(opHash) as OpCausalHistory;
+                    if (opHistory.computedProps.height > maxHeight) {
+                        maxHeight = opHistory.computedProps.height;
+                    }
+                }
+            }
+
+            const filteredOpHistories: OpCausalHistory[] = [];
+
+            if (state.terminalOpHistories !== undefined) {
+                for (const opHistoryLiteral of state.terminalOpHistories.values()) {
+                    if (opHistoryLiteral.computedHeight > maxHeight) {
+                        maxHeight = opHistoryLiteral.computedHeight;
+                    }
+                }
+
+                for (const opHistoryLiteral of state.terminalOpHistories.values()) {
+                    if (opHistoryLiteral.computedHeight === maxHeight) {
+                        filteredOpHistories.push(new OpCausalHistory(opHistoryLiteral));
+                    }
+                }
+            }
+
+            
+
+            const forkChoiceState = new CausalHistoryState(mut, filteredOpHistories);
+
+            return forkChoiceState;
+
+        };
+
+        return forkChoiceFilter;
     }
 
 }
