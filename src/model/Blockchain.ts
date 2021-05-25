@@ -69,7 +69,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         this.stopRace();
     }
 
-    race() {
+     race() {
         if (this._computation === undefined) {
 
             const comp = BlockchainValueOp.initializeComptroller(this._lastOp);
@@ -91,6 +91,11 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             BlockchainValueOp.computeVrfSeed(this._coinbase as Identity, this._lastOp?.hash())
                              .then((vrfSeed: (string|undefined)) => 
             {
+
+                if (this._computation !== undefined) {
+                    return;
+                }
+
                 const challenge = BlockchainValueOp.getChallenge(this, vrfSeed);
                 const steps = BlockchainValueOp.getVDFSteps(comp, challenge);
                 console.log('Racing for challenge (' + steps + ' steps): "' + challenge + '".');
@@ -199,27 +204,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                           newOpHash.localeCompare(lastOpHash) < 0);
             }
             if (accept) {
-
-                if (op.prevOps === undefined) {
-                    throw new Error('BlockchainValueOp must have a defined prevOps set (even if it is empty).');
-                }
-
-
-                if (op.prevOps.size() === 0) {
-
-                    if (this._lastOp !== undefined) {
-                        throw new Error('Initial BlockchainValueOp received, but there are already other ops in this Blockchain.');
-                    }
-    
-                } else {
-                    if (this._lastOp === undefined) {
-                        throw new Error('Non-initial BlockchainValueOp received, but there are no values in this Blockchain.');
-                    }
-    
-                    if (!this._lastOp.hash() === op.prevOps.values().next().value.hash) {
-                        throw new Error('Received BlockchainValueOp does not point to last known Blockchain value.');
-                    }
-                }
 
                 this._lastOp = op;
 
