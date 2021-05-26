@@ -14,6 +14,8 @@ import { BlockchainValueOp } from './model/BlockchainValueOp';
 
 import * as readline from 'readline';
 import { VDF } from './model/VDF';
+import { CausalHistorySynchronizer } from '@hyper-hyper-space/core/dist/mesh/agents/state/causal/CausalHistorySynchronizer';
+import { LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 
 async function initResources(): Promise<Resources> {
     return Resources.create();
@@ -74,6 +76,11 @@ async function joinBlockchainSpace(resources: Resources, wordcode: string[]): Pr
 }
 
 async function main() {
+
+
+    CausalHistorySynchronizer.controlLog.level = LogLevel.DEBUG;
+    CausalHistorySynchronizer.sourcesLog.level = LogLevel.DEBUG;
+    CausalHistorySynchronizer.stateLog.level   = LogLevel.DEBUG;
 
     await BlockchainValueOp.vdfInit();
 
