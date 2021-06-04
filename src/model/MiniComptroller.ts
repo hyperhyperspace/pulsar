@@ -245,7 +245,6 @@ class MiniComptroller implements Comptroller {
 
     // Consensus Getters
 
-
     getConsensusDifficulty(coins: bigint, totalCoins: bigint, vrfSeed: bigint) {
         // BEGIN FLOATING POINT SECTION #3
         var slotProtected = this.slotByStakeProtected(coins, totalCoins, vrfSeed)
@@ -276,6 +275,12 @@ class MiniComptroller implements Comptroller {
         meanBlockDifficulty = FixedPoint.mulTrunc(meanBlockDifficulty, MiniComptroller.targetBlockTime) / FixedPoint.UNIT
         return meanBlockDifficulty / BigInt(2) // 50%
     }
+
+    getConsensusFinalityHeight(): bigint {
+        return FixedPoint.trunc( this.getSpeedRatio() ) + BigInt(1)
+    }
+    
+    // Consensus Observers
 
     getBlockTimeFactor() {
         return this.blockTimeFactor

@@ -13,22 +13,27 @@ interface Comptroller {
     slotByStakeWithNoise(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint;
     slotByStakeProtected(coins: bigint, totalCoins: bigint, vrfSeed: bigint): number;
 
-    // Consensus Getter
+    // Consensus Getters
     getConsensusDifficulty(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint;
     getConsensusBlockReward(): bigint;
     getConsensusBootstrapDifficulty(): bigint
+    getConsensusFinalityHeight(): bigint
+
+    // Consensus Observers
     isBootstrapPeriod(): boolean
     getBlockTimeFactor(): bigint;
     getSpeedRatio(): bigint;
+    getMovingMaxSpeed(): bigint
+    getMovingMinSpeed(): bigint
+    getMaxSpeedRatio(): bigint
+    getMinSpeedRatio(): bigint
+
+    // Consensus Setters
     setSpeedRatio(speedRatio: bigint): void;
     setBlockNumber(blockNumber: bigint): void;
     setBlockTimeFactor(blockTimeFactor: bigint): void
-    getMovingMaxSpeed(): bigint
-    getMovingMinSpeed(): bigint
     setMovingMaxSpeed(movingMaxSpeed: bigint): void
     setMovingMinSpeed(movingMinSpeed: bigint): void
-    getMaxSpeedRatio(): bigint
-    getMinSpeedRatio(): bigint
     setMaxSpeedRatio(maxSpeedRatio: bigint): void
     setMinSpeedRatio(minSpeedRatio: bigint): void
     setBlockReward(blockReward: bigint): void
