@@ -22,7 +22,7 @@ class VDFWorker {
 
                 if (q.bootstrap) {
 
-                    const bootstrapSteps = comp.getConsensusBoostrapDifficulty();
+                    const bootstrapSteps = comp.getConsensusBootstrapDifficulty();
 
                     console.log('Boostrap VDF Steps: ' + bootstrapSteps + ' steps');
                     console.log('Racing for bootstrap challenge (' + bootstrapSteps + ' steps): "' + q.challenge + '".');

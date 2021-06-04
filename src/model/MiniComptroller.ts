@@ -264,7 +264,7 @@ class MiniComptroller implements Comptroller {
         return this.blockNumber < MiniComptroller.bootstrapPeriod 
     }
 
-    getConsensusBoostrapDifficulty(): bigint {
+    getConsensusBootstrapDifficulty(): bigint {
         if (this.blockNumber >= MiniComptroller.bootstrapPeriod) // boostrap period ended
             return BigInt(0)
         let meanBlockDifficulty = (this.movingMaxSpeed + this.movingMinSpeed) / BigInt(2) // middle point
@@ -285,20 +285,8 @@ class MiniComptroller implements Comptroller {
         return this.speedRatio
     }
 
-    setSpeedRatio(speedRatio: bigint): void {
-        this.speedRatio = speedRatio
-    }
-
-    setBlockNumber(blockNumber: bigint){
-        this.blockNumber = blockNumber
-    }
-
     getBlockNumber() {
         return this.blockNumber;
-    }
-
-    setBlockTimeFactor(blockTimeFactor: bigint){
-        this.blockTimeFactor = blockTimeFactor
     }
 
     getMovingMaxSpeed() {
@@ -309,20 +297,34 @@ class MiniComptroller implements Comptroller {
         return this.movingMinSpeed
     }
 
-    setMovingMaxSpeed(movingMaxSpeed: bigint) {
-        this.movingMaxSpeed = movingMaxSpeed
-    }
-
-    setMovingMinSpeed(movingMinSpeed: bigint) {
-        this.movingMinSpeed = movingMinSpeed
-    }
-
     getMaxSpeedRatio() {
         return this.movingMaxSpeed
     }
 
     getMinSpeedRatio() {
         return this.movingMinSpeed
+    }
+
+    // Consensus Setters
+
+    setSpeedRatio(speedRatio: bigint): void {
+        this.speedRatio = speedRatio
+    }
+
+    setBlockNumber(blockNumber: bigint){
+        this.blockNumber = blockNumber
+    }
+
+    setBlockTimeFactor(blockTimeFactor: bigint){
+        this.blockTimeFactor = blockTimeFactor
+    }
+
+    setMovingMaxSpeed(movingMaxSpeed: bigint) {
+        this.movingMaxSpeed = movingMaxSpeed
+    }
+
+    setMovingMinSpeed(movingMinSpeed: bigint) {
+        this.movingMinSpeed = movingMinSpeed
     }
 
     setMaxSpeedRatio(maxSpeedRatio: bigint) {

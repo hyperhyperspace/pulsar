@@ -259,7 +259,7 @@ class BlockchainValueOp extends MutationOp {
         }
 
         if (this.vdfBootstrapResult !== undefined) {
-            const bootstrapSteps = comp.getConsensusBoostrapDifficulty();
+            const bootstrapSteps = comp.getConsensusBootstrapDifficulty();
             if (!VDF.verify(challenge, bootstrapSteps, this.vdfBootstrapResult)) {
                 console.log('Failed bootstrap VDF verification');
                 return false;

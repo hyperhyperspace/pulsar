@@ -78,9 +78,9 @@ async function joinBlockchainSpace(resources: Resources, wordcode: string[]): Pr
 async function main() {
 
 
-    CausalHistorySynchronizer.controlLog.level = LogLevel.DEBUG;
-    CausalHistorySynchronizer.sourcesLog.level = LogLevel.DEBUG;
-    CausalHistorySynchronizer.stateLog.level   = LogLevel.DEBUG;
+    CausalHistorySynchronizer.controlLog.level = LogLevel.INFO;
+    CausalHistorySynchronizer.sourcesLog.level = LogLevel.INFO;
+    CausalHistorySynchronizer.stateLog.level   = LogLevel.INFO;
 
     await BlockchainValueOp.vdfInit();
 
