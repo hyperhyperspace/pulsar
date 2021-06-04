@@ -276,7 +276,7 @@ class MiniComptroller implements Comptroller {
         return meanBlockDifficulty / BigInt(2) // 50%
     }
 
-    getConsensusFinalityHeight(): bigint {
+    getConsensusFinalityDepth(): bigint {
         return FixedPoint.trunc( this.getSpeedRatio() ) + BigInt(1)
     }
     

@@ -17,7 +17,7 @@ interface Comptroller {
     getConsensusDifficulty(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint;
     getConsensusBlockReward(): bigint;
     getConsensusBootstrapDifficulty(): bigint
-    getConsensusFinalityHeight(): bigint
+    getConsensusFinalityDepth(): bigint
 
     // Consensus Observers
     isBootstrapPeriod(): boolean
