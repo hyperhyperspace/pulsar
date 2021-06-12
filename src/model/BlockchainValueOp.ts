@@ -327,32 +327,36 @@ class BlockchainValueOp extends MutationOp {
         return Number(FixedPoint.trunc(this.getSpeedRatio()) + BigInt(1))
     }
 
-    static longestChainFinalityDepth(headA: BlockchainValueOp, headB: BlockchainValueOp): number {
-        const heightA = (headA.blockNumber as HashedBigInt).getValue();
-        const heightB = (headB.blockNumber as HashedBigInt).getValue();
-
-        if (heightA > heightB) {
-            return headA.getFinalityDepth();
-        } else {
-            return headB.getFinalityDepth()
-        }
-
-    }
-
     static async souldAcceptFork(newHead: BlockchainValueOp, oldHead: BlockchainValueOp, store: Store): Promise<boolean> {
        
-        let longestChainFinalityDepth = BlockchainValueOp.longestChainFinalityDepth(newHead, oldHead);
+        let longestChainFinalityDepth = 0;
 
         const newHeight = (newHead.blockNumber as HashedBigInt).getValue();
-        const oldHeihgt = (oldHead.blockNumber as HashedBigInt).getValue();
+        const oldHeight = (oldHead.blockNumber as HashedBigInt).getValue();
 
-        let heightDifference = newHeight - oldHeihgt;
+        if (oldHeight === newHeight) {
+            const oldFinality = oldHead.getFinalityDepth();
+            const newFinality = newHead.getFinalityDepth();
+
+            if (oldFinality > newFinality) {
+                longestChainFinalityDepth = oldFinality;
+            } else {
+                longestChainFinalityDepth = newFinality;
+            }
+        } else if (oldHeight > newHeight) {
+            longestChainFinalityDepth = oldHead.getFinalityDepth();
+        } else {
+            longestChainFinalityDepth = newHead.getFinalityDepth()
+        }
+
+
+        let heightDifference = newHeight - oldHeight;
         if (heightDifference < BigInt(0)) {
             heightDifference = -heightDifference;
         }
         
         if (heightDifference > longestChainFinalityDepth) {
-            return newHeight > oldHeihgt;
+            return newHeight > oldHeight;
         }
 
         let newTotalDifficulty: bigint|undefined;
