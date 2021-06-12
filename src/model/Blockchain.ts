@@ -35,6 +35,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _computation?: Worker;
     _computationTermination?: Promise<Number>;
+    
     _autoCompute: boolean;
 
     _mesh?: Mesh;
@@ -304,6 +305,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             let maxHeight = 0;
 
+            console.log('Filtering gossip for blockchain ' + this.hash());
+
             if (local?.terminalOps !== undefined) {
                 for (const opHash of local?.terminalOps) {
                     const opHistory = await store.loadOpCausalHistory(opHash) as OpCausalHistory;
@@ -325,9 +328,13 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 for (const opHistoryLiteral of state.terminalOpHistories.values()) {
                     if (opHistoryLiteral.computedHeight === maxHeight) {
                         filteredOpHistories.push(new OpCausalHistory(opHistoryLiteral));
+                    } else {
+                        console.log('Discarding terminal op history ' + opHistoryLiteral.causalHistoryHash + ' (height: ' + opHistoryLiteral.computedHeight + ', current height: ' + maxHeight + ')');
                     }
                 }
             }
+
+            console.log('Done filtering gossip for blockcahin ' + this.hash() + ', height post-gossip is ' + maxHeight);
 
             const forkChoiceState = new CausalHistoryState(mut, filteredOpHistories);
 

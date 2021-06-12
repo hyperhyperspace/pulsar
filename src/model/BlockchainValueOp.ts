@@ -11,6 +11,7 @@ import { MiniComptroller, FixedPoint } from './MiniComptroller';
 //import {SlothPermutation} from '@hyper-hyper-space/sloth-permutation';
 import {SlothPermutation} from './SlothVDF';
 import { VDF } from './VDF';
+import { OpCausalHistory, OpCausalHistoryProps } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
 (global as any).document = { }; // yikes!
 
 class BlockchainValueOp extends MutationOp {
@@ -337,6 +338,27 @@ class BlockchainValueOp extends MutationOp {
 
         return comptroller;
 
+    }
+
+    getCausalHistoryProps(prevOpCausalHistories: Map<Hash, OpCausalHistory>): OpCausalHistoryProps {
+        
+        const prevOpHash = this.getPrevBlockHash();
+
+        let currentDiff = this.vdfSteps?.getValue() as bigint;
+
+        if (prevOpHash !== undefined) {
+            const prevOpHistory = (prevOpCausalHistories.get(prevOpHash) as OpCausalHistory);
+
+            const prevTotalDifficulty = BigInt('0x' + prevOpHistory.opProps.get('totalDifficulty'));
+
+            currentDiff = currentDiff + prevTotalDifficulty;
+        }
+
+        const props = new Map();
+
+        props.set('totalDifficulty', currentDiff.toString(16));
+
+        return props;
     }
 
 }
