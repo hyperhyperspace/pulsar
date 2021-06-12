@@ -191,7 +191,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             if (this._lastBlock === undefined) {
                 accept = true;
             } else {
-                
+                /*
                 const lastOpHash        = this._lastBlock.hash()
                 const lastOpBlocknumber = this._lastBlock.blockNumber?._value as bigint;
                 const lastOpSteps       = this._lastBlock.vdfSteps?._value as bigint;
@@ -204,7 +204,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                          (newOpBlocknumber === lastOpBlocknumber && newOpSteps < lastOpSteps) ||
                          (newOpBlocknumber === lastOpBlocknumber && newOpSteps === lastOpSteps &&
                           newOpHash.localeCompare(lastOpHash) < 0);
+                          */
+                accept = await BlockchainValueOp.souldAcceptFork(op, this._lastBlock, this.getResources()?.store as Store);
             }
+
             if (accept) {
 
                 this._lastBlock = op;
@@ -300,6 +303,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     getSyncAgentStateFilter(): StateFilter {
         const forkChoiceFilter: StateFilter = async (state: CausalHistoryState, store: Store) => {
 
+
+            const MAX_FINALITY_DEPTH=10;
+
             const mut = state.mutableObj as Hash;
 
             const local = await store.loadTerminalOpsForMutable(mut);
@@ -327,7 +333,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 }
 
                 for (const opHistoryLiteral of state.terminalOpHistories.values()) {
-                    if (opHistoryLiteral.computedHeight === maxHeight) {
+                    if (opHistoryLiteral.computedHeight+MAX_FINALITY_DEPTH >= maxHeight) {
                         filteredOpHistories.push(new OpCausalHistory(opHistoryLiteral));
                     } else {
                         console.log('Discarding terminal op history ' + opHistoryLiteral.causalHistoryHash + ' (height: ' + opHistoryLiteral.computedHeight + ', current height: ' + maxHeight + ')');
