@@ -327,53 +327,90 @@ class BlockchainValueOp extends MutationOp {
         return Number(FixedPoint.trunc(this.getSpeedRatio()) + BigInt(1))
     }
 
-    static async findForkChoice(headA: BlockchainValueOp, headB: BlockchainValueOp, store: Store): Promise<boolean> {
-        const heightA = (headA.blockNumber as HashedBigInt).getValue();
-        const heightB = (headB.blockNumber as HashedBigInt).getValue();
+    static async souldAcceptFork(newHead: BlockchainValueOp, oldHead: BlockchainValueOp, store: Store): Promise<boolean> {
+        const newHeight = (newHead.blockNumber as HashedBigInt).getValue();
+        const oldHeihgt = (oldHead.blockNumber as HashedBigInt).getValue();
+       
         let longestChainFinalityDepth = 0;
-        if (heightA > heightB) {
-            longestChainFinalityDepth = headA.getFinalityDepth() 
+        if (newHeight > oldHeihgt) {
+            longestChainFinalityDepth = newHead.getFinalityDepth() 
         } else {
-            longestChainFinalityDepth = headB.getFinalityDepth()
+            longestChainFinalityDepth = oldHead.getFinalityDepth()
+        }
+
+        let heightDifference = newHeight - oldHeihgt;
+        if (heightDifference < BigInt(0)) {
+            heightDifference = -heightDifference;
         }
         
-        const difficultyA = BigInt('0x' +(await store.loadOpCausalHistory(headA.hash()))?.opProps.get('totalDifficulty'));
-        const difficultyB = BigInt('0x' +(await store.loadOpCausalHistory(headB.hash()))?.opProps.get('totalDifficulty'));
+        if (heightDifference > longestChainFinalityDepth) {
+            return newHeight > oldHeihgt;
+        }
+
+        let newTotalDifficulty: bigint|undefined;
+        let oldTotalDifficulty: bigint|undefined;
+
+        let newFirstNonFinalBlockHash: Hash|undefined;
+        let oldFirstNonFinalBlockHash: Hash|undefined;
+
+        let currentNewBlock = newHead;
+        let currentOldBlock = oldHead;
+        
         for (let d = 0; d < longestChainFinalityDepth; d++) {
-            if ((headA.blockNumber as HashedBigInt).getValue() > (headB.blockNumber as HashedBigInt).getValue()) {
-                const prevHashA = headA.getPrevBlockHash()
-                if (prevHashA !== undefined)
-                    headA = await store.load(prevHashA) as BlockchainValueOp
-            }
-            else if ((headA.blockNumber as HashedBigInt).getValue() < (headB.blockNumber as HashedBigInt).getValue()) {
-                const prevHashB = headB.getPrevBlockHash()
-                if (prevHashB !== undefined)
-                    headB = await store.load(prevHashB) as BlockchainValueOp
-            } else { // same len                
-                if (headA.getPrevBlockHash() === headB.getPrevBlockHash()) {
-                    const localDifficultyA = headA.vdfSteps?.getValue() as bigint; 
-                    const localDifficultyB = headA.vdfSteps?.getValue() as bigint;
-                    return localDifficultyA < localDifficultyB
-                } else { 
-                    const prevHashA = headA.getPrevBlockHash()
-                    if (prevHashA !== undefined)
-                        headA = await store.load(prevHashA) as BlockchainValueOp
-                    const prevHashB = headB.getPrevBlockHash()
-                    if (prevHashB !== undefined)
-                        headB = await store.load(prevHashB) as BlockchainValueOp
+            const currentNewBlockHeight = (currentNewBlock.blockNumber as HashedBigInt).getValue();
+            const currentOldBlockHeight = (currentOldBlock.blockNumber as HashedBigInt).getValue();
+
+            if (currentNewBlockHeight > currentOldBlockHeight) {
+                const prevHashA = currentNewBlock.getPrevBlockHash();
+                if (prevHashA !== undefined) {
+                    currentNewBlock = await store.load(prevHashA) as BlockchainValueOp;
+                }
+            } else if (currentNewBlockHeight < currentOldBlockHeight) {
+                const prevHashB = currentOldBlock.getPrevBlockHash();
+                if (prevHashB !== undefined) {
+                    currentOldBlock = await store.load(prevHashB) as BlockchainValueOp;
+                }
+            } else { // same len
+
+                if (currentNewBlock.getPrevBlockHash() === currentOldBlock.getPrevBlockHash()) {
+                    const newLocalDifficulty = currentNewBlock.vdfSteps?.getValue() as bigint; 
+                    const oldLocalDifficulty = currentOldBlock.vdfSteps?.getValue() as bigint;
+
+                    if (newLocalDifficulty === oldLocalDifficulty) {
+                        return currentNewBlock.hash().localeCompare(currentOldBlock.hash()) < 0;
+                    } else {
+                        return newLocalDifficulty < oldLocalDifficulty;
                     }
+                } else { 
+                    const newBlockPrevHash = currentNewBlock.getPrevBlockHash();
+                    if (newBlockPrevHash !== undefined) {
+                        currentNewBlock = await store.load(newBlockPrevHash) as BlockchainValueOp;
+                    } else {
+                        throw new Error('The forked chain and the old one have different origin blocks, this should be impossible');
+                    }
+                    const oldBlockPrevHash = currentOldBlock.getPrevBlockHash();
+                    if (oldBlockPrevHash !== undefined) {
+                        currentOldBlock = await store.load(oldBlockPrevHash) as BlockchainValueOp;
+                    } else {
+                        throw new Error('The forked chain and the old one have different origin blocks, this should be impossible');
+                    }
+                    if (d===longestChainFinalityDepth) {
+                        newTotalDifficulty = BigInt('0x' +(await store.loadOpCausalHistory(currentNewBlock.hash()))?.opProps.get('totalDifficulty'));
+                        oldTotalDifficulty = BigInt('0x' +(await store.loadOpCausalHistory(currentOldBlock.hash()))?.opProps.get('totalDifficulty'));
+                        newFirstNonFinalBlockHash = currentNewBlock.getLastHash();
+                        oldFirstNonFinalBlockHash = currentOldBlock.getLastHash();
+                    }
+                }
             }
         }
 
-        // no fork point found, but I need to tiebreak with total original difficulty.
-        if (headA.getPrevBlockHash() === headB.getPrevBlockHash() ) {
-            return difficultyA < difficultyB 
+        if (newTotalDifficulty === undefined || oldTotalDifficulty === undefined || 
+            newFirstNonFinalBlockHash === undefined || oldFirstNonFinalBlockHash === undefined) {
+            // this should be impossible
+            throw new Error('Unexpected condition: found no fork point, not window entrance points.');
         }
-        // also another case if the have the same height
-        if (heightA === heightB) {
-            return difficultyA < difficultyB;
-        }
-        return heightA > heightB
+
+        return newTotalDifficulty < oldTotalDifficulty;
     }
 
     static initializeComptroller(prevOp?: BlockchainValueOp): MiniComptroller {
