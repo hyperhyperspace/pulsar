@@ -1,6 +1,6 @@
 
 //import {createHash} from "crypto";
-import { Hash, HashedObject, Hashing, Identity, MutationOp } from '@hyper-hyper-space/core';
+import { Hash, HashedObject, Hashing, Identity, MutationOp, Store } from '@hyper-hyper-space/core';
 import { HashedBigInt } from './HashedBigInt';
 //import { Logger, LogLevel } from '@hyper-hyper-space/core';
 
@@ -296,6 +296,7 @@ class BlockchainValueOp extends MutationOp {
 
     static async computeVrfSeed(author: Identity, prevOpHash?: Hash): Promise<string | undefined> {
         if (prevOpHash !== undefined) {
+            // TODO: for entropy hardening, do another hash of the result of sign().
             return author.sign(prevOpHash);
         } else {
             return undefined;
@@ -316,6 +317,63 @@ class BlockchainValueOp extends MutationOp {
                                             seedVRF,
                                         );
         return steps;
+    }
+
+    getSpeedRatio() {
+        return FixedPoint.divTrunc(this.movingMaxSpeed?.getValue() as bigint, this.movingMinSpeed?.getValue() as bigint)
+    }
+
+    getFinalityDepth(): number {
+        return Number(FixedPoint.trunc(this.getSpeedRatio()) + BigInt(1))
+    }
+
+    static async findForkChoice(headA: BlockchainValueOp, headB: BlockchainValueOp, store: Store): Promise<boolean> {
+        const heightA = (headA.blockNumber as HashedBigInt).getValue();
+        const heightB = (headB.blockNumber as HashedBigInt).getValue();
+        let longestChainFinalityDepth = 0;
+        if (heightA > heightB) {
+            longestChainFinalityDepth = headA.getFinalityDepth() 
+        } else {
+            longestChainFinalityDepth = headB.getFinalityDepth()
+        }
+        
+        const difficultyA = BigInt('0x' +(await store.loadOpCausalHistory(headA.hash()))?.opProps.get('totalDifficulty'));
+        const difficultyB = BigInt('0x' +(await store.loadOpCausalHistory(headB.hash()))?.opProps.get('totalDifficulty'));
+        for (let d = 0; d < longestChainFinalityDepth; d++) {
+            if ((headA.blockNumber as HashedBigInt).getValue() > (headB.blockNumber as HashedBigInt).getValue()) {
+                const prevHashA = headA.getPrevBlockHash()
+                if (prevHashA !== undefined)
+                    headA = await store.load(prevHashA) as BlockchainValueOp
+            }
+            else if ((headA.blockNumber as HashedBigInt).getValue() < (headB.blockNumber as HashedBigInt).getValue()) {
+                const prevHashB = headB.getPrevBlockHash()
+                if (prevHashB !== undefined)
+                    headB = await store.load(prevHashB) as BlockchainValueOp
+            } else { // same len                
+                if (headA.getPrevBlockHash() === headB.getPrevBlockHash()) {
+                    const localDifficultyA = headA.vdfSteps?.getValue() as bigint; 
+                    const localDifficultyB = headA.vdfSteps?.getValue() as bigint;
+                    return localDifficultyA < localDifficultyB
+                } else { 
+                    const prevHashA = headA.getPrevBlockHash()
+                    if (prevHashA !== undefined)
+                        headA = await store.load(prevHashA) as BlockchainValueOp
+                    const prevHashB = headB.getPrevBlockHash()
+                    if (prevHashB !== undefined)
+                        headB = await store.load(prevHashB) as BlockchainValueOp
+                    }
+            }
+        }
+
+        // no fork point found, but I need to tiebreak with total original difficulty.
+        if (headA.getPrevBlockHash() === headB.getPrevBlockHash() ) {
+            return difficultyA < difficultyB 
+        }
+        // also another case if the have the same height
+        if (heightA === heightB) {
+            return difficultyA < difficultyB;
+        }
+        return heightA > heightB
     }
 
     static initializeComptroller(prevOp?: BlockchainValueOp): MiniComptroller {
