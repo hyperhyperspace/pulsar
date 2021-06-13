@@ -222,6 +222,7 @@ class BlockchainValueOp extends MutationOp {
 
         const challenge = await BlockchainValueOp.getChallenge((this.getTarget() as Blockchain), this.vrfSeed);
         const steps = BlockchainValueOp.getVDFSteps(comp, challenge);
+        // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs.
 
         if (this.vdfSteps?._value !== steps) {
             console.log('VDF Steps are wrong, should be ' + steps + ' but received ' + this.vdfSteps?._value);
@@ -309,8 +310,7 @@ class BlockchainValueOp extends MutationOp {
     }
 
     static getVDFSteps(comp: MiniComptroller, challenge: string) {
-        // TODO: warning! using the challenge as temporary VRF seed. Replace this with VRF seed hashed with prev hash block!
-        const seedVRF = BigInt( '0x'+challenge ) // TODO: warning! replace with VRF seed + hashing with prev block hash.
+        const seedVRF = BigInt( '0x'+challenge )
         const steps = comp.getConsensusDifficulty(
                                             BlockchainValueOp.coins,
                                             BlockchainValueOp.totalCoins,

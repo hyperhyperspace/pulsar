@@ -17,6 +17,7 @@ import { Worker } from 'worker_threads';
 import { UsageToken } from '@hyper-hyper-space/core/dist/mesh/service/Mesh';
 import { CausalHistoryState } from '@hyper-hyper-space/core/dist/mesh/agents/state/causal/CausalHistoryState';
 import { OpCausalHistory } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
+import { MiniComptroller } from './MiniComptroller';
 //import { Logger, LogLevel } from 'util/logging';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
@@ -91,8 +92,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 prevOpContext = this._headBlock.toLiteralContext();
             }
             
-            // TODO: warning! replace with VRF seed + hashing with prev block hash.
-
             BlockchainValueOp.computeVrfSeed(this._coinbase as Identity, this._headBlock?.hash())
                              .then((vrfSeed: (string|undefined)) => 
             {
@@ -103,6 +102,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
                 const challenge = BlockchainValueOp.getChallenge(this, vrfSeed);
                 const steps = BlockchainValueOp.getVDFSteps(comp, challenge);
+                // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs. 
                 this._computationDifficulty = steps;
                 console.log('Racing for challenge (' + steps + ' steps): "' + challenge + '".');
                 console.log('# Block Number = ', comp.getBlockNumber())
@@ -313,7 +313,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         const forkChoiceFilter: StateFilter = async (state: CausalHistoryState, store: Store) => {
 
 
-            const MAX_FINALITY_DEPTH=10;
+            const MAX_FINALITY_DEPTH=MiniComptroller.getMaxSpeedRatioNumber();
 
             const mut = state.mutableObj as Hash;
 
