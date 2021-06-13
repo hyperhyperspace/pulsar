@@ -358,13 +358,7 @@ class BlockchainValueOp extends MutationOp {
         if (heightDifference > longestChainFinalityDepth || (newHeight <= longestChainFinalityDepth && oldHeight <= longestChainFinalityDepth)) {
             return newHeight > oldHeight;
         }
-
-        let newTotalDifficulty: bigint|undefined;
-        let oldTotalDifficulty: bigint|undefined;
-
-        let newFirstNonFinalBlockHash: Hash|undefined;
-        let oldFirstNonFinalBlockHash: Hash|undefined;
-
+        
         let currentNewBlock = newHead;
         let currentOldBlock = oldHead;
         
@@ -406,17 +400,26 @@ class BlockchainValueOp extends MutationOp {
                     } else {
                         throw new Error('The forked chain and the old one have different origin blocks, this should be impossible');
                     }
-                    if (d===longestChainFinalityDepth) {
-                        newTotalDifficulty = BigInt('0x' +(await store.loadOpCausalHistory(currentNewBlock.hash()))?.opProps.get('totalDifficulty'));
-                        oldTotalDifficulty = BigInt('0x' +(await store.loadOpCausalHistory(currentOldBlock.hash()))?.opProps.get('totalDifficulty'));
-                        newFirstNonFinalBlockHash = currentNewBlock.getLastHash();
-                        oldFirstNonFinalBlockHash = currentOldBlock.getLastHash();
-                    }
                 }
             }
         }
 
-        return newHeight > oldHeight;;
+
+        if (newHeight === oldHeight) {
+            const newTotalDifficulty = BigInt('0x' +(await store.loadOpCausalHistory(newHead.hash()))?.opProps.get('totalDifficulty'));
+            const oldTotalDifficulty = BigInt('0x' +(await store.loadOpCausalHistory(oldHead.hash()))?.opProps.get('totalDifficulty'));
+
+
+            if (newTotalDifficulty === oldTotalDifficulty) {
+                return newHead.getLastHash().localeCompare(oldHead.getLastHash()) < 0;
+            } else {
+                return newTotalDifficulty < oldTotalDifficulty;
+            }
+        } else {
+            return newHeight > oldHeight;
+        }
+
+        
     }
 
     static initializeComptroller(prevOp?: BlockchainValueOp): MiniComptroller {
