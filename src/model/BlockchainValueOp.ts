@@ -355,7 +355,7 @@ class BlockchainValueOp extends MutationOp {
             heightDifference = -heightDifference;
         }
         
-        if (heightDifference > longestChainFinalityDepth) {
+        if (heightDifference > longestChainFinalityDepth || (newHeight <= longestChainFinalityDepth && oldHeight <= longestChainFinalityDepth)) {
             return newHeight > oldHeight;
         }
 
@@ -416,13 +416,7 @@ class BlockchainValueOp extends MutationOp {
             }
         }
 
-        if (newTotalDifficulty === undefined || oldTotalDifficulty === undefined || 
-            newFirstNonFinalBlockHash === undefined || oldFirstNonFinalBlockHash === undefined) {
-            // this should be impossible
-            throw new Error('Unexpected condition: found no fork point, not window entrance points.');
-        }
-
-        return newTotalDifficulty < oldTotalDifficulty;
+        return newHeight > oldHeight;;
     }
 
     static initializeComptroller(prevOp?: BlockchainValueOp): MiniComptroller {
