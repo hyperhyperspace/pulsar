@@ -359,8 +359,8 @@ class BlockchainValueOp extends MutationOp {
             heightDifference = -heightDifference;
         }
         
-        //FIXME
-        if (heightDifference > longestChainFinalityDepth || (newHeight <= longestChainFinalityDepth && oldHeight <= longestChainFinalityDepth)) {
+        
+        if (heightDifference > longestChainFinalityDepth) {
             return newHeight > oldHeight;
         }
 
