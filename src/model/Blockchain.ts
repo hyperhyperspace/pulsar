@@ -205,7 +205,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                          (newOpBlocknumber === lastOpBlocknumber && newOpSteps === lastOpSteps &&
                           newOpHash.localeCompare(lastOpHash) < 0);
                           */
-                accept = await BlockchainValueOp.souldAcceptFork(op, this._lastBlock, this.getResources()?.store as Store);
+                accept = await BlockchainValueOp.shouldAcceptNewHead(op, this._lastBlock, this.getResources()?.store as Store);
             }
 
             if (accept) {

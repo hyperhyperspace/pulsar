@@ -327,8 +327,12 @@ class BlockchainValueOp extends MutationOp {
         return Number(FixedPoint.trunc(this.getSpeedRatio()) + BigInt(1))
     }
 
-    static async souldAcceptFork(newHead: BlockchainValueOp, oldHead: BlockchainValueOp, store: Store): Promise<boolean> {
-       
+    static async shouldAcceptNewHead(newHead: BlockchainValueOp, oldHead: BlockchainValueOp, store: Store): Promise<boolean> {
+        
+        if (newHead.equals(oldHead)) {
+            return false;
+        }
+
         let longestChainFinalityDepth = 0;
 
         const newHeight = (newHead.blockNumber as HashedBigInt).getValue();
@@ -358,11 +362,16 @@ class BlockchainValueOp extends MutationOp {
         if (heightDifference > longestChainFinalityDepth || (newHeight <= longestChainFinalityDepth && oldHeight <= longestChainFinalityDepth)) {
             return newHeight > oldHeight;
         }
-        
+
         let currentNewBlock = newHead;
         let currentOldBlock = oldHead;
         
         for (let d = 0; d < longestChainFinalityDepth; d++) {
+
+            if (currentNewBlock.equals(oldHead)) {
+                return true;
+            }
+
             const currentNewBlockHeight = (currentNewBlock.blockNumber as HashedBigInt).getValue();
             const currentOldBlockHeight = (currentOldBlock.blockNumber as HashedBigInt).getValue();
 
