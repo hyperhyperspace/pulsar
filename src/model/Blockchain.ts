@@ -88,8 +88,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 prevOpContext = this._lastBlock.toLiteralContext();
             }
             
-            // TODO: warning! replace with VRF seed + hashing with prev block hash.
-
             BlockchainValueOp.computeVrfSeed(this._coinbase as Identity, this._lastBlock?.hash())
                              .then((vrfSeed: (string|undefined)) => 
             {
@@ -100,6 +98,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
                 const challenge = BlockchainValueOp.getChallenge(this, vrfSeed);
                 const steps = BlockchainValueOp.getVDFSteps(comp, challenge);
+                // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs. 
                 this._computationDifficulty = steps;
                 console.log('Racing for challenge (' + steps + ' steps): "' + challenge + '".');
                 console.log('# Block Number = ', comp.getBlockNumber())
