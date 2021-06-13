@@ -30,7 +30,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _coinbase?: Identity;
 
-    _lastBlock?: BlockchainValueOp;
+    _headBlock?: BlockchainValueOp;
+
+    _currentMiningPrevBlock?: BlockchainValueOp;
+
     _values: string[];
 
     _computation?: Worker;
@@ -74,7 +77,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     race() {
         if (this._computation === undefined) {
 
-            const comp = BlockchainValueOp.initializeComptroller(this._lastBlock);
+            const comp = BlockchainValueOp.initializeComptroller(this._headBlock);
 
             
             console.log('-------------------------------------------------------------')
@@ -84,13 +87,13 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             let prevOpContext: LiteralContext | undefined;
 
-            if (this._lastBlock !== undefined) {
-                prevOpContext = this._lastBlock.toLiteralContext();
+            if (this._headBlock !== undefined) {
+                prevOpContext = this._headBlock.toLiteralContext();
             }
             
             // TODO: warning! replace with VRF seed + hashing with prev block hash.
 
-            BlockchainValueOp.computeVrfSeed(this._coinbase as Identity, this._lastBlock?.hash())
+            BlockchainValueOp.computeVrfSeed(this._coinbase as Identity, this._headBlock?.hash())
                              .then((vrfSeed: (string|undefined)) => 
             {
 
@@ -113,7 +116,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
                         
 
-                        let op = new BlockchainValueOp(this, this._lastBlock, steps, msg.result, msg.bootstrapResult, this._coinbase, vrfSeed);
+                        let op = new BlockchainValueOp(this, this._headBlock, steps, msg.result, msg.bootstrapResult, this._coinbase, vrfSeed);
     
                         console.log('⛏️⛏️⛏️⛏️ #' + op.blockNumber?.getValue() + ' mined by ' + this._coinbase?.getLastHash());
 
@@ -188,7 +191,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
         if (op instanceof BlockchainValueOp) {
 
-            if (this._lastBlock === undefined) {
+            if (this._headBlock === undefined) {
                 accept = true;
             } else {
                 /*
@@ -205,12 +208,18 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                          (newOpBlocknumber === lastOpBlocknumber && newOpSteps === lastOpSteps &&
                           newOpHash.localeCompare(lastOpHash) < 0);
                           */
-                accept = await BlockchainValueOp.shouldAcceptNewHead(op, this._lastBlock, this.getResources()?.store as Store);
+
+                if (this._computation !== undefined && this._computationDifficulty !== undefined) {
+                    accept = await BlockchainValueOp.shouldInterruptCurrentMining(this._headBlock, this, this._computationDifficulty as bigint, this._coinbase as Identity, op, this.getResources()?.store as Store);
+                } else {
+                    accept = await BlockchainValueOp.shouldAcceptNewHead(op, this._headBlock, this.getResources()?.store as Store);
+                }
+                
             }
 
             if (accept) {
 
-                this._lastBlock = op;
+                this._headBlock = op;
 
                 this._values.push(Hashing.toHex(op.hash()));
 

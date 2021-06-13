@@ -359,6 +359,7 @@ class BlockchainValueOp extends MutationOp {
             heightDifference = -heightDifference;
         }
         
+        //FIXME
         if (heightDifference > longestChainFinalityDepth || (newHeight <= longestChainFinalityDepth && oldHeight <= longestChainFinalityDepth)) {
             return newHeight > oldHeight;
         }
@@ -429,6 +430,14 @@ class BlockchainValueOp extends MutationOp {
         }
 
         
+    }
+
+    static shouldInterruptCurrentMining(miningPrevBlock: BlockchainValueOp|undefined, target: Blockchain, currentDifficulty: bigint, coinbase: Identity, newHead: BlockchainValueOp, store: Store) { 
+
+        let miningBlock = new BlockchainValueOp(target, miningPrevBlock, currentDifficulty, '', '', coinbase, '')
+
+        return BlockchainValueOp.shouldAcceptNewHead(newHead, miningBlock, store)
+
     }
 
     static initializeComptroller(prevOp?: BlockchainValueOp): MiniComptroller {
