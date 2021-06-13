@@ -215,11 +215,11 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     
                 if (this._computation !== undefined && this._computationDifficulty !== undefined) {
                     accept = await BlockchainValueOp.shouldInterruptCurrentMining(this._headBlock, this, this._computationDifficulty as bigint, this._coinbase as Identity, op, this.getResources()?.store as Store);
-                } else {
-                    accept = await BlockchainValueOp.shouldAcceptNewHead(op, this._headBlock, this.getResources()?.store as Store);
                     if (!accept) {
                         console.log(' +++ IGNORING RECEIVED BLOCK ' + op.getLastHash() + ', its difficulty is ' + op.vdfSteps + ' and we are currently mining with a difficulty of ' + this._computationDifficulty);
                     }
+                } else {
+                    accept = await BlockchainValueOp.shouldAcceptNewHead(op, this._headBlock, this.getResources()?.store as Store);
                 }
                 
             }
