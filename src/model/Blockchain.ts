@@ -193,6 +193,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             if (this._headBlock === undefined) {
                 accept = true;
+            } else if (this._coinbase?.equals(op.getAuthor()) && op.getPrevBlockHash() === this._headBlock?.hash()) { 
+            
+                accept = true;
+
             } else {
                 /*
                 const lastOpHash        = this._lastBlock.hash()
@@ -208,7 +212,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                          (newOpBlocknumber === lastOpBlocknumber && newOpSteps === lastOpSteps &&
                           newOpHash.localeCompare(lastOpHash) < 0);
                           */
-
+                    
                 if (this._computation !== undefined && this._computationDifficulty !== undefined) {
                     accept = await BlockchainValueOp.shouldInterruptCurrentMining(this._headBlock, this, this._computationDifficulty as bigint, this._coinbase as Identity, op, this.getResources()?.store as Store);
                 } else {
