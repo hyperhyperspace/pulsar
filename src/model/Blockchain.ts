@@ -17,6 +17,7 @@ import { Worker } from 'worker_threads';
 import { UsageToken } from '@hyper-hyper-space/core/dist/mesh/service/Mesh';
 import { CausalHistoryState } from '@hyper-hyper-space/core/dist/mesh/agents/state/causal/CausalHistoryState';
 import { OpCausalHistory } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
+import { MiniComptroller } from './MiniComptroller';
 //import { Logger, LogLevel } from 'util/logging';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
@@ -303,7 +304,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         const forkChoiceFilter: StateFilter = async (state: CausalHistoryState, store: Store) => {
 
 
-            const MAX_FINALITY_DEPTH=10;
+            const MAX_FINALITY_DEPTH=MiniComptroller.getMaxSpeedRatioNumber();
 
             const mut = state.mutableObj as Hash;
 

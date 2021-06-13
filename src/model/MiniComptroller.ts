@@ -29,6 +29,10 @@ class FixedPoint {
     static trunc(x: bigint): bigint {
         return x / FixedPoint.UNIT;
     }
+
+    static toNumber(x: bigint): number {
+        return Number(x) / Number(FixedPoint.UNIT)
+    }
 }
 
 
@@ -54,7 +58,8 @@ class MiniComptroller implements Comptroller {
     static minBlockTimeFactor: bigint = BigInt(10) * FixedPoint.UNIT;
     static maxBlockTimeFactor: bigint = BigInt(100000) * FixedPoint.UNIT;
 
-    private maxSpeedRatio: bigint = BigInt(31) * (FixedPoint.UNIT/BigInt(10)); // 3.1 * UNIT
+    static staticMaxSpeedRatio: bigint = BigInt(31) * (FixedPoint.UNIT/BigInt(10)); // 3.1 * UNIT
+    private maxSpeedRatio: bigint = MiniComptroller.staticMaxSpeedRatio    
     private minSpeedRatio: bigint = BigInt(13) * (FixedPoint.UNIT/BigInt(10)); // 1.3 * UNIT
     static initialMovingMaxSpeed: bigint = BigInt(15000) * FixedPoint.UNIT;
     static initialMovingMinSpeed: bigint = BigInt(5000) * FixedPoint.UNIT
@@ -303,11 +308,15 @@ class MiniComptroller implements Comptroller {
     }
 
     getMaxSpeedRatio() {
-        return this.movingMaxSpeed
+        return this.maxSpeedRatio
+    }
+
+    static getMaxSpeedRatioNumber(): number {
+        return Number(FixedPoint.trunc(MiniComptroller.staticMaxSpeedRatio) + BigInt(1))
     }
 
     getMinSpeedRatio() {
-        return this.movingMinSpeed
+        return this.minSpeedRatio
     }
 
     // Consensus Setters
