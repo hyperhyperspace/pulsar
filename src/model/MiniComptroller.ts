@@ -48,8 +48,8 @@ class MiniComptroller implements Comptroller {
     static bootstrapPeriod: bigint = BigInt(60 * 60 * 24 * 365) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // blocks = 6 months
     static bootstrapVirtualStake: bigint = BigInt(10000) * FixedPoint.UNIT;
 
-    // Rationale: want something robust but flexible, 24 sounds to flexible and 1 week to rigid, 48 hrs sounds a tradeoff.
-    static windowSize: bigint = BigInt(60 * 60 * 24 * 7 ) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // 15120 blocks
+    // Rationale: want something robust but flexible, 24 sounds to flexible and 1 week to rigid, 24 hrs sounds a tradeoff.
+    static windowSize: bigint = BigInt(60 * 60 * 24 * 1 ) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // 2160 blocks
     static windowExtraBuffer: bigint = MiniComptroller.windowSize; // buffer blocks for reorgs to under block adds.
 
     static initialBlockTimeFactor: bigint = BigInt(2000) * FixedPoint.UNIT;
