@@ -55,8 +55,8 @@ class MiniComptroller implements Comptroller {
     static initialBlockTimeFactor: bigint = BigInt(2000) * FixedPoint.UNIT;
     static initialBlockReward: bigint = BigInt(10) * FixedPoint.UNIT;
 
-    static minBlockTimeFactor: bigint = BigInt(10) * FixedPoint.UNIT;
-    static maxBlockTimeFactor: bigint = BigInt(100000) * FixedPoint.UNIT;
+    static minBlockTimeFactor: bigint = BigInt(1) * FixedPoint.UNIT;
+    static maxBlockTimeFactor: bigint = BigInt(1000000000) * FixedPoint.UNIT;
 
     static staticMaxSpeedRatio: bigint = BigInt(31) * (FixedPoint.UNIT/BigInt(10)); // 3.1 * UNIT
     private maxSpeedRatio: bigint = MiniComptroller.staticMaxSpeedRatio    
@@ -173,12 +173,11 @@ class MiniComptroller implements Comptroller {
             this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
         }
         // when they cross in the middle, this should not happen.
-        var aux = BigInt(0)
         if (this.movingMaxSpeed < this.movingMinSpeed){
-            // we swap them, adding the buffer of minimum ratio.
-            aux = this.movingMaxSpeed
-            this.movingMaxSpeed = FixedPoint.mulTrunc(this.movingMinSpeed, (FixedPoint.UNIT + FixedPoint.div(this.minSpeedRatio,BigInt(2))))
-            this.movingMinSpeed = FixedPoint.mulTrunc(aux, (FixedPoint.UNIT + FixedPoint.div(this.minSpeedRatio,BigInt(2))))
+            // we set them to mean speed.
+            const meanSpeed = FixedPoint.div(this.movingMinSpeed + this.movingMaxSpeed, BigInt(2))
+            this.movingMaxSpeed = meanSpeed 
+            this.movingMinSpeed = meanSpeed
         }
         this.speedRatio = FixedPoint.divTrunc(this.movingMaxSpeed, this.movingMinSpeed)
 
