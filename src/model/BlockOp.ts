@@ -207,7 +207,10 @@ class BlockOp extends MutationOp {
         const prevOp: BlockOp | undefined = prev;
 
         if (this.vrfSeed !== undefined) {
-            BlockOp.validateVrfSeed(prevOpHash as Hash, this.vrfSeed, this.getAuthor() as Identity);
+            console.log('Failed to validate VRF seed');
+            if (!(await BlockOp.validateVrfSeed(prevOpHash as Hash, this.vrfSeed, this.getAuthor() as Identity))) {
+                return false;
+            }
         }
             
         let blocktime = prevOp !== undefined? 
@@ -227,6 +230,7 @@ class BlockOp extends MutationOp {
 
         if (this.vdfSteps?._value !== steps) {
             console.log('VDF Steps are wrong, should be ' + steps + ' but received ' + this.vdfSteps?._value);
+            return false;
         }
 
         comp.addBlockSample(blocktime, steps);
