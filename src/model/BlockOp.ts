@@ -127,6 +127,7 @@ class BlockOp extends MutationOp {
             return false;
         }
 
+        // TODO: verify this timestamp does NOT come N seconds from the future (example: N = 15 secs)
         if (this.timestampSeconds === undefined) {
             console.log('Missing timestamp');
             return false;

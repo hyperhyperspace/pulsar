@@ -121,14 +121,9 @@ class MiniComptroller implements Comptroller {
 
     updateOrTestBlockTimeActionable(newBlockTimeFactor?: bigint): boolean {
         var validBlockTimeFactor = BigInt(0)
-        //console.log('this.blockTimeFactor = ', this.blockTimeFactor)
-        let auxTargetBlockTime: bigint = MiniComptroller.targetBlockTime
-        if (this.isBootstrapPeriod()) 
-            auxTargetBlockTime = MiniComptroller.targetBlockTime / BigInt(2)
-
-        if (this.currentBlockTime > auxTargetBlockTime)
+        if (this.currentBlockTime > MiniComptroller.targetBlockTime)
             validBlockTimeFactor = FixedPoint.div(FixedPoint.mul(this.blockTimeFactor, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
-        else if (this.currentBlockTime < auxTargetBlockTime)
+        else if (this.currentBlockTime < MiniComptroller.targetBlockTime)
             validBlockTimeFactor = FixedPoint.div(FixedPoint.mul(this.blockTimeFactor, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
         else // ==
             validBlockTimeFactor = this.blockTimeFactor  
