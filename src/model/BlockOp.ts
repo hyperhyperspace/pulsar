@@ -43,7 +43,7 @@ class BlockOp extends MutationOp {
 
     timestampSeconds?: number;
 
-    constructor(target?: Blockchain, prevOp?: BlockOp, steps?: bigint, vdfResult?: string, vdfBoostrapResult?: string, coinbase?: Identity, vrfSeed?: string) {
+    constructor(target?: Blockchain, prevOp?: BlockOp, steps?: bigint, vdfResult?: string, vdfBootstrapResult?: string, coinbase?: Identity, vrfSeed?: string) {
         super(target);
 
         if (target !== undefined && vdfResult !== undefined && steps !== undefined && coinbase !== undefined) {
@@ -82,8 +82,8 @@ class BlockOp extends MutationOp {
             this.movingMinSpeed = new HashedBigInt(comp.getMovingMinSpeed());
             this.blockTimeFactor = new HashedBigInt(comp.getBlockTimeFactor());
 
-            if (vdfBoostrapResult) {
-                this.vdfBootstrapResult = vdfBoostrapResult;
+            if (vdfBootstrapResult) {
+                this.vdfBootstrapResult = vdfBootstrapResult;
             }
 
             console.log('prevOps in block ' + this.blockNumber.getValue() + ':');
@@ -251,12 +251,12 @@ class BlockOp extends MutationOp {
         }
                 
         if (this.vdfBootstrapResult.toLowerCase() !== this.vdfBootstrapResult) {
-            console.log('VDF boostrap result is not lowercase');
+            console.log('VDF bootstrap result is not lowercase');
             return false;
         }
 
         if ((this.vdfBootstrapResult !== undefined) !== comp.isBootstrapPeriod()) {
-            console.log('VDF boostrap result is only empty when boostrap period ended.');
+            console.log('VDF bootstrap result is only empty when bootstrap period ended.');
             return false;
         }
 
@@ -451,8 +451,8 @@ class BlockOp extends MutationOp {
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         } else {
             comptroller.setBlockTimeFactor(BigInt(500) * FixedPoint.UNIT)
-            comptroller.setMovingMaxSpeed(BigInt(3) * FixedPoint.UNIT);
-            comptroller.setMovingMinSpeed(BigInt(1) * FixedPoint.UNIT);
+            comptroller.setMovingMaxSpeed(BigInt(50) * FixedPoint.UNIT);
+            comptroller.setMovingMinSpeed(BigInt(25) * FixedPoint.UNIT);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         }
 

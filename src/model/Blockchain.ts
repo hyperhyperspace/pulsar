@@ -17,7 +17,7 @@ import { Worker } from 'worker_threads';
 import { UsageToken } from '@hyper-hyper-space/core/dist/mesh/service/Mesh';
 import { CausalHistoryState } from '@hyper-hyper-space/core/dist/mesh/agents/state/causal/CausalHistoryState';
 import { OpCausalHistory } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
-import { MiniComptroller } from './MiniComptroller';
+import { MiniComptroller, FixedPoint } from './MiniComptroller';
 //import { Logger, LogLevel } from 'util/logging';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
@@ -106,6 +106,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 this._computationDifficulty = steps;
                 console.log('Racing for challenge (' + steps + ' steps): "' + challenge + '".');
                 console.log('# Block Number = ', comp.getBlockNumber())
+                console.log('Dynamic Max VDF Speed (vdfSteps/sec) = ', FixedPoint.toNumber(comp.getMovingMaxSpeed()) )
+                console.log('Dynamic Min VDF Speed (vdfSteps/sec) = ', FixedPoint.toNumber(comp.getMovingMinSpeed()) )
+                console.log('Dynamic VDF Speed Ratio (Exponential Difficulty Adj.) = ', FixedPoint.toNumber(comp.getSpeedRatio()) )
+                console.log('Dynamic Block Time Factor (Linear Difficulty Adj.) = ', FixedPoint.toNumber(comp.getBlockTimeFactor()) )
                 
                 this._computation = new Worker('./dist/model/worker.js');
                 this._computation.on('error', (err: Error) => { console.log('ERR');console.log(err)});

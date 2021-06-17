@@ -269,7 +269,7 @@ class MiniComptroller implements Comptroller {
     }
 
     getConsensusBootstrapDifficulty(): bigint {
-        if (this.blockNumber >= MiniComptroller.bootstrapPeriod) // boostrap period ended
+        if (this.blockNumber >= MiniComptroller.bootstrapPeriod) // bootstrap period ended
             return BigInt(0)
         let meanBlockDifficulty = (this.movingMaxSpeed + this.movingMinSpeed) / BigInt(2) // middle point
         //console.log('movingMaxSpeed = ', this.movingMaxSpeed / FixedPoint.UNIT)
