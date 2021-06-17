@@ -1,7 +1,7 @@
 import { HashedObject, LiteralContext } from '@hyper-hyper-space/core';
 import { parentPort } from 'worker_threads';
 //import { Blockchain } from './Blockchain';
-import { BlockchainValueOp } from './BlockchainValueOp';
+import { BlockOp } from './BlockOp';
 import { VDF } from './VDF';
 
 
@@ -10,13 +10,13 @@ class VDFWorker {
     
             parentPort?.on('message', async (q: {challenge: string, steps: bigint, prevOpContext?: LiteralContext, bootstrap: boolean}) => {
 
-                let prevOp: BlockchainValueOp | undefined;
+                let prevOp: BlockOp | undefined;
 
                 if (q.prevOpContext !== undefined) {
-                    prevOp = HashedObject.fromLiteralContext(q.prevOpContext) as BlockchainValueOp;
+                    prevOp = HashedObject.fromLiteralContext(q.prevOpContext) as BlockOp;
                 }
 
-                const comp = BlockchainValueOp.initializeComptroller(prevOp);
+                const comp = BlockOp.initializeComptroller(prevOp);
 
                 let challenge: string;
 

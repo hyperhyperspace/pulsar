@@ -10,7 +10,7 @@ import { RNGImpl } from '@hyper-hyper-space/core';
 import { Space, Resources } from '@hyper-hyper-space/core';
 
 import { Blockchain as Blockchain } from './model/Blockchain';
-import { BlockchainValueOp } from './model/BlockchainValueOp';
+import { BlockOp } from './model/BlockOp';
 
 import * as readline from 'readline';
 import { VDF } from './model/VDF';
@@ -82,7 +82,7 @@ async function main() {
     CausalHistorySynchronizer.sourcesLog.level = LogLevel.INFO;
     CausalHistorySynchronizer.stateLog.level   = LogLevel.INFO;
 
-    await BlockchainValueOp.vdfInit();
+    await BlockOp.vdfInit();
 
     let resources = await initResources();
 

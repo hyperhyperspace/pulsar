@@ -11,7 +11,7 @@ import { ObjectDiscoveryPeerSource } from '@hyper-hyper-space/core';
 import { PeerGroupInfo } from '@hyper-hyper-space/core';
 import { IdentityPeer } from '@hyper-hyper-space/core';
 
-import { BlockchainValueOp as BlockchainValueOp } from './BlockchainValueOp';
+import { BlockOp } from './BlockOp';
 
 import { Worker } from 'worker_threads';
 import { UsageToken } from '@hyper-hyper-space/core/dist/mesh/service/Mesh';
@@ -31,9 +31,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _coinbase?: Identity;
 
-    _headBlock?: BlockchainValueOp;
+    _headBlock?: BlockOp;
 
-    _currentMiningPrevBlock?: BlockchainValueOp;
+    _currentMiningPrevBlock?: BlockOp;
 
     _values: string[];
 
@@ -50,7 +50,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     _syncBlockchainUsageToken?: UsageToken;
 
     constructor(seed?: string, totalCoins?: string) {
-        super([BlockchainValueOp.className]);
+        super([BlockOp.className]);
 
         if (seed !== undefined) {
             this.setId(seed);
@@ -78,7 +78,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     race() {
         if (this._computation === undefined) {
 
-            const comp = BlockchainValueOp.initializeComptroller(this._headBlock);
+            const comp = BlockOp.initializeComptroller(this._headBlock);
 
             
             console.log('-------------------------------------------------------------')
@@ -92,7 +92,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 prevOpContext = this._headBlock.toLiteralContext();
             }
             
-            BlockchainValueOp.computeVrfSeed(this._coinbase as Identity, this._headBlock?.hash())
+            BlockOp.computeVrfSeed(this._coinbase as Identity, this._headBlock?.hash())
                              .then((vrfSeed: (string|undefined)) => 
             {
 
@@ -100,8 +100,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     return;
                 }
 
-                const challenge = BlockchainValueOp.getChallenge(this, vrfSeed);
-                const steps = BlockchainValueOp.getVDFSteps(comp, challenge);
+                const challenge = BlockOp.getChallenge(this, vrfSeed);
+                const steps = BlockOp.getVDFSteps(comp, challenge);
                 // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs. 
                 this._computationDifficulty = steps;
                 console.log('Racing for challenge (' + steps + ' steps): "' + challenge + '".');
@@ -116,7 +116,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
                         
 
-                        let op = new BlockchainValueOp(this, this._headBlock, steps, msg.result, msg.bootstrapResult, this._coinbase, vrfSeed);
+                        let op = new BlockOp(this, this._headBlock, steps, msg.result, msg.bootstrapResult, this._coinbase, vrfSeed);
     
                         console.log('⛏️⛏️⛏️⛏️ #' + op.blockNumber?.getValue() + ' mined by ' + this._coinbase?.getLastHash());
 
@@ -189,7 +189,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
         let accept = false;
 
-        if (op instanceof BlockchainValueOp) {
+        if (op instanceof BlockOp) {
 
             if (this._headBlock === undefined) {
                 accept = true;
@@ -214,12 +214,12 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                           */
                     
                 if (this._computation !== undefined && this._computationDifficulty !== undefined) {
-                    accept = await BlockchainValueOp.shouldInterruptCurrentMining(this._headBlock, this, this._computationDifficulty as bigint, this._coinbase as Identity, op, this.getResources()?.store as Store);
+                    accept = await BlockOp.shouldInterruptCurrentMining(this._headBlock, this, this._computationDifficulty as bigint, this._coinbase as Identity, op, this.getResources()?.store as Store);
                     if (!accept) {
                         console.log(' +++ IGNORING RECEIVED BLOCK ' + op.getLastHash() + ', its difficulty is ' + op.vdfSteps?.getValue() + ' and we are currently mining with a difficulty of ' + this._computationDifficulty);
                     }
                 } else {
-                    accept = await BlockchainValueOp.shouldAcceptNewHead(op, this._headBlock, this.getResources()?.store as Store);
+                    accept = await BlockOp.shouldAcceptNewHead(op, this._headBlock, this.getResources()?.store as Store);
                 }
                 
             }
