@@ -18,11 +18,13 @@ import { UsageToken } from '@hyper-hyper-space/core/dist/mesh/service/Mesh';
 import { CausalHistoryState } from '@hyper-hyper-space/core/dist/mesh/agents/state/causal/CausalHistoryState';
 import { OpCausalHistory } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
 import { MiniComptroller, FixedPoint } from './MiniComptroller';
+import { Logger, LogLevel } from '../../../core/dist/util/logging';
 //import { Logger, LogLevel } from 'util/logging';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     //static log = new Logger(Blockchain.name, LogLevel.DEBUG)
+    static gossipLog = new Logger(Blockchain.name, LogLevel.INFO);
     
 
     static className = 'hhs/v0/soliton/Blockchain';
@@ -334,7 +336,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             let maxHeight = 0;
 
-            console.log('Filtering gossip for blockchain ' + this.hash());
+            Blockchain.gossipLog.debug('Filtering gossip for blockchain ' + this.hash() + ' (' + state.terminalOpHistories?.size() + ' forks in state)');
 
             if (local?.terminalOps !== undefined) {
                 for (const opHash of local?.terminalOps) {
@@ -358,12 +360,12 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     if (opHistoryLiteral.computedHeight+MAX_FINALITY_DEPTH >= maxHeight) {
                         filteredOpHistories.push(new OpCausalHistory(opHistoryLiteral));
                     } else {
-                        console.log('Discarding terminal op history ' + opHistoryLiteral.causalHistoryHash + ' (height: ' + opHistoryLiteral.computedHeight + ', current height: ' + maxHeight + ')');
+                        Blockchain.gossipLog.trace('Discarding terminal op history ' + opHistoryLiteral.causalHistoryHash + ' (height: ' + opHistoryLiteral.computedHeight + ', current height: ' + maxHeight + ')');
                     }
                 }
             }
 
-            console.log('Done filtering gossip for blockcahin ' + this.hash() + ', height post-gossip is ' + maxHeight);
+            Blockchain.gossipLog.debug('Done filtering gossip for blockcahin ' + this.hash() + ', height post-gossip is ' + maxHeight);
 
             const forkChoiceState = new CausalHistoryState(mut, filteredOpHistories);
 
