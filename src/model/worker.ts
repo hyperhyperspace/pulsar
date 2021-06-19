@@ -32,7 +32,7 @@ class VDFWorker {
                     console.log('Done computing Boostrap VDF, took ' + elapsedGen + ' millisecs')  ;
                     //const tVerif = Date.now();
                     console.log('Result Proof length (bytes) = ', challenge.length / 2)
-                    console.log('Bootstrap VDF self verification: ' + await VDF.verify(q.challenge, q.steps, challenge));
+                    console.log('Bootstrap VDF self verification: ' + await VDF.verify(q.challenge, bootstrapSteps, challenge));
                     //const elapsedVerif = Date.now() - tVerif;
                     //console.log('verification took ' + elapsedVerif + ' millisecs');
                 } else {
