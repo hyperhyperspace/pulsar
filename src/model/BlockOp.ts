@@ -157,7 +157,7 @@ class BlockOp extends MutationOp {
         
         if (this.blockNumber.getValue() === BigInt(1)) {
             if (this.prevOps.size() !== 0) {
-                console.log('First block as predecessors.');
+                console.log('First block has predecessors.');
                 return false;
             }
 
@@ -207,8 +207,8 @@ class BlockOp extends MutationOp {
         const prevOp: BlockOp | undefined = prev;
 
         if (this.vrfSeed !== undefined) {
-            console.log('Failed to validate VRF seed');
             if (!(await BlockOp.validateVrfSeed(prevOpHash as Hash, this.vrfSeed, this.getAuthor() as Identity))) {
+                console.log('Failed to validate VRF seed ' + this.vrfSeed + ' using prevOpHash ' + prevOpHash);
                 return false;
             }
         }

@@ -33,8 +33,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _headBlock?: BlockOp;
 
-    _currentMiningPrevBlock?: BlockOp;
-
     _values: string[];
 
     _computation?: Worker;
@@ -92,6 +90,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 prevOpContext = this._headBlock.toLiteralContext();
             }
             
+            const prevBlockOp = this._headBlock;
+
             BlockOp.computeVrfSeed(this._coinbase as Identity, this._headBlock?.hash())
                              .then((vrfSeed: (string|undefined)) => 
             {
@@ -111,6 +111,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 console.log('Dynamic VDF Speed Ratio (Exponential Difficulty Adj.) = ', FixedPoint.toNumber(comp.getSpeedRatio()) )
                 console.log('Dynamic Block Time Factor (Linear Difficulty Adj.) = ', FixedPoint.toNumber(comp.getBlockTimeFactor()) )
                 
+
+
                 this._computation = new Worker('./dist/model/worker.js');
                 this._computation.on('error', (err: Error) => { console.log('ERR');console.log(err)});
                 this._computation.on('message', async (msg: {challenge: string, result: string, bootstrapResult?: string}) => {
@@ -120,7 +122,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
                         
 
-                        let op = new BlockOp(this, this._headBlock, steps, msg.result, msg.bootstrapResult, this._coinbase, vrfSeed);
+                        let op = new BlockOp(this, prevBlockOp, steps, msg.result, msg.bootstrapResult, this._coinbase, vrfSeed);
     
                         console.log('⛏️⛏️⛏️⛏️ #' + op.blockNumber?.getValue() + ' mined by ' + this._coinbase?.getLastHash());
 
