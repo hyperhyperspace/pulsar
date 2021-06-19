@@ -12,11 +12,12 @@ import { MiniComptroller, FixedPoint } from './MiniComptroller';
 import {SlothPermutation} from './SlothVDF';
 import { VDF } from './VDF';
 import { OpCausalHistory, OpCausalHistoryProps } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
+import { Logger, LogLevel } from '../../../core/dist/util/logging';
 (global as any).document = { }; // yikes!
 
 class BlockOp extends MutationOp {
 
-    //static log = new Logger(BlockchainValueOp.name, LogLevel.TRACE)
+    static logger = new Logger(BlockOp.name, LogLevel.INFO)
 
     static className = 'hhs/v0/soliton/BlockchainValueOp';
 
@@ -69,7 +70,7 @@ class BlockOp extends MutationOp {
                                 MiniComptroller.targetBlockTime; // FIXME: initial block time
             if (blocktime == BigInt(0))
                 blocktime = BigInt(1) * FixedPoint.UNIT
-            console.log('Verifying block with blockTime (secs) = ', Number(blocktime) / Number(FixedPoint.UNIT) )
+           // console.log('Verifying block with blockTime (secs) = ', Number(blocktime) / Number(FixedPoint.UNIT) )
             
             const comp = BlockOp.initializeComptroller(prevOp);
 
@@ -85,9 +86,6 @@ class BlockOp extends MutationOp {
             if (vdfBootstrapResult) {
                 this.vdfBootstrapResult = vdfBootstrapResult;
             }
-
-            console.log('prevOps in block ' + this.blockNumber.getValue() + ':');
-            console.log(this.prevOps?.size());
         }
 
     }
@@ -113,43 +111,41 @@ class BlockOp extends MutationOp {
         references;
 
         if (this.blockNumber === undefined || this.vdfResult === undefined || this.vdfBootstrapResult === undefined) {
-            console.log();
-            console.log('Object is incomplete.');
-            console.log(this.blockNumber);
-            console.log(this.vdfResult);
-            console.log(this.vdfBootstrapResult);
-            console.log();
+            BlockOp.logger.warning('Object is incomplete.');
+            BlockOp.logger.debug('this.blockNumber: ', this.blockNumber);
+            BlockOp.logger.debug('this.vdfResult:', this.vdfResult);
+            BlockOp.logger.debug('this.vdfBootstrapResult', this.vdfBootstrapResult);
             return false;
         }
 
         if (this.blockNumber.getValue() <= BigInt(0)) {
-            console.log('Sequence number is not positive.');
+            BlockOp.logger.warning('Sequence number is not positive.');
             return false;
         }
 
         // TODO: verify this timestamp does NOT come N seconds from the future (example: N = 15 secs)
         if (this.timestampSeconds === undefined) {
-            console.log('Missing timestamp');
+            BlockOp.logger.warning('Missing timestamp');
             return false;
         }
 
         if (!super.validate(references)) {
-            console.log('Generic op validation failed.');
+            BlockOp.logger.warning('Generic op validation failed.');
             return false;
         }
 
         if (! (this.getTarget() instanceof Blockchain)) {
-            console.log('Target is nt a Blockchain instance.');
+            BlockOp.logger.warning('Target is nt a Blockchain instance.');
             return false;
         }
 
         if (this.getAuthor() === undefined) {
-            console.log('Author is not undefined as it should be.');
+            BlockOp.logger.warning('Author is not undefined as it should be.');
             return false;
         }
 
         if (this.prevOps === undefined) {
-            console.log('PrevOps is missing (it should be empty or a singleton - not missing).');
+            BlockOp.logger.warning('PrevOps is missing (it should be empty or a singleton - not missing).');
             return false;
         }
 
@@ -157,24 +153,24 @@ class BlockOp extends MutationOp {
         
         if (this.blockNumber.getValue() === BigInt(1)) {
             if (this.prevOps.size() !== 0) {
-                console.log('First block has predecessors.');
+                BlockOp.logger.warning('First block has predecessors.');
                 return false;
             }
 
             if (this.vrfSeed !== undefined) {
-                console.log('First block has a seedVdf but it should not.');
+                BlockOp.logger.warning('First block has a seedVdf but it should not.');
                 return false;
             }
         } else {
             if (this.prevOps.size() !== 1) {
-                console.log('Missing reference to previous block.');
-                console.log(this.prevOps.size());
-                console.log(this.blockNumber.getValue());
+                BlockOp.logger.warning('Missing reference to previous block.');
+                BlockOp.logger.debug('prevOps size:', this.prevOps.size());
+                BlockOp.logger.debug('blockNumber:', this.blockNumber.getValue());
                 return false;
             }
             
             if (this.vrfSeed === undefined) {
-                console.log('Missing vrfSeed.');
+                BlockOp.logger.warning('Missing vrfSeed.');
                 return false;
             }
         }
@@ -192,12 +188,12 @@ class BlockOp extends MutationOp {
             prev = references.get(prevOpHash as string);
 
             if (!(prev instanceof BlockOp)) {
-                console.log('prevOP is not an instance of BlockchainValueOp.');
+                BlockOp.logger.warning('prevOp is not an instance of BlockOp.');
                 return false;
             }
 
             if (!prev.getTarget().equals(this.getTarget())) {
-                console.log('The prevOp and this op targets differ.');
+                BlockOp.logger.warning('The prevOp and this op targets differ.');
                 return false;
             }
         }
@@ -208,7 +204,7 @@ class BlockOp extends MutationOp {
 
         if (this.vrfSeed !== undefined) {
             if (!(await BlockOp.validateVrfSeed(prevOpHash as Hash, this.vrfSeed, this.getAuthor() as Identity))) {
-                console.log('Failed to validate VRF seed ' + this.vrfSeed + ' using prevOpHash ' + prevOpHash);
+                BlockOp.logger.warning('Failed to validate VRF seed ' + this.vrfSeed + ' using prevOpHash ' + prevOpHash);
                 return false;
             }
         }
@@ -229,60 +225,60 @@ class BlockOp extends MutationOp {
         // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs.
 
         if (this.vdfSteps?._value !== steps) {
-            console.log('VDF Steps are wrong, should be ' + steps + ' but received ' + this.vdfSteps?._value);
+            BlockOp.logger.warning('VDF Steps are wrong, should be ' + steps + ' but received ' + this.vdfSteps?._value);
             return false;
         }
 
         comp.addBlockSample(blocktime, steps);
 
         if (this.blockNumber?.getValue() !== comp.getBlockNumber()) {
-            console.log('Comptroller rejected blockNumber');
+            BlockOp.logger.warning('Comptroller rejected blockNumber');
             return false;
         }
 
         if (this.movingMaxSpeed?.getValue() !== comp.getMovingMaxSpeed()) {
-            console.log('Comptroller rejected movingMaxSpeed');
+            BlockOp.logger.warning('Comptroller rejected movingMaxSpeed');
             return false;
         }
                                                          
         if (this.movingMinSpeed?.getValue() !== comp.getMovingMinSpeed()) {
-            console.log('Comptroller rejected movingMinSpeed');
+            BlockOp.logger.warning('Comptroller rejected movingMinSpeed');
             return false;
         }
                                                          
         if (this.blockTimeFactor?.getValue() !== comp.getBlockTimeFactor()) {
-            console.log('Comptroller rejected blockTimeFactor');
+            BlockOp.logger.warning('Comptroller rejected blockTimeFactor');
             return false;
         }
                 
         if (this.vdfBootstrapResult.toLowerCase() !== this.vdfBootstrapResult) {
-            console.log('VDF bootstrap result is not lowercase');
+            BlockOp.logger.warning('VDF bootstrap result is not lowercase');
             return false;
         }
 
         if ((this.vdfBootstrapResult !== undefined) !== comp.isBootstrapPeriod()) {
-            console.log('VDF bootstrap result is only empty when bootstrap period ended.');
+            BlockOp.logger.warning('VDF bootstrap result is only empty when bootstrap period ended.');
             return false;
         }
 
         if (this.vdfBootstrapResult !== undefined) {
             const bootstrapSteps = comp.getConsensusBootstrapDifficulty();
             if (!VDF.verify(challenge, bootstrapSteps, this.vdfBootstrapResult)) {
-                console.log('Failed bootstrap VDF verification');
+                BlockOp.logger.warning('Failed bootstrap VDF verification');
                 return false;
             }
             if (!VDF.verify(this.vdfBootstrapResult, steps, this.vdfResult)) {
-                console.log('Failed VDF verification (using bootstrap period result as challenge)');
+                BlockOp.logger.warning('Failed VDF verification (using bootstrap period result as challenge)');
                 return false;
             }
         } else {
             if (!VDF.verify(challenge, steps, this.vdfResult)) {
-                console.log('Failed VDF verification');
+                BlockOp.logger.warning('Failed VDF verification');
                 return false;
             }
         }
 
-        console.log('Successfully received proof for sequence number ' + this.blockNumber.getValue() + '.');
+        BlockOp.logger.info('Received #' + this.blockNumber.getValue() + ' with steps=' + this.vdfSteps.getValue() + ' and timestamp=' + new Date(this.timestampSeconds).toLocaleString() + ' by ' + this.getAuthor()?.hash() + '.');
         
         return true
 
