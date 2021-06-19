@@ -25,6 +25,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     //static log = new Logger(Blockchain.name, LogLevel.DEBUG)
     static gossipLog = new Logger(Blockchain.name, LogLevel.INFO);
+    static miningLog = new Logger(Blockchain.name, LogLevel.INFO);
     
 
     static className = 'hhs/v0/soliton/Blockchain';
@@ -40,6 +41,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     _computation?: Worker;
     _computationTermination?: Promise<Number>;
     _computationDifficulty?: bigint;
+    _computationPrevBlock?: BlockOp;
 
     _autoCompute: boolean;
 
@@ -80,9 +82,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             const comp = BlockOp.initializeComptroller(this._headBlock);
 
-            
-            console.log('-------------------------------------------------------------')
-
             // Bootstrap Period Protection pre-VDF.
             const bootstrap = comp.isBootstrapPeriod();
 
@@ -92,11 +91,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 prevOpContext = this._headBlock.toLiteralContext();
             }
             
-            const prevBlockOp = this._headBlock;
+            this._computationPrevBlock = this._headBlock;
 
             BlockOp.computeVrfSeed(this._coinbase as Identity, this._headBlock?.hash())
-                             .then((vrfSeed: (string|undefined)) => 
-            {
+                             .then((vrfSeed: (string|undefined)) => {
 
                 if (this._computation !== undefined) {
                     return;
@@ -106,27 +104,24 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 const steps = BlockOp.getVDFSteps(comp, challenge);
                 // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs. 
                 this._computationDifficulty = steps;
-                console.log('Racing for challenge (' + steps + ' steps): "' + challenge + '".');
-                console.log('# Block Number = ', comp.getBlockNumber())
-                console.log('Dynamic Max VDF Speed (vdfSteps/sec) = ', FixedPoint.toNumber(comp.getMovingMaxSpeed()) )
-                console.log('Dynamic Min VDF Speed (vdfSteps/sec) = ', FixedPoint.toNumber(comp.getMovingMinSpeed()) )
-                console.log('Dynamic VDF Speed Ratio (Exponential Difficulty Adj.) = ', FixedPoint.toNumber(comp.getSpeedRatio()) )
-                console.log('Dynamic Block Time Factor (Linear Difficulty Adj.) = ', FixedPoint.toNumber(comp.getBlockTimeFactor()) )
+                Blockchain.miningLog.info('Mining #' + (comp.getBlockNumber() + BigInt(1)) + ', got ' + steps + ' steps for challenge ending in ' + challenge.slice(-6) + '...');
+                Blockchain.miningLog.debug('Dynamic Max VDF Speed (vdfSteps/sec) = ', FixedPoint.toNumber(comp.getMovingMaxSpeed()) )
+                Blockchain.miningLog.debug('Dynamic Min VDF Speed (vdfSteps/sec) = ', FixedPoint.toNumber(comp.getMovingMinSpeed()) )
+                Blockchain.miningLog.debug('Dynamic VDF Speed Ratio (Exponential Difficulty Adj.) = ', FixedPoint.toNumber(comp.getSpeedRatio()) )
+                Blockchain.miningLog.debug('Dynamic Block Time Factor (Linear Difficulty Adj.) = ', FixedPoint.toNumber(comp.getBlockTimeFactor()) )
                 
 
 
                 this._computation = new Worker('./dist/model/worker.js');
-                this._computation.on('error', (err: Error) => { console.log('ERR');console.log(err)});
+                this._computation.on('error', (err: Error) => { Blockchain.miningLog.error('Unexpected error while mining: ', err)});
                 this._computation.on('message', async (msg: {challenge: string, result: string, bootstrapResult?: string}) => {
                     
-                    console.log('Solved challenge "' + msg.challenge + '" with: "' + msg.result + '".');
+                    Blockchain.miningLog.debug('Solved challenge ending in ' + msg.challenge.slice(-6) + '!');
                     if (msg.challenge === challenge ) {
 
-                        
-
-                        let op = new BlockOp(this, prevBlockOp, steps, msg.result, msg.bootstrapResult, this._coinbase, vrfSeed);
+                        let op = new BlockOp(this, this._computationPrevBlock, steps, msg.result, msg.bootstrapResult, this._coinbase, vrfSeed);
     
-                        console.log('⛏️⛏️⛏️⛏️ #' + op.blockNumber?.getValue() + ' mined by ' + this._coinbase?.getLastHash());
+                        Blockchain.miningLog.info('⛏️⛏️⛏️⛏️ #' + op.blockNumber?.getValue() + ' mined by us with coinbase ' + this._coinbase?.getLastHash() + ', block hash ends in ' + op.hash().slice(-6));
 
                         /*if (this._lastBlock !== undefined) {
                             op.setPrevOps(new Set([this._lastBlock]).values());
@@ -138,7 +133,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                         await this.getStore().save(this);
                         
                     } else {
-                        console.log('Mismatched challenge - could be normal.');
+                        Blockchain.miningLog.warning('Mismatched challenge - could be normal. Solved one ending in ' + msg.challenge.slice(-6) + ' but expected ' + challenge.slice(-6));
                     }
                 });
                 this._computation.postMessage({steps: steps, challenge: challenge, prevOpContext: prevOpContext, bootstrap: bootstrap});
@@ -146,20 +141,21 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             });
             
         } else {
-            console.log('Race was called but a computation is running.');
+            Blockchain.miningLog.warning('Race was called but a computation is running.');
         }
     }
 
     stopRace() {
-        console.log('Going to stop current VDF computation.');
         if (this._computation !== undefined) {
             if (this._computationTermination === undefined) {
+                Blockchain.miningLog.debug('Going to stop mining current block.');
                 this._computationTermination = this._computation.terminate().then(
                     (ret: number) => {
-                        console.log('Stopped VDF computation');
+                        Blockchain.miningLog.debug('Mining of current block stopped!');
                         this._computation = undefined;
                         this._computationTermination = undefined;
-                        this._computationDifficulty = undefined;
+                        this._computationDifficulty  = undefined;
+                        this._computationPrevBlock = undefined;
                         return ret;
                     }
                 );
@@ -222,9 +218,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                           */
                     
                 if (this._computation !== undefined && this._computationDifficulty !== undefined) {
-                    accept = await BlockOp.shouldInterruptCurrentMining(this._headBlock, this, this._computationDifficulty as bigint, this._coinbase as Identity, op, this.getResources()?.store as Store);
+                    accept = await BlockOp.shouldInterruptCurrentMining(this._computationPrevBlock, this, this._computationDifficulty as bigint, this._coinbase as Identity, op, this.getResources()?.store as Store);
                     if (!accept) {
-                        console.log(' +++ IGNORING RECEIVED BLOCK ' + op.getLastHash() + ', its difficulty is ' + op.vdfSteps?.getValue() + ' and we are currently mining with a difficulty of ' + this._computationDifficulty);
+                        Blockchain.miningLog.info('Going to ingore received block #' + op.blockNumber?.getValue() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), its difficulty is ' + op.vdfSteps?.getValue() + ' and we are currently mining with a difficulty of ' + this._computationDifficulty + ' for #' + ((this._computationPrevBlock?.blockNumber?.getValue() as bigint) + BigInt(1)));
                     }
                 } else {
                     accept = await BlockOp.shouldAcceptNewHead(op, this._headBlock, this.getResources()?.store as Store);
