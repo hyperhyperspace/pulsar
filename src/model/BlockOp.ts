@@ -422,7 +422,7 @@ class BlockOp extends MutationOp {
         if (newHeight === oldHeight) {
             const newTotalDifficulty = BigInt('0x' +(await store.loadOpCausalHistory(newHead.hash()))?.opProps.get('totalDifficulty'));
             
-            // See note above (Caveat...): oldHead may not exist in the store (is the block being currenty mined)
+            // See note above (Caveat...): oldHead may not exist in the store (if it is the block being currenty mined)
             
             const oldHeadHistory = await store.loadOpCausalHistory(oldHead.hash());
             const prevBlockHash  = oldHead.getPrevBlockHash();
