@@ -328,6 +328,9 @@ class BlockOp extends MutationOp {
         return Number(FixedPoint.trunc(this.getSpeedRatio()) + BigInt(1))
     }
 
+    // Caveat: oldHead sometimes may be the block we are currently mining, and therefore
+    //         it does not exist in the store (or its causal history).
+
     static async shouldAcceptNewHead(newHead: BlockOp, oldHead: BlockOp, store: Store): Promise<boolean> {
         
         if (newHead.equals(oldHead)) {
@@ -418,7 +421,26 @@ class BlockOp extends MutationOp {
 
         if (newHeight === oldHeight) {
             const newTotalDifficulty = BigInt('0x' +(await store.loadOpCausalHistory(newHead.hash()))?.opProps.get('totalDifficulty'));
-            const oldTotalDifficulty = BigInt('0x' +(await store.loadOpCausalHistory(oldHead.hash()))?.opProps.get('totalDifficulty'));
+            
+            // See note above (Caveat...): oldHead may not exist in the store (is the block being currenty mined)
+            
+            const oldHeadHistory = await store.loadOpCausalHistory(oldHead.hash());
+            const prevBlockHash  = oldHead.getPrevBlockHash();
+
+            
+            const oldTotalDifficulty = oldHeadHistory !== undefined?
+                                            BigInt('0x' + oldHeadHistory.opProps.get('totalDifficulty'))
+                                        :
+                                            
+                                            (
+                                                (oldHead.vdfSteps as HashedBigInt).getValue()
+                                                    +
+                                                (prevBlockHash === undefined?
+                                                        BigInt(0) 
+                                                    :
+                                                        BigInt('0x' + (await store.loadOpCausalHistory(prevBlockHash))?.opProps.get('totalDifficulty'))
+                                                )
+                                            );
 
 
             if (newTotalDifficulty === oldTotalDifficulty) {
