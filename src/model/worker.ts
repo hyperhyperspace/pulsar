@@ -33,7 +33,7 @@ class VDFWorker {
                     const tGen = Date.now();
                     challenge = await VDF.compute(q.challenge, bootstrapSteps as bigint);
                     const elapsedGen = Date.now() - tGen;
-                    VDFWorker.logger.info('Done computing Boostrap VDF, did ' + bootstrapSteps + ' steps in ' + elapsedGen + ' ms')  ;
+                    VDFWorker.logger.info('Done computing Bootstrap VDF, did ' + bootstrapSteps + ' steps in ' + elapsedGen + ' ms')  ;
                     VDFWorker.logger.trace('Result Proof length (bytes) = ', challenge.length / 2)
                     if (VDFWorker.logger.level <= LogLevel.TRACE) {
                         VDFWorker.logger.trace('Bootstrap VDF self verification: ' + await VDF.verify(q.challenge, bootstrapSteps, challenge));
