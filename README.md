@@ -2,7 +2,7 @@
 
 **GOAL**: A Proof-of-Stake Blockchain that can fully run its the consensus on the browser with support for different CPUs speed and tolerant to Winner-Takes-All, Nothing-At-Stake and other attacks.
 
-Run (Hawking Testnet):
+## Run (Hawking Testnet):
 
 ```bash
 $ git clone git@github.com:hyperhyperspace/soliton.git
@@ -11,14 +11,13 @@ $ yarn build
 $ yarn start --network whisky,romeo,zulu
 ```
 
-Develop:
+## Develop:
 
 ```bash
 $ git clone git@github.com:hyperhyperspace/workspace.git
 $ cd workspace
 $ ./pull-all.sh TODO!
 ```
-
 
 ## Browser client available
 
