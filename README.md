@@ -78,7 +78,7 @@ $ ./pull-all.sh TODO!
 There is a paper called *[Formal Barriers to Longest-Chain Proof-of-Stake Protocols](https://arxiv.org/pdf/1809.06528.pdf)* describing limitations to Longest-Chain Fork-choice on Proof-of-Stake blockchains.
 Technically we are using something we call *Average Fastest Chain* as a Fork-choice, then is not exactly Nakamoto Consensus's Longest-Chain. We choose the change with the smallest average number of VDF steps per block. In the same line, this fork-choice if more difficult to attack with attacks of common types explore in bibliography ([On the Instability of Bitcoin Without the Block Reward](https://www.cs.princeton.edu/~arvindn/publications/mining_CCS.pdf)).
 
-## How can you deal with Winner-Takes-All and discrepancies (variance) in CPUs speeds (and miner implementation speeds)?
+### How can you deal with Winner-Takes-All and discrepancies (variance) in CPUs speeds (and miner implementation speeds)?
 
 There is something called *Speed Ratio* that is part of the consensus. This ratio allows an exponential penalty on the linear difficulty that the miner face based on the random slot that the miner recieved. The exponential penalty (within certain bounds) avoids faster miners jumping from one slot to the previous one, avoiding faster miners to propose more blocks than their stake allows (in average).
 
