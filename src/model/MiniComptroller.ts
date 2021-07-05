@@ -7,7 +7,8 @@ class FixedPoint {
      // Fixed-point Arithmetic //
     ////////////////////////////
 
-    static UNIT = BigInt(10)**BigInt(12);
+    static DECIMALS = 12;
+    static UNIT = BigInt(10)**BigInt(FixedPoint.DECIMALS);
 
     static mulTrunc(x: bigint, y: bigint): bigint {
         return x * y / FixedPoint.UNIT;
