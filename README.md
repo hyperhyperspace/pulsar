@@ -16,7 +16,10 @@ $ yarn start --network whisky,romeo,zulu
 ```bash
 $ git clone git@github.com:hyperhyperspace/workspace.git
 $ cd workspace
-$ ./pull-all.sh TODO!
+$ ./pull-all.sh
+$ ./build-libs.sh
+$ cd @hyper-hyper-space/soliton
+$ yarn build # and you're good to go
 ```
 
 ## Browser client available
