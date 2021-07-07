@@ -42,7 +42,7 @@ class BlockOp extends MutationOp {
     vdfResult?: string;
     vdfBootstrapResult?: string;
 
-    timestampSeconds?: number;
+    timestampSeconds?: HashedBigInt;
 
     constructor(target?: Blockchain, prevOp?: BlockOp, steps?: bigint, vdfResult?: string, vdfBootstrapResult?: string, coinbase?: Identity, vrfSeed?: string) {
         super(target);
@@ -59,19 +59,20 @@ class BlockOp extends MutationOp {
 
             this.vrfSeed = vrfSeed;
 
-            this.timestampSeconds = Date.now();
+            this.timestampSeconds = new HashedBigInt(BigInt(Math.floor(Date.now() * 10**3)) * BigInt(10)**BigInt(FixedPoint.DECIMALS - 3));
 
             this.vdfSteps  = new HashedBigInt(steps);
             this.vdfResult = vdfResult;
 
             let blocktime = prevOp !== undefined? 
-                                BigInt(Math.floor(this.timestampSeconds - (prevOp.timestampSeconds as number))) * (FixedPoint.UNIT / (BigInt(10)**BigInt(3)))
+                                (this.timestampSeconds?.getValue() as bigint) - (prevOp.timestampSeconds?.getValue() as bigint)
                             :
                                 MiniComptroller.targetBlockTime; // FIXME: initial block time
-            if (blocktime == BigInt(0))
+            if (blocktime == BigInt(0)) {
                 blocktime = BigInt(1) * FixedPoint.UNIT
-           // console.log('Verifying block with blockTime (secs) = ', Number(blocktime) / Number(FixedPoint.UNIT) )
-            
+                // console.log('Verifying block with blockTime (secs) = ', Number(blocktime) / Number(FixedPoint.UNIT) )
+            }
+                
             const comp = BlockOp.initializeComptroller(prevOp);
 
             
@@ -208,9 +209,22 @@ class BlockOp extends MutationOp {
                 return false;
             }
         }
-            
+         
+        if (prevOp !== undefined) {
+            if (this.timestampSeconds?.getValue() <= (prevOp.timestampSeconds?.getValue() as bigint)) { // timestamp always goes forward.
+                BlockOp.logger.warning('next block timestamp is older or same as last block ' + this.timestampSeconds?.getValue().toString() + ' using prevOp.timestampSeconds ' + prevOp.timestampSeconds?.getValue().toString());
+                return false;
+            }
+            // Tolerate only one target blocktime from the future.
+            const localTimeBigInt = BigInt(Math.floor(Date.now() * 10**3)) * BigInt(10)**BigInt(FixedPoint.DECIMALS - 3);
+            if (this.timestampSeconds?.getValue() > localTimeBigInt + MiniComptroller.targetBlockTime) {
+                BlockOp.logger.warning('next block timestamp comes too much from the future ' + this.timestampSeconds?.getValue().toString() + ' using localtimeBigInt ' + localTimeBigInt.toString());
+                return false;
+            }
+        }
+
         let blocktime = prevOp !== undefined? 
-                            BigInt(Math.floor(this.timestampSeconds - (prevOp.timestampSeconds as number))) * (FixedPoint.UNIT / (BigInt(10)**BigInt(3)))
+                            this.timestampSeconds?.getValue() - (prevOp.timestampSeconds?.getValue() as bigint)
                         :
                             MiniComptroller.targetBlockTime; // FIXME: initial block time
         
@@ -225,7 +239,7 @@ class BlockOp extends MutationOp {
         // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs.
 
         if (this.vdfSteps?._value !== steps) {
-            BlockOp.logger.warning('VDF Steps are wrong, should be ' + steps + ' but received ' + this.vdfSteps?._value);
+            BlockOp.logger.warning('VDF Steps are wrong, should be ' + steps.toString() + ' but received ' + this.vdfSteps?._value?.toString());
             return false;
         }
 
@@ -278,7 +292,7 @@ class BlockOp extends MutationOp {
             }
         }
 
-        BlockOp.logger.info('Received #' + this.blockNumber.getValue() + ' with steps=' + this.vdfSteps.getValue() + ' and timestamp=' + new Date(this.timestampSeconds).toLocaleString() + ' by ' + this.getAuthor()?.hash() + '.');
+        BlockOp.logger.info('Received #' + this.blockNumber.getValue().toString() + ' with steps=' + this.vdfSteps.getValue().toString() + ' and timestamp=' + new Date(Number(this.timestampSeconds?.getValue())/10**(FixedPoint.DECIMALS-3)).toLocaleString() + ' by ' + this.getAuthor()?.hash() + '.');
         
         return true
 
