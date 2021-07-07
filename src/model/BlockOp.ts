@@ -13,13 +13,16 @@ import {SlothPermutation} from './SlothVDF';
 import { VDF } from './VDF';
 import { OpCausalHistory, OpCausalHistoryProps } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
 import { Logger, LogLevel } from '../../../core/dist/util/logging';
+
+import { Transaction } from './Transaction';
+
 (global as any).document = { }; // yikes!
 
 class BlockOp extends MutationOp {
 
     static logger = new Logger(BlockOp.name, LogLevel.INFO)
 
-    static className = 'hhs/v0/soliton/BlockchainValueOp';
+    static className = 'hhs/v0/soliton/BlockOp';
 
     static vdfInit = async () => {
         BlockOp.vdfVerifier = new SlothPermutation();
@@ -42,9 +45,12 @@ class BlockOp extends MutationOp {
     vdfResult?: string;
     vdfBootstrapResult?: string;
 
+    transactions?: Transaction[];
+    blockReward?: HashedBigInt;
+
     timestampSeconds?: HashedBigInt;
 
-    constructor(target?: Blockchain, prevOp?: BlockOp, steps?: bigint, vdfResult?: string, vdfBootstrapResult?: string, coinbase?: Identity, vrfSeed?: string) {
+    constructor(target?: Blockchain, prevOp?: BlockOp, steps?: bigint, vdfResult?: string, vdfBootstrapResult?: string, coinbase?: Identity, vrfSeed?: string, transactions?: Transaction[]) {
         super(target);
 
         if (target !== undefined && vdfResult !== undefined && steps !== undefined && coinbase !== undefined) {
@@ -87,6 +93,14 @@ class BlockOp extends MutationOp {
             if (vdfBootstrapResult) {
                 this.vdfBootstrapResult = vdfBootstrapResult;
             }
+
+            if (transactions !== undefined) {
+                this.transactions = transactions;
+            } else {
+                this.transactions = [];
+            }
+
+            this.blockReward = new HashedBigInt(comp.getConsensusBlockReward());
         }
 
     }
