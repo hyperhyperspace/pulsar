@@ -123,8 +123,7 @@ class BlockOp extends MutationOp {
             BlockOp.logger.warning('Sequence number is not positive.');
             return false;
         }
-
-        // TODO: verify this timestamp does NOT come N seconds from the future (example: N = 15 secs)
+        
         if (this.timestampSeconds === undefined) {
             BlockOp.logger.warning('Missing timestamp');
             return false;
