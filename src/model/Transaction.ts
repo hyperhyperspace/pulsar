@@ -1,4 +1,4 @@
-import { HashedObject, Identity } from "@hyper-hyper-space/core";
+import { HashedObject, Identity, RNGImpl } from "@hyper-hyper-space/core";
 import { HashedBigInt } from "./HashedBigInt";
 
 
@@ -8,6 +8,7 @@ class Transaction extends HashedObject {
 
     destination?: Identity;
     amount?: HashedBigInt;
+    nonce?: string;
 
     constructor(source?: Identity, destination?: Identity, amount?: bigint) {
         super();
@@ -33,6 +34,7 @@ class Transaction extends HashedObject {
             this.destination = destination;
             this.amount = new HashedBigInt(amount);
             this.setAuthor(source);
+            this.nonce = new RNGImpl().randomHexString(128);
 
         }
 
@@ -58,6 +60,10 @@ class Transaction extends HashedObject {
             return false;
         }
 
+        if (this.nonce === undefined) {
+            return false;
+        }
+
         if (!(this.destination instanceof Identity)) {
             return false;
         }
@@ -75,6 +81,10 @@ class Transaction extends HashedObject {
         }
 
         if (this.amount.getValue() <= BigInt(0)) {
+            return false;
+        }
+
+        if (!(typeof(this.nonce) === 'string')) {
             return false;
         }
 
