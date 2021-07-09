@@ -235,8 +235,8 @@ class BlockOp extends MutationOp {
                 BlockOp.logger.warning('next block timestamp is older or same as last block ' + this.timestampSeconds?.getValue().toString() + ' using prevOp.timestampSeconds ' + prevOp.timestampSeconds?.getValue().toString());
                 return false;
             }
-            // Tolerate only one target blocktime from the future.
-            const localTimeBigInt = BigInt(Math.floor(Date.now() * 10**3)) * BigInt(10)**BigInt(FixedPoint.DECIMALS - 3);
+            // Tolerate only one target blocktime from the future (are millisecs plus 12 decimals with 0s).
+            const localTimeBigInt = BigInt(Math.floor(Date.now() * 10**3)) * BigInt(10)**BigInt(FixedPoint.DECIMALS);
             if (this.timestampSeconds?.getValue() > localTimeBigInt + MiniComptroller.targetBlockTime) {
                 BlockOp.logger.warning('next block timestamp comes too much from the future ' + this.timestampSeconds?.getValue().toString() + ' using localtimeBigInt ' + localTimeBigInt.toString());
                 return false;
