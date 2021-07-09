@@ -331,7 +331,7 @@ class BlockOp extends MutationOp {
             return false;
         }
 
-        BlockOp.logger.info('Received #' + this.blockNumber.getValue().toString() + ' with steps=' + this.vdfSteps.getValue().toString() + ' and timestamp=' + new Date(Number(this.timestampSeconds?.getValue())/10**(FixedPoint.DECIMALS-3)).toLocaleString() + ' by ' + this.getAuthor()?.hash() + '.');
+        BlockOp.logger.info('Received #' + this.blockNumber.getValue().toString() + ' with steps=' + this.vdfSteps.getValue().toString() + ' and timestamp=' + new Date(Number(this.timestampSeconds?.getValue())/10**(FixedPoint.DECIMALS)).toLocaleString() + ' by ' + this.getAuthor()?.hash() + '.');
         
         return true
 
