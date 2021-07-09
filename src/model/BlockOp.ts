@@ -255,6 +255,7 @@ class BlockOp extends MutationOp {
         const comp = BlockOp.initializeComptroller(prev);
 
         const challenge = await BlockOp.getChallenge((this.getTarget() as Blockchain), this.vrfSeed);
+        // TODO: also use miner stake as a parameter.
         const steps = BlockOp.getVDFSteps(comp, challenge);
         // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs.
 
@@ -381,9 +382,11 @@ class BlockOp extends MutationOp {
         return challenge + challenge + challenge + challenge;
     }
 
+    // This is the pseudo-random toss of dice to determine what is going to be the slot of the miner
+    // in the current block (according also to his stake). Also determines the input of the VDF mining.
     static async computeVrfSeed(author: Identity, prevOpHash?: Hash): Promise<string | undefined> {
         if (prevOpHash !== undefined) {
-            // TODO: for entropy hardening, do another hash of the result of sign().
+            // The signature scheme HHS uses has a fixed padding, then signatures are unique and not malleable.
             return author.sign(prevOpHash);
         } else {
             return undefined;
@@ -395,6 +398,7 @@ class BlockOp extends MutationOp {
         return author.verifySignature(prevOpHash, vrfSeed);
     }
 
+    // TODO: also use miner stake as a parameter.
     static getVDFSteps(comp: MiniComptroller, challenge: string) {
         const seedVRF = BigInt( '0x'+challenge )
         const steps = comp.getConsensusDifficulty(
@@ -536,7 +540,6 @@ class BlockOp extends MutationOp {
         } else {
             return newHeight > oldHeight;
         }
-
         
     }
 
@@ -559,8 +562,8 @@ class BlockOp extends MutationOp {
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         } else {
             comptroller.setBlockTimeFactor(BigInt(100) * FixedPoint.UNIT)
-            comptroller.setMovingMaxSpeed(BigInt(50) * FixedPoint.UNIT);
-            comptroller.setMovingMinSpeed(BigInt(25) * FixedPoint.UNIT);
+            comptroller.setMovingMaxSpeed(BigInt(160) * FixedPoint.UNIT); 
+            comptroller.setMovingMinSpeed(BigInt(80) * FixedPoint.UNIT); 
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         }
 
