@@ -8,7 +8,7 @@
 $ git clone git@github.com:hyperhyperspace/soliton.git
 $ cd soliton
 $ yarn build
-$ yarn start --network whisky,romeo,zulu
+$ yarn start --network=whisky,romeo,zulu
 ```
 
 ## Develop:
