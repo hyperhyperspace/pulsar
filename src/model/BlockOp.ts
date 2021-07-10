@@ -51,7 +51,7 @@ class BlockOp extends MutationOp {
     transactions?: Transaction[];
     blockReward?: HashedBigInt;
 
-    timestampSeconds?: HashedBigInt;
+    timestampMillisecs?: HashedBigInt;
 
     constructor(target?: Blockchain, prevOp?: BlockOp, steps?: bigint, vdfResult?: string, vdfBootstrapResult?: string, coinbase?: Identity, vrfSeed?: string, transactions?: Transaction[]) {
         super(target);
@@ -68,13 +68,13 @@ class BlockOp extends MutationOp {
 
             this.vrfSeed = vrfSeed;
 
-            this.timestampSeconds = new HashedBigInt(BigInt(Math.floor(Date.now() * 10**3)) * BigInt(10)**BigInt(FixedPoint.DECIMALS - 3));
+            this.timestampMillisecs = new HashedBigInt(BigInt(Math.floor(Date.now() * 10**3)) * BigInt(10)**BigInt(FixedPoint.DECIMALS - 3));
 
             this.vdfSteps  = new HashedBigInt(steps);
             this.vdfResult = vdfResult;
 
             let blocktime = prevOp !== undefined? 
-                                (this.timestampSeconds?.getValue() as bigint) - (prevOp.timestampSeconds?.getValue() as bigint)
+                                (this.timestampMillisecs?.getValue() as bigint) - (prevOp.timestampMillisecs?.getValue() as bigint)
                             :
                                 MiniComptroller.targetBlockTime; // FIXME: initial block time
             if (blocktime == BigInt(0)) {
@@ -145,7 +145,7 @@ class BlockOp extends MutationOp {
             return false;
         }
         
-        if (this.timestampSeconds === undefined) {
+        if (this.timestampMillisecs === undefined) {
             BlockOp.logger.warning('Missing timestamp');
             return false;
         }
@@ -231,22 +231,22 @@ class BlockOp extends MutationOp {
         }
          
         if (prevOp !== undefined) {
-            if (this.timestampSeconds?.getValue() <= (prevOp.timestampSeconds?.getValue() as bigint)) { // timestamp always goes forward.
-                BlockOp.logger.warning('next block timestamp is older or same as last block ' + this.timestampSeconds?.getValue().toString() + ' using prevOp.timestampSeconds ' + prevOp.timestampSeconds?.getValue().toString());
+            if (this.timestampMillisecs?.getValue() <= (prevOp.timestampMillisecs?.getValue() as bigint)) { // timestamp always goes forward.
+                BlockOp.logger.warning('next block timestamp is older or same as last block ' + this.timestampMillisecs?.getValue().toString() + ' using prevOp.timestampSeconds ' + prevOp.timestampMillisecs?.getValue().toString());
                 return false;
             }
             // Tolerate only one target blocktime from the future (are millisecs plus 12 decimals with 0s).
             const localTimeBigInt = BigInt(Math.floor(Date.now() * 10**3)) * BigInt(10)**BigInt(FixedPoint.DECIMALS);
-            if (this.timestampSeconds?.getValue() > localTimeBigInt + MiniComptroller.targetBlockTime) {
-                BlockOp.logger.warning('next block timestamp comes too much from the future ' + this.timestampSeconds?.getValue().toString() + ' using localtimeBigInt ' + localTimeBigInt.toString());
+            if (this.timestampMillisecs?.getValue() > localTimeBigInt + MiniComptroller.targetBlockTime) {
+                BlockOp.logger.warning('next block timestamp comes too much from the future ' + this.timestampMillisecs?.getValue().toString() + ' using localtimeBigInt ' + localTimeBigInt.toString());
                 return false;
             }
         }
 
         let blocktime = prevOp !== undefined? 
-                            this.timestampSeconds?.getValue() - (prevOp.timestampSeconds?.getValue() as bigint)
+                            this.timestampMillisecs?.getValue() - (prevOp.timestampMillisecs?.getValue() as bigint)
                         :
-                            MiniComptroller.targetBlockTime; // FIXME: initial block time
+                            MiniComptroller.targetBlockTime; // FIXME:pwd initial block time
         
         if (blocktime == BigInt(0)) {
             blocktime = BigInt(1) * FixedPoint.UNIT
@@ -332,7 +332,7 @@ class BlockOp extends MutationOp {
             return false;
         }
 
-        BlockOp.logger.info('Received #' + this.blockNumber.getValue().toString() + ' with steps=' + this.vdfSteps.getValue().toString() + ' and timestamp=' + new Date(Number(this.timestampSeconds?.getValue())/10**(FixedPoint.DECIMALS)).toLocaleString() + ' by ' + this.getAuthor()?.hash() + '.');
+        BlockOp.logger.info('Received #' + this.blockNumber.getValue().toString() + ' with steps=' + this.vdfSteps.getValue().toString() + ' and timestamp=' + new Date(Number(this.timestampMillisecs?.getValue())/10**(FixedPoint.DECIMALS)).toLocaleString() + ' by ' + this.getAuthor()?.hash() + '.');
         
         return true
 
