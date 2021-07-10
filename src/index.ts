@@ -37,7 +37,7 @@ async function createBlockchainSpace(resources: Resources): Promise<Space> {
     console.log('Generating new Blockchain...');
     let blockchain = new Blockchain(new RNGImpl().randomHexString(160));
     
-    const keyPair = await RSAKeyPair.generate(1024);
+    const keyPair = await RSAKeyPair.generate(2048);
     const localIdentity = Identity.fromKeyPair({}, keyPair);
     console.log('Generated keys.')
 
