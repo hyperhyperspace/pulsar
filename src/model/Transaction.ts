@@ -6,6 +6,8 @@ class Transaction extends HashedObject {
 
     static className = 'hhs/v0/soliton/Transaction';
 
+    // TODO: add Blockchain target to avoid cross-chain replay attack
+
     destination?: Identity;
     amount?: HashedBigInt;
     nonce?: string;

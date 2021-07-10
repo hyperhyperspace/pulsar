@@ -1,7 +1,6 @@
-import { Hashing, HashedObject, MutableObject, MutationOp, LiteralContext, StateFilter, Store, Hash } from '@hyper-hyper-space/core';
+import { Hashing, HashedObject, MutableObject, MutationOp, LiteralContext, StateFilter, Store, Hash, MutableSet, Resources } from '@hyper-hyper-space/core';
 
 import { Identity } from '@hyper-hyper-space/core';
-
 
 import { SpaceEntryPoint } from '@hyper-hyper-space/core';
 
@@ -19,6 +18,8 @@ import { CausalHistoryState } from '@hyper-hyper-space/core/dist/mesh/agents/sta
 import { OpCausalHistory } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
 import { MiniComptroller, FixedPoint } from './MiniComptroller';
 import { Logger, LogLevel } from '../../../core/dist/util/logging';
+import { Transaction } from './Transaction';
+import { HashedBigInt } from './HashedBigInt';
 //import { Logger, LogLevel } from 'util/logging';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
@@ -38,6 +39,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _values: string[];
 
+    _initializing: boolean;
+
     _computation?: Worker;
     _computationTermination?: Promise<Number>;
     _computationDifficulty?: bigint;
@@ -50,6 +53,12 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _peerGroupUsageToken?: UsageToken;
     _syncBlockchainUsageToken?: UsageToken;
+
+    _maxSeenBlockNumber?: bigint;
+    _newerTxPool?: MutableSet<Transaction>;
+    _newerTxPoolUsageToken?: UsageToken;
+    _olderTxPool?: MutableSet<Transaction>;
+    _olderTxPoolUsageToken?: UsageToken;
 
     constructor(seed?: string, totalCoins?: string) {
         super([BlockOp.className]);
@@ -64,6 +73,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         
         this._values = [];
         this._autoCompute = false;
+        this._initializing = false;
     }
 
     startCompute(coinbase: Identity) {
@@ -251,6 +261,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     }
                 }
 
+                this.updateTxPools();
+
                 //console.log('Challenge now is "' + this.currentChallenge() + '" for Blockchain position ' + this.currentSeq() + '.');
             }
 
@@ -308,7 +320,11 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         this._peerGroupUsageToken      = this._mesh.joinPeerGroup(this._peerGroup);
         this._syncBlockchainUsageToken = this._mesh.syncObjectWithPeerGroup(this._peerGroup.id, this);
 
-        this.loadAndWatchForChanges();
+        this._initializing = true;
+        await this.loadAndWatchForChanges();
+        this._initializing = false;
+
+        this.updateTxPools();
     }
     
     async stopSync(): Promise<void> {
@@ -316,6 +332,17 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         if (this._syncBlockchainUsageToken !== undefined) {
             this._mesh?.stopSyncObjectWithPeerGroup(this._syncBlockchainUsageToken);
         }
+
+        if (this._newerTxPoolUsageToken !== undefined) {
+            this._mesh?.stopSyncObjectWithPeerGroup(this._newerTxPoolUsageToken);
+            this._newerTxPoolUsageToken = undefined;
+        }
+
+        if (this._olderTxPoolUsageToken !== undefined) {
+            this._mesh?.stopSyncObjectWithPeerGroup(this._olderTxPoolUsageToken);
+        }
+
+
 
         this._mesh?.stopObjectBroadcast(this.hash());
 
@@ -378,6 +405,78 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         };
 
         return forkChoiceFilter;
+    }
+
+    private updateTxPools(headBlockNumber?: bigint) {
+
+        if (  
+                headBlockNumber !== undefined && 
+                (this._maxSeenBlockNumber === undefined || headBlockNumber > this._maxSeenBlockNumber)
+            
+            ) {
+
+                this._maxSeenBlockNumber = headBlockNumber;
+        }
+
+        let lowerSeed: bigint;
+        let higherSeed: bigint;
+
+        if (this._maxSeenBlockNumber === undefined || this._maxSeenBlockNumber < BigInt(180)) {
+            lowerSeed  = BigInt(0);
+            higherSeed = BigInt(90);
+        } else {
+            const mult = this._maxSeenBlockNumber / BigInt(90);
+            lowerSeed  = (mult - BigInt(1)) * BigInt(90);
+            higherSeed = mult * BigInt(90);
+        }
+
+        const lowerSeedHash = new HashedBigInt(lowerSeed).hash();
+        const higherSeedHash = new HashedBigInt(higherSeed).hash();
+
+        if (this._newerTxPool === undefined) {
+            this._newerTxPool = new MutableSet();
+            this._newerTxPool.setId(higherSeedHash);
+            this._newerTxPool.setResources(this.getResources() as Resources);
+        }
+
+        if (this._olderTxPool === undefined) {
+            this._olderTxPool = new MutableSet();
+            this._olderTxPool.setId(lowerSeedHash);
+            this._olderTxPool.setResources(this.getResources() as Resources);
+        }
+
+        if (this._mesh !== undefined) {
+
+            if (this._newerTxPoolUsageToken === undefined) {
+                this._newerTxPoolUsageToken = this._mesh.syncObjectWithPeerGroup(this._peerGroup?.id as string, this._newerTxPool);
+            }
+    
+            if (this._olderTxPoolUsageToken === undefined) {
+                this._olderTxPoolUsageToken = this._mesh.syncObjectWithPeerGroup(this._peerGroup?.id as string, this._olderTxPool);
+            }
+        }
+
+        
+        if (this._newerTxPool.getId() === lowerSeedHash) {
+            // roll the pools
+
+            if (this._mesh !== undefined && this._olderTxPoolUsageToken !== undefined) {
+                this._mesh.stopSyncObjectWithPeerGroup(this._olderTxPoolUsageToken as UsageToken);
+            }
+            
+            this._olderTxPool           = this._newerTxPool;
+            this._olderTxPoolUsageToken = this._newerTxPoolUsageToken;
+
+            this._newerTxPool           = new MutableSet();
+            this._newerTxPool.setId(higherSeedHash);
+            this._newerTxPool.setResources(this.getResources() as Resources);
+
+            if (this._mesh !== undefined) {
+                this._newerTxPoolUsageToken = this._mesh.syncObjectWithPeerGroup(this._peerGroup?.id as string, this._newerTxPool);
+            }
+        }
+
+
     }
 
 }
