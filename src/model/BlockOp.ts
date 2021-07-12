@@ -14,12 +14,7 @@ import { VDF } from './VDF';
 import { OpCausalHistory, OpCausalHistoryProps } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
 import { Logger, LogLevel } from '../../../core/dist/util/logging';
 
-import { Transaction } from './Transaction';
-import { Ledger } from './Ledger';
-
 (global as any).document = { }; // yikes!
-
-const MAX_TX_PER_BLOCK = 4096;
 
 class BlockOp extends MutationOp {
 
@@ -48,12 +43,11 @@ class BlockOp extends MutationOp {
     vdfResult?: string;
     vdfBootstrapResult?: string;
 
-    transactions?: Transaction[];
     blockReward?: HashedBigInt;
 
     timestampSeconds?: HashedBigInt;
 
-    constructor(target?: Blockchain, prevOp?: BlockOp, steps?: bigint, vdfResult?: string, vdfBootstrapResult?: string, coinbase?: Identity, vrfSeed?: string, transactions?: Transaction[]) {
+    constructor(target?: Blockchain, prevOp?: BlockOp, steps?: bigint, vdfResult?: string, vdfBootstrapResult?: string, coinbase?: Identity, vrfSeed?: string) {
         super(target);
 
         if (target !== undefined && vdfResult !== undefined && steps !== undefined && coinbase !== undefined) {
@@ -95,16 +89,6 @@ class BlockOp extends MutationOp {
 
             if (vdfBootstrapResult) {
                 this.vdfBootstrapResult = vdfBootstrapResult;
-            }
-
-            if (transactions !== undefined) {
-                this.transactions = transactions;
-            } else {
-                this.transactions = [];
-            }
-
-            if (this.transactions.length > MAX_TX_PER_BLOCK) {
-                throw new Error('The max number of transactions per block is ' + MAX_TX_PER_BLOCK + ', attempted to create a block with ' + this.transactions.length + '.');
             }
 
             this.blockReward = new HashedBigInt(comp.getConsensusBlockReward());
@@ -325,49 +309,10 @@ class BlockOp extends MutationOp {
             return false;
         }
 
-        const ledger = await this.getLedgerForBlock(this.getPrevBlockHash(), references);
-
-        if (!ledger.canProcessBlock(this)) {
-            BlockOp.logger.warning('Invalid transactions');
-            return false;
-        }
-
         BlockOp.logger.info('Received #' + this.blockNumber.getValue().toString() + ' with steps=' + this.vdfSteps.getValue().toString() + ' and timestamp=' + new Date(Number(this.timestampSeconds?.getValue())/10**(FixedPoint.DECIMALS)).toLocaleString() + ' by ' + this.getAuthor()?.hash() + '.');
         
         return true
 
-    }
-
-    private async getLedgerForBlock(blockHash?: Hash, references?: Map<Hash, HashedObject>): Promise<Ledger> {
-        const blockList = new Array<BlockOp>();
-
-        while (blockHash !== undefined) {
-            let blockOp = references?.get(blockHash);
-
-            if (blockOp === undefined) {
-                blockOp = await this.getStore().load(blockHash);
-            }
-            
-            if (blockOp === undefined) {
-                throw new Error('Cannot create ledger to validate blockOp ' + this.hash() + ' because the chain is incompete: ')
-            }
-
-            if (!(blockOp instanceof BlockOp)) {
-                throw new Error('Cannot create ledger to validate blockOp ' + this.hash() + ' because a previouse block has the wrong type: ' + blockHash);
-            }
-
-            blockList.push(blockOp);
-
-            blockHash = blockOp.getPrevBlockHash();
-        }
-
-        const ledger = new Ledger();
-
-        for (let i=blockList.length-1; i>=0; i--) {
-            ledger.processBlock(blockList[i]);
-        }
-
-        return ledger;
     }
 
     static getChallenge(target: Blockchain, vrfSeed?: Hash): string {
