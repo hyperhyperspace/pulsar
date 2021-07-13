@@ -65,12 +65,12 @@ async function joinBlockchainSpace(resources: Resources, wordcode: string[]): Pr
     console.log();
 
     space.startBroadcast();
-    let Blockchain = await space.getEntryPoint();
+    let blockchain = await space.getEntryPoint();
 
-    await resources.store.save(Blockchain);
+    await resources.store.save(blockchain);
 
-    Blockchain.setResources(resources);
-    Blockchain.startSync();
+    blockchain.setResources(resources);
+    blockchain.startSync();
 
     return space;
 }
