@@ -1,20 +1,13 @@
-import { Hashing, HashedObject, MutableObject, MutationOp, LiteralContext, StateFilter, Store, Hash } from '@hyper-hyper-space/core';
+import { Hashing, HashedObject, MutableObject, MutationOp, LiteralContext, StateFilter, Store, Hash, PeerNode } from '@hyper-hyper-space/core';
 
 import { Identity } from '@hyper-hyper-space/core';
 
 
 import { SpaceEntryPoint } from '@hyper-hyper-space/core';
 
-import { Mesh } from '@hyper-hyper-space/core';
-import { LinkupManager } from '@hyper-hyper-space/core';
-import { ObjectDiscoveryPeerSource } from '@hyper-hyper-space/core';
-import { PeerGroupInfo } from '@hyper-hyper-space/core';
-import { IdentityPeer } from '@hyper-hyper-space/core';
-
 import { BlockOp } from './BlockOp';
 
 import { Worker } from 'worker_threads';
-import { UsageToken } from '@hyper-hyper-space/core/dist/mesh/service/Mesh';
 import { CausalHistoryState } from '@hyper-hyper-space/core/dist/mesh/agents/state/causal/CausalHistoryState';
 import { OpCausalHistory } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
 import { MiniComptroller, FixedPoint } from './MiniComptroller';
@@ -45,11 +38,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _autoCompute: boolean;
 
-    _mesh?: Mesh;
-    _peerGroup?: PeerGroupInfo;
-
-    _peerGroupUsageToken?: UsageToken;
-    _syncBlockchainUsageToken?: UsageToken;
+    _node?: PeerNode;
 
     constructor(seed?: string, totalCoins?: string) {
         super([BlockOp.className]);
@@ -281,51 +270,17 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             throw new Error('Cannot start sync: resources not configured.');
         }
 
-        this._mesh = resources.mesh;
-
-        if (this._mesh === undefined) {
-            throw new Error('Cannot start sync: mesh is missing from configured resources.');
-        }
-
-        let linkupServers = resources.config.linkupServers === undefined?
-                            [LinkupManager.defaultLinkupServer] : resources.config.linkupServers;
-
-
-        let localIdentity = resources.config.id as Identity;
-
-        const localPeer     = await new IdentityPeer(linkupServers[0] as string, localIdentity.hash(), localIdentity).asPeer();
-
-        this._mesh.startObjectBroadcast(this, linkupServers, [localPeer.endpoint]);
-
-        let peerSource = new ObjectDiscoveryPeerSource(this._mesh, this, linkupServers, localPeer.endpoint, IdentityPeer.getEndpointParser(resources.store));
-
-        this._peerGroup = {
-            id: 'sync-for-' + this.hash(),
-            localPeer: localPeer,
-            peerSource: peerSource
-        }
-
-        this._peerGroupUsageToken      = this._mesh.joinPeerGroup(this._peerGroup);
-        this._syncBlockchainUsageToken = this._mesh.syncObjectWithPeerGroup(this._peerGroup.id, this);
+        this._node = new PeerNode(resources);
+        
+        this._node.broadcast(this);
+        this._node.sync(this);
 
         this.loadAndWatchForChanges();
     }
     
     async stopSync(): Promise<void> {
-        
-        if (this._syncBlockchainUsageToken !== undefined) {
-            this._mesh?.stopSyncObjectWithPeerGroup(this._syncBlockchainUsageToken);
-        }
-
-        this._mesh?.stopObjectBroadcast(this.hash());
-
-        if (this._peerGroupUsageToken !== undefined) {
-            this._mesh?.leavePeerGroup(this._peerGroupUsageToken);
-        }
-        
-
-        this._mesh = undefined;
-        this._peerGroup = undefined;
+        this._node?.stopBroadcast(this);
+        this._node?.stopSync(this);
     }
 
     getSyncAgentStateFilter(): StateFilter {
