@@ -20,6 +20,7 @@ $ ./pull-all.sh
 $ ./build-libs.sh
 $ cd @hyper-hyper-space/soliton
 $ yarn build # and you're good to go
+$ yarn test  # and good to test
 ```
 
 ## Browser client available
