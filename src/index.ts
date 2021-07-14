@@ -17,6 +17,18 @@ import { VDF } from './model/VDF';
 import { CausalHistorySynchronizer } from '@hyper-hyper-space/core/dist/mesh/agents/state/causal/CausalHistorySynchronizer';
 import { LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 
+import { parse } from 'ts-command-line-args';
+
+interface ISolitonArguments{
+    network?: string;
+ }
+
+// args typed as ISolitonArguments
+export const args = parse<ISolitonArguments>({
+    network: { type: String, alias: 'n', optional: true },
+});
+
+
 async function initResources(): Promise<Resources> {
     return Resources.create();
 }
@@ -91,15 +103,21 @@ async function main() {
         output: process.stdout
     });
 
-    console.log();
-    console.log('Press enter to create a new Blockchain, or input the 3 code words to join computing an existing one.');
-    console.log();
-
-    let command = await new Promise((resolve: (text: string) => void/*, reject: (reason: any) => void*/) => {
-        rl.question('>', (command: string) => {
-            resolve(command);
+    let command: string;
+    
+    if (args.network != undefined) {
+        command = args.network
+    } else {
+        console.log();
+        console.log('Press enter to create a new Blockchain, or input the 3 code words to join computing an existing one.');
+        console.log();
+    
+        command = await new Promise((resolve: (text: string) => void/*, reject: (reason: any) => void*/) => {
+            rl.question('>', (command: string) => {
+                resolve(command);
+            });
         });
-    });
+    }
 
     let space: Space;
     if (command.trim() === 'selftest') { 
