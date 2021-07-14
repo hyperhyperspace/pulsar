@@ -31,8 +31,9 @@ $ yarn test  # and good to test
 
 ## Single-threaded Mining with a Synthetic Nakamoto Consensus
 
-- VDF+VRF Consensus.
-- Fair staking in a single-threaded Nakamoto Consensus (synthetic)
+- VDF Mining.
+- Private pseudo-random dice tossing per miner (using VRF).
+- Fair staking, probability of mining is very close to stake percentage of the miner.
 
 ## Stake delegation for convenience
 
@@ -46,9 +47,9 @@ $ yarn test  # and good to test
 
 ## Type of Transactions (Roadmap)
 
-Testnet1 has not transactions.
+Montecarlo Testnet (Testnet1) has not transactions.
 
-### Core (Testnet2 and Testnet3 )
+### Core (Las Vegas Testnet [Testnet2] and Monaco Testnet [Testnet3] )
 
 1. `transfer(to,amount)`: only if `balance(sender) >= amount`.
 1. `increaseAllowance(to,amount)`.
