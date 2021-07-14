@@ -1,6 +1,6 @@
 # Soliton: The Web Blockchain
 
-**GOAL**: A Proof-of-Stake Blockchain that can fully run its the consensus on the browser with support for different CPUs speed and tolerant to Winner-Takes-All, Nothing-At-Stake and other attacks.
+**GOAL**: A Proof-of-Stake Blockchain that can fully run its the consensus on the browser with support for different CPUs speed and tolerance to Winner-Takes-All, Nothing-At-Stake and other attacks.
 
 ## Run (Hawking Testnet):
 
