@@ -102,9 +102,10 @@ async function main() {
         output: process.stdout
     });
 
-    let command = ''
+    let command: string;
     if (args.network !== undefined) {
         command = args.network
+        command.replaceAll(',', ' ');
     } else {
         console.log();
         console.log('Press enter to create a new Blockchain, or input the 3 code words to join computing an existing one.');
@@ -135,7 +136,7 @@ async function main() {
 
     } else {
 
-        let wordcode: string[] = command.split(',');
+        let wordcode: string[] = command.split(' ');
 
         if (wordcode.length !== 3) {
             console.log('expected 3 words, like: pineapple,greatness,flurry');
