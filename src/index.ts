@@ -103,7 +103,7 @@ async function main() {
     });
 
     let command = ''
-    if (args.network != undefined) {
+    if (args.network !== undefined) {
         command = args.network
     } else {
         console.log();
