@@ -46,7 +46,9 @@ $ yarn test  # and good to test
 
 ## Type of Transactions (Roadmap)
 
-### Core
+Testnet1 has not transactions.
+
+### Core (Testnet2 and Testnet3 )
 
 1. `transfer(to,amount)`: only if `balance(sender) >= amount`.
 1. `increaseAllowance(to,amount)`.
