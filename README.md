@@ -47,7 +47,7 @@ $ yarn test  # and good to test
 
 ## Type of Transactions (Roadmap)
 
-Montecarlo Testnet (Testnet1) has not transactions.
+Montecarlo Testnet (Testnet1) has *no* transactions.
 
 ### Core (Las Vegas Testnet [Testnet2] and Monaco Testnet [Testnet3] )
 
