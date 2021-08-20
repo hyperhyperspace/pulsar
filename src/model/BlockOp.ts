@@ -11,7 +11,7 @@ import { MiniComptroller, FixedPoint } from './MiniComptroller';
 //import {SlothPermutation} from '@hyper-hyper-space/sloth-permutation';
 import {SlothPermutation} from './SlothVDF';
 import { VDF } from './VDF';
-import { OpCausalHistory, OpCausalHistoryProps } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
+import { OpHeader, OpHeaderProps } from '@hyper-hyper-space/core/dist/data/history/OpHeader';
 import { Logger, LogLevel } from '../../../core/dist/util/logging';
 
 import { Transaction } from './Transaction';
@@ -155,7 +155,7 @@ class BlockOp extends MutationOp {
             return false;
         }
 
-        if (! (this.getTarget() instanceof Blockchain)) {
+        if (! (this.getTargetObject() instanceof Blockchain)) {
             BlockOp.logger.warning('Target is nt a Blockchain instance.');
             return false;
         }
@@ -213,7 +213,7 @@ class BlockOp extends MutationOp {
                 return false;
             }
 
-            if (!prev.getTarget().equals(this.getTarget())) {
+            if (!prev.getTargetObject().equals(this.getTargetObject())) {
                 BlockOp.logger.warning('The prevOp and this op targets differ.');
                 return false;
             }
@@ -254,7 +254,7 @@ class BlockOp extends MutationOp {
                         
         const comp = BlockOp.initializeComptroller(prev);
 
-        const challenge = await BlockOp.getChallenge((this.getTarget() as Blockchain), this.vrfSeed);
+        const challenge = await BlockOp.getChallenge((this.getTargetObject() as Blockchain), this.vrfSeed);
         // TODO: also use miner stake as a parameter.
         const steps = BlockOp.getVDFSteps(comp, challenge);
         // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs.
@@ -509,16 +509,16 @@ class BlockOp extends MutationOp {
 
 
         if (newHeight === oldHeight) {
-            const newTotalDifficulty = BigInt('0x' +(await store.loadOpCausalHistory(newHead.hash()))?.opProps.get('totalDifficulty'));
+            const newTotalDifficulty = BigInt('0x' +(await store.loadOpHeader(newHead.hash()))?.headerProps.get('totalDifficulty'));
             
             // See note above (Caveat...): oldHead may not exist in the store (if it is the block being currenty mined)
             
-            const oldHeadHistory = await store.loadOpCausalHistory(oldHead.hash());
+            const oldHeadHeader = await store.loadOpHeader(oldHead.hash());
             const prevBlockHash  = oldHead.getPrevBlockHash();
 
             
-            const oldTotalDifficulty = oldHeadHistory !== undefined?
-                                            BigInt('0x' + oldHeadHistory.opProps.get('totalDifficulty'))
+            const oldTotalDifficulty = oldHeadHeader !== undefined?
+                                            BigInt('0x' + oldHeadHeader.headerProps.get('totalDifficulty'))
                                         :
                                             
                                             (
@@ -527,7 +527,7 @@ class BlockOp extends MutationOp {
                                                 (prevBlockHash === undefined?
                                                         BigInt(0) 
                                                     :
-                                                        BigInt('0x' + (await store.loadOpCausalHistory(prevBlockHash))?.opProps.get('totalDifficulty'))
+                                                        BigInt('0x' + (await store.loadOpHeader(prevBlockHash))?.headerProps.get('totalDifficulty'))
                                                 )
                                             );
 
@@ -573,16 +573,16 @@ class BlockOp extends MutationOp {
 
     }
 
-    getCausalHistoryProps(prevOpCausalHistories: Map<Hash, OpCausalHistory>): OpCausalHistoryProps {
+    getHeaderProps(prevOpCausalHistories: Map<Hash, OpHeader>): OpHeaderProps {
         
         const prevOpHash = this.getPrevBlockHash();
 
         let currentDiff = this.vdfSteps?.getValue() as bigint;
 
         if (prevOpHash !== undefined) {
-            const prevOpHistory = (prevOpCausalHistories.get(prevOpHash) as OpCausalHistory);
+            const prevOpHistory = (prevOpCausalHistories.get(prevOpHash) as OpHeader);
 
-            const prevTotalDifficulty = BigInt('0x' + prevOpHistory.opProps.get('totalDifficulty'));
+            const prevTotalDifficulty = BigInt('0x' + prevOpHistory.headerProps.get('totalDifficulty'));
 
             currentDiff = currentDiff + prevTotalDifficulty;
         }

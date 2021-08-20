@@ -14,7 +14,7 @@ import { BlockOp } from './model/BlockOp';
 
 import * as readline from 'readline';
 import { VDF } from './model/VDF';
-import { CausalHistorySynchronizer } from '@hyper-hyper-space/core/dist/mesh/agents/state/causal/CausalHistorySynchronizer';
+import { HistorySynchronizer } from '@hyper-hyper-space/core';
 import { LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 
 import { parse } from 'ts-command-line-args';
@@ -89,9 +89,9 @@ async function joinBlockchainSpace(resources: Resources, wordcode: string[]): Pr
 async function main() {
 
 
-    CausalHistorySynchronizer.controlLog.level = LogLevel.INFO;
-    CausalHistorySynchronizer.sourcesLog.level = LogLevel.INFO;
-    CausalHistorySynchronizer.stateLog.level   = LogLevel.INFO;
+    HistorySynchronizer.controlLog.level = LogLevel.INFO;
+    HistorySynchronizer.sourcesLog.level = LogLevel.INFO;
+    HistorySynchronizer.stateLog.level   = LogLevel.INFO;
 
     await BlockOp.vdfInit();
 

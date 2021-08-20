@@ -7,8 +7,8 @@ import { SpaceEntryPoint } from '@hyper-hyper-space/core';
 import { BlockOp } from './BlockOp';
 
 import { Worker } from 'worker_threads';
-import { CausalHistoryState } from '@hyper-hyper-space/core/dist/mesh/agents/state/causal/CausalHistoryState';
-import { OpCausalHistory } from '@hyper-hyper-space/core/dist/data/history/OpCausalHistory';
+import { HeaderBasedState } from '@hyper-hyper-space/core';
+import { OpHeader } from '@hyper-hyper-space/core/dist/data/history/OpHeader';
 import { MiniComptroller, FixedPoint } from './MiniComptroller';
 import { Logger, LogLevel } from '../../../core/dist/util/logging';
 //import { Logger, LogLevel } from 'util/logging';
@@ -285,7 +285,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     }
 
     getSyncAgentStateFilter(): StateFilter {
-        const forkChoiceFilter: StateFilter = async (state: CausalHistoryState, store: Store) => {
+        const forkChoiceFilter: StateFilter = async (state: HeaderBasedState, store: Store) => {
 
 
             const MAX_FINALITY_DEPTH=MiniComptroller.getMaxSpeedRatioNumber();
@@ -296,38 +296,38 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             let maxHeight = 0;
 
-            Blockchain.gossipLog.debug('Filtering gossip for blockchain ' + this.hash() + ' (' + state.terminalOpHistories?.size() + ' forks in state)');
+            Blockchain.gossipLog.debug('Filtering gossip for blockchain ' + this.hash() + ' (' + state.terminalOpHeaders?.size() + ' forks in state)');
 
             if (local?.terminalOps !== undefined) {
                 for (const opHash of local?.terminalOps) {
-                    const opHistory = await store.loadOpCausalHistory(opHash) as OpCausalHistory;
+                    const opHistory = await store.loadOpHeader(opHash) as OpHeader;
                     if (opHistory.computedProps.height > maxHeight) {
                         maxHeight = opHistory.computedProps.height;
                     }
                 }
             }
 
-            const filteredOpHistories: OpCausalHistory[] = [];
+            const filteredOpHeaders: OpHeader[] = [];
 
-            if (state.terminalOpHistories !== undefined) {
-                for (const opHistoryLiteral of state.terminalOpHistories.values()) {
-                    if (opHistoryLiteral.computedHeight > maxHeight) {
-                        maxHeight = opHistoryLiteral.computedHeight;
+            if (state.terminalOpHeaders !== undefined) {
+                for (const opHeaderLiteral of state.terminalOpHeaders.values()) {
+                    if (opHeaderLiteral.computedHeight > maxHeight) {
+                        maxHeight = opHeaderLiteral.computedHeight;
                     }
                 }
 
-                for (const opHistoryLiteral of state.terminalOpHistories.values()) {
-                    if (opHistoryLiteral.computedHeight+MAX_FINALITY_DEPTH >= maxHeight) {
-                        filteredOpHistories.push(new OpCausalHistory(opHistoryLiteral));
+                for (const opHeaderLiteral of state.terminalOpHeaders.values()) {
+                    if (opHeaderLiteral.computedHeight+MAX_FINALITY_DEPTH >= maxHeight) {
+                        filteredOpHeaders.push(new OpHeader(opHeaderLiteral));
                     } else {
-                        Blockchain.gossipLog.trace('Discarding terminal op history ' + opHistoryLiteral.causalHistoryHash + ' (height: ' + opHistoryLiteral.computedHeight + ', current height: ' + maxHeight + ')');
+                        Blockchain.gossipLog.trace('Discarding terminal op history ' + opHeaderLiteral.headerHash + ' (height: ' + opHeaderLiteral.computedHeight + ', current height: ' + maxHeight + ')');
                     }
                 }
             }
 
             Blockchain.gossipLog.debug('Done filtering gossip for blockcahin ' + this.hash() + ', height post-gossip is ' + maxHeight);
 
-            const forkChoiceState = new CausalHistoryState(mut, filteredOpHistories);
+            const forkChoiceState = new HeaderBasedState(mut, filteredOpHeaders);
 
             return forkChoiceState;
 
