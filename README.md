@@ -17,6 +17,7 @@ yarn start --network=whisky,romeo,zulu
 ```bash
 git clone https://github.com/hyperhyperspace/workspace.git
 cd workspace
+yarn
 git submodule init
 git submodule update
 bash ./build-libs.sh
