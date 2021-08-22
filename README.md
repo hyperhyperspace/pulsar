@@ -15,8 +15,10 @@ yarn start --network=whisky,romeo,zulu
 ## Develop:
 
 ```bash
-git clone git@github.com:hyperhyperspace/workspace.git
+git clone https://github.com/hyperhyperspace/workspace.git
 cd workspace
+git submodule init
+git submodule update
 ./pull-all.sh
 ./build-libs.sh
 cd @hyper-hyper-space/soliton
