@@ -7,6 +7,7 @@
 ```bash
 $ git clone git@github.com:hyperhyperspace/soliton.git
 $ cd soliton
+$ yarn
 $ yarn build
 $ yarn start --network=whisky,romeo,zulu
 ```
@@ -19,6 +20,7 @@ $ cd workspace
 $ ./pull-all.sh
 $ ./build-libs.sh
 $ cd @hyper-hyper-space/soliton
+$ yarn
 $ yarn build # and you're good to go
 $ yarn test  # and good to test
 ```
