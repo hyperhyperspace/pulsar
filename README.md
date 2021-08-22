@@ -20,6 +20,7 @@ cd workspace
 yarn
 git submodule init
 git submodule update
+bash ./pull-all.sh
 bash ./build-libs.sh
 cd @hyper-hyper-space/soliton
 yarn
