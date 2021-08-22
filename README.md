@@ -29,6 +29,9 @@ yarn test  # and good to test
 ## Setup for AWS Linux
 
 ```bash
+# 0) git
+sudo yum update -y
+sudo yum install git -y
 # 1) nodejs
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
 . ~/.nvm/nvm.sh
