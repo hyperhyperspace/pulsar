@@ -26,7 +26,7 @@ cd @hyper-hyper-space/soliton
 yarn
 yarn build # and you're good to go
 yarn test  # and good to test
-yarn start --network=whisky,romeo,zulu
+yarn start # or yarn start --network=whisky,romeo,zulu
 ```
 
 ## Setup for AWS Linux
