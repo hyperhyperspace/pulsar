@@ -9,7 +9,7 @@ git clone git@github.com:hyperhyperspace/soliton.git
 cd soliton
 yarn
 yarn build
-yarn start --network=whisky,romeo,zulu
+yarn start --network="whisky romeo zulu"
 ```
 
 ## Develop:
@@ -26,7 +26,7 @@ cd @hyper-hyper-space/soliton
 yarn
 yarn build # and you're good to go
 yarn test  # and good to test
-yarn start # or yarn start --network=whisky,romeo,zulu
+yarn start # or yarn start --network="whisky romeo zulu"
 ```
 
 ## Setup for AWS Linux
