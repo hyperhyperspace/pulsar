@@ -19,8 +19,7 @@ git clone https://github.com/hyperhyperspace/workspace.git
 cd workspace
 git submodule init
 git submodule update
-./pull-all.sh
-./build-libs.sh
+bash ./build-libs.sh
 cd @hyper-hyper-space/soliton
 yarn
 yarn build # and you're good to go
