@@ -26,6 +26,18 @@ yarn build # and you're good to go
 yarn test  # and good to test
 ```
 
+## Setup for AWS Linux
+
+```bash
+# 1) nodejs
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+. ~/.nvm/nvm.sh
+nvm install node
+# 2) yarn
+curl -o- -L https://yarnpkg.com/install.sh | bash
+# 3) start a new console
+```
+
 ## Browser client available
 
 * Web Browser P2P available (powered by Hyperhyperspace).
