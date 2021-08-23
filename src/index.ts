@@ -105,7 +105,9 @@ async function main() {
     let command: string;
     if (args.network !== undefined) {
         command = args.network
-        command.replaceAll(',', ' ');
+        console.log(command);
+        console.log(typeof(command));
+        command = command.replace(/,/g, ' ');
     } else {
         console.log();
         console.log('Press enter to create a new Blockchain, or input the 3 code words to join computing an existing one.');
