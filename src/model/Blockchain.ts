@@ -110,8 +110,19 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     if (msg.challenge === challenge ) {
 
                         let op = new BlockOp(this, this._computationPrevBlock, steps, msg.result, msg.bootstrapResult, this._coinbase, vrfSeed);
-    
-                        Blockchain.miningLog.info('⛏️⛏️⛏️⛏️ #' + op.blockNumber?.getValue() + ' mined by us with coinbase ' + this._coinbase?.getLastHash() + ', block hash ends in ' + op.hash().slice(-6));
+                        const prevOp = this._computationPrevBlock;
+
+                        let blocktime = prevOp !== undefined? 
+                            op.timestampMillisecs?.getValue() as bigint - (prevOp.timestampMillisecs?.getValue() as bigint)
+                        :
+                            MiniComptroller.targetBlockTime; // FIXME:pwd initial block time
+        
+                        if (blocktime == BigInt(0)) {
+                            blocktime = BigInt(1) * FixedPoint.UNIT
+                        }
+                        
+                        Blockchain.miningLog.info('⛏️⛏️⛏️⛏️ #' + op.blockNumber?.getValue() + ' mined by us with coinbase ' + this._coinbase?.getLastHash() + ', block time ' + (Number(blocktime)/(10**(FixedPoint.DECIMALS+3))).toFixed(4).toString() + 's, block hash ends in ' + op.hash().slice(-6));
+                        Blockchain.miningLog.info('Tokenomics: movingMaxSpeed=' + (Number(op.movingMaxSpeed?.getValue()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() + ', movingMinSpeed=' + (Number(op.movingMinSpeed?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() + ', blockTimeFactor=' + (Number(op.blockTimeFactor?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() + ', speedRatio=' + (Number(FixedPoint.divTrunc(op.movingMaxSpeed?.getValue() as bigint, op.movingMinSpeed?.getValue() as bigint)) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString());
 
                         /*if (this._lastBlock !== undefined) {
                             op.setPrevOps(new Set([this._lastBlock]).values());
