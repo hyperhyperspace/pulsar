@@ -9,7 +9,7 @@ git clone git@github.com:hyperhyperspace/soliton.git
 cd soliton
 yarn
 yarn build
-yarn start --network=whisky,romeo,zulu
+yarn start --network="whisky romeo zulu"
 ```
 
 ## Develop:
@@ -17,15 +17,16 @@ yarn start --network=whisky,romeo,zulu
 ```bash
 git clone https://github.com/hyperhyperspace/workspace.git
 cd workspace
-yarn
 git submodule init
 git submodule update
+yarn
 bash ./pull-all-heads.sh
 bash ./build-libs.sh
 cd @hyper-hyper-space/soliton
 yarn
 yarn build # and you're good to go
 yarn test  # and good to test
+yarn start # or yarn start --network="whisky romeo zulu"
 ```
 
 ## Setup for AWS Linux
@@ -40,7 +41,10 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
 nvm install node
 # 2) yarn
 curl -o- -L https://yarnpkg.com/install.sh | bash
-# 3) start a new console
+# 3) extras
+npm install typescript -g
+npm install microbundle-crl -g
+# 4) start a new console
 ```
 
 ## Browser client available
