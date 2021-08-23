@@ -105,8 +105,6 @@ async function main() {
     let command: string;
     if (args.network !== undefined) {
         command = args.network
-        console.log(command);
-        console.log(typeof(command));
         command = command.replace(/,/g, ' ');
     } else {
         console.log();
