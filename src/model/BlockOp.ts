@@ -76,7 +76,7 @@ class BlockOp extends MutationOp {
             let blocktime = prevOp !== undefined? 
                                 (this.timestampMillisecs?.getValue() as bigint) - (prevOp.timestampMillisecs?.getValue() as bigint)
                             :
-                                MiniComptroller.targetBlockTime; // FIXME: initial block time
+                                MiniComptroller.targetBlockTime * BigInt(1000); // FIXME: initial block time
             if (blocktime == BigInt(0)) {
                 blocktime = BigInt(1) * FixedPoint.UNIT
                 // console.log('Verifying block with blockTime (secs) = ', Number(blocktime) / Number(FixedPoint.UNIT) )
@@ -246,7 +246,7 @@ class BlockOp extends MutationOp {
         let blocktime = prevOp !== undefined? 
                             this.timestampMillisecs?.getValue() - (prevOp.timestampMillisecs?.getValue() as bigint)
                         :
-                            MiniComptroller.targetBlockTime; // FIXME:pwd initial block time
+                            MiniComptroller.targetBlockTime * BigInt(1000); // FIXME:pwd initial block time
         
         if (blocktime == BigInt(0)) {
             blocktime = BigInt(1) * FixedPoint.UNIT
