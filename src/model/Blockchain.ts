@@ -190,7 +190,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     }
     */
 
-    async mutate(op: MutationOp, _isNew: boolean): Promise<boolean> {
+    async mutate(op: MutationOp): Promise<boolean> {
 
         let accept = false;
 
