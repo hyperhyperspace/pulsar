@@ -1,12 +1,12 @@
-# Soliton: The Web Blockchain
+# Pulsar: The Web Blockchain
 
 **GOAL**: A Proof-of-Stake Blockchain that can fully run its the consensus on the browser with support for different CPUs speed and tolerance to Winner-Takes-All, Nothing-At-Stake and other attacks.
 
 ## Run (Hawking Testnet):
 
 ```bash
-git clone git@github.com:hyperhyperspace/soliton.git
-cd soliton
+git clone git@github.com:hyperhyperspace/pulsar.git
+cd pulsar
 yarn
 yarn build
 yarn start --network="whisky romeo zulu"
@@ -22,7 +22,7 @@ git submodule update
 yarn
 bash ./pull-all-heads.sh
 bash ./build-libs.sh
-cd @hyper-hyper-space/soliton
+cd @hyper-hyper-space/pulsar
 yarn
 yarn build # and you're good to go
 yarn test  # and good to test
