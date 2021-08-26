@@ -19,12 +19,12 @@ import { LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 
 import { parse } from 'ts-command-line-args';
 
-interface ISolitonArguments{
+interface IPulsarArguments{
     network?: string;
  }
 
-// args typed as ISolitonArguments
-export const args = parse<ISolitonArguments>({
+// args typed as IPulsarArguments
+export const args = parse<IPulsarArguments>({
     network: { type: String, alias: 'n', optional: true },
 });
 

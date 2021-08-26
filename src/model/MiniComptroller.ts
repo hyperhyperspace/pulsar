@@ -64,6 +64,7 @@ class MiniComptroller implements Comptroller {
     private minSpeedRatio: bigint = BigInt(13) * (FixedPoint.UNIT/BigInt(10)); // 1.3 * UNIT
     static initialMovingMaxSpeed: bigint = BigInt(15000) * FixedPoint.UNIT;
     static initialMovingMinSpeed: bigint = BigInt(5000) * FixedPoint.UNIT
+    // VDF steps per seconds (Steps/Sec)
     static speedRatio = FixedPoint.divTrunc( MiniComptroller.initialMovingMaxSpeed, MiniComptroller.initialMovingMinSpeed);
 
     static noiseFractionSlots: bigint = BigInt(10) * (FixedPoint.UNIT/BigInt(10**2)); // 0.10 * UNIT
@@ -103,7 +104,7 @@ class MiniComptroller implements Comptroller {
         this.difficulty = difficulty * FixedPoint.UNIT
         //console.log( 'this.difficulty', this.difficulty / FixedPoint.UNIT  )
         //console.log( 'this.currentBlockTime', this.currentBlockTime / FixedPoint.UNIT  )
-        this.currentSpeed = FixedPoint.divTrunc(this.difficulty, this.currentBlockTime) 
+        this.currentSpeed = FixedPoint.divTrunc(this.difficulty * BigInt(1000), this.currentBlockTime) 
 
         // update block time control
         this.updateOrTestBlockTimeActionable()
@@ -116,7 +117,7 @@ class MiniComptroller implements Comptroller {
     setSpeed(blockTime: bigint, difficulty: bigint): void {
         this.currentBlockTime = blockTime * FixedPoint.UNIT
         this.difficulty = difficulty * FixedPoint.UNIT
-        this.currentSpeed = FixedPoint.divTrunc(this.difficulty, this.currentBlockTime) 
+        this.currentSpeed = FixedPoint.divTrunc(this.difficulty * BigInt(1000), this.currentBlockTime) 
     }
 
 
@@ -147,22 +148,22 @@ class MiniComptroller implements Comptroller {
         var backupMovingMinSpeed = this.movingMinSpeed
         var backupSpeedRatio = this.speedRatio
 
-        //console.log('this.currentSpeed = ', this.currentSpeed / FixedPoint.UNIT )
+        //console.log('this.currentSpeed = ', Number(this.currentSpeed) / Number(FixedPoint.UNIT) )
 
         if (this.currentSpeed > this.movingMaxSpeed && this.speedRatio < this.maxSpeedRatio) {// increase max
             this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
-        }
+        } else
         if (this.currentSpeed > this.movingMaxSpeed && this.speedRatio >= this.maxSpeedRatio) { // increase max and increase min
             this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
             this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
-        }
+        } else
         if (this.currentSpeed < this.movingMinSpeed && this.speedRatio < this.maxSpeedRatio) {// decrease min
             this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
-        }
+        } else
         if (this.currentSpeed < this.movingMinSpeed && this.speedRatio >= this.maxSpeedRatio) {// decrease min and decrease max
             this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
             this.movingMaxSpeed = FixedPoint.div(FixedPoint.mul(this.movingMaxSpeed, MiniComptroller.windowSize-BigInt(1)), MiniComptroller.windowSize)
-        }
+        } else
         if (this.currentSpeed < this.movingMaxSpeed && this.currentSpeed > this.movingMinSpeed && this.speedRatio > this.minSpeedRatio) {            
             // in the middle, decrease max and increase min.
             this.movingMinSpeed = FixedPoint.div(FixedPoint.mul(this.movingMinSpeed, MiniComptroller.windowSize+BigInt(1)), MiniComptroller.windowSize)
