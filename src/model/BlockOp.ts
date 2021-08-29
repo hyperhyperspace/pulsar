@@ -334,7 +334,13 @@ class BlockOp extends MutationOp {
         }
 
         BlockOp.logger.info('Received #' + this.blockNumber.getValue().toString() + ' with steps=' + this.vdfSteps.getValue().toString() + ' and timestamp=' + new Date(Number(this.timestampMillisecs?.getValue())/10**(FixedPoint.DECIMALS)).toLocaleString() + ' by ' + this.getAuthor()?.hash() + ', block time ' + (Number(blocktime)/(10**(FixedPoint.DECIMALS+3))).toFixed(4).toString() + 's, block hash ends in ' + this.hash().slice(-6));
-        BlockOp.logger.info('Tokenomics: movingMaxSpeed=' + (Number(this.movingMaxSpeed?.getValue()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() + ', movingMinSpeed=' + (Number(this.movingMinSpeed?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() + ', blockTimeFactor=' + (Number(this.blockTimeFactor?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() + ', speedRatio=' + (Number(FixedPoint.divTrunc(this.movingMaxSpeed?.getValue(), this.movingMinSpeed.getValue())) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString());
+        BlockOp.logger.info('Tokenomics: movingMaxSpeed=' 
+            + (Number(this.movingMaxSpeed?.getValue()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+            + ', movingMinSpeed=' + (Number(this.movingMinSpeed?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+            + ', blockTimeFactor=' + (Number(this.blockTimeFactor?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+            + ', speedRatio=' + (Number(FixedPoint.divTrunc(this.movingMaxSpeed?.getValue(), this.movingMinSpeed.getValue())) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString()
+            + ', speed=' + (Number(comp.getSpeed()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString()
+            );
 
         return true
 
