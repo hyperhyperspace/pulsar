@@ -85,8 +85,8 @@ class BlockOp extends MutationOp {
             const comp = BlockOp.initializeComptroller(prevOp);
 
             
-
-            comp.addBlockSample(blocktime, steps);
+            // millisecs to secs for blocktime
+            comp.addBlockSample(blocktime / BigInt(1000), steps);
 
             this.blockNumber = new HashedBigInt(comp.getBlockNumber());
             this.movingMaxSpeed = new HashedBigInt(comp.getMovingMaxSpeed());
@@ -264,7 +264,8 @@ class BlockOp extends MutationOp {
             return false;
         }
 
-        comp.addBlockSample(blocktime, steps);
+        // millisecs to secs for blocktime
+        comp.addBlockSample(blocktime / BigInt(1000), steps);
 
         if (this.blockNumber?.getValue() !== comp.getBlockNumber()) {
             BlockOp.logger.warning('Comptroller rejected blockNumber');

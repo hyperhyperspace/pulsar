@@ -86,7 +86,7 @@ describe('[STK] Staking and Pseudo-random Difficulty.', () => {
         expect(mc.getMovingMinSpeed()).toEqual( BigInt(5000) * FixedPoint.UNIT )
         mc.addBlockSample( BigInt(40) * FixedPoint.UNIT, BigInt(2000) )
         expect(mc.getSpeedRatio()).toEqual( BigInt('3001389532190')  )
-        expect(mc.getMovingMaxSpeed()).toEqual( BigInt(15000) * FixedPoint.UNIT )
+        expect(mc.getMovingMaxSpeed()).toEqual( BigInt('15000000000000000') )
         expect(mc.getMovingMinSpeed()).toEqual( BigInt('4997685185185185') )
         mc.addBlockSample( BigInt(40) * FixedPoint.UNIT, BigInt(2000000) )
         expect(mc.getSpeedRatio()).toEqual( BigInt('3002779064381') )

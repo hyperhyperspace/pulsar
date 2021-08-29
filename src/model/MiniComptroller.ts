@@ -104,7 +104,7 @@ class MiniComptroller implements Comptroller {
         this.difficulty = difficulty * FixedPoint.UNIT
         //console.log( 'this.difficulty', this.difficulty / FixedPoint.UNIT  )
         //console.log( 'this.currentBlockTime', this.currentBlockTime / FixedPoint.UNIT  )
-        this.currentSpeed = FixedPoint.divTrunc(this.difficulty * BigInt(1000), this.currentBlockTime) 
+        this.currentSpeed = FixedPoint.divTrunc(this.difficulty, this.currentBlockTime) 
 
         // update block time control
         this.updateOrTestBlockTimeActionable()
@@ -117,7 +117,7 @@ class MiniComptroller implements Comptroller {
     setSpeed(blockTime: bigint, difficulty: bigint): void {
         this.currentBlockTime = blockTime * FixedPoint.UNIT
         this.difficulty = difficulty * FixedPoint.UNIT
-        this.currentSpeed = FixedPoint.divTrunc(this.difficulty * BigInt(1000), this.currentBlockTime) 
+        this.currentSpeed = FixedPoint.divTrunc(this.difficulty, this.currentBlockTime) 
     }
 
 
