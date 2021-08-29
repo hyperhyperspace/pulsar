@@ -315,6 +315,18 @@ class MiniComptroller implements Comptroller {
         return this.minSpeedRatio
     }
 
+    getSpeed() {
+        return this.currentSpeed
+    }
+
+    getLastDifficulty() {
+        return this.difficulty
+    }
+
+    getLastBlocktime() {
+        return this.currentBlockTime
+    }
+
     // Consensus Setters
 
     setSpeedRatio(speedRatio: bigint): void {

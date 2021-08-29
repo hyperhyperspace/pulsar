@@ -27,6 +27,9 @@ interface Comptroller {
     getMovingMinSpeed(): bigint
     getMaxSpeedRatio(): bigint
     getMinSpeedRatio(): bigint
+    getSpeed(): bigint
+    getLastDifficulty(): bigint
+    getLastBlocktime(): bigint
 
     // Consensus Setters
     setSpeedRatio(speedRatio: bigint): void;
