@@ -115,7 +115,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                         let blocktime = prevOp !== undefined? 
                             op.timestampMillisecs?.getValue() as bigint - (prevOp.timestampMillisecs?.getValue() as bigint)
                         :
-                            MiniComptroller.targetBlockTime; // FIXME:pwd initial block time
+                            MiniComptroller.targetBlockTime * BigInt(1000); // FIXME:pwd initial block time
         
                         if (blocktime == BigInt(0)) {
                             blocktime = BigInt(1) * FixedPoint.UNIT
