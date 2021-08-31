@@ -44,14 +44,14 @@ class MiniComptroller implements Comptroller {
     ////////////////
     
     // Rationale: 12 o 15 seconds has uncles, and 44 has almost no uncles, average tx wait is 1.5x then for 40 secs is 60 seconds.
-    static targetBlockTime: bigint = BigInt(120) * FixedPoint.UNIT; // seconds
+    static targetBlockTime: bigint = BigInt(40) * FixedPoint.UNIT; // seconds
     
     // period with free virtual stake per wallet
     static bootstrapPeriod: bigint = BigInt(60 * 60 * 24 * 365) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // blocks = 6 months
     static bootstrapVirtualStake: bigint = BigInt(10000) * FixedPoint.UNIT;
 
     // Rationale: want something robust but flexible, 24 sounds to flexible and 1 week to rigid, 24 hrs sounds a tradeoff.
-    static windowSize: bigint = BigInt(60 * 60 * 24 * 3 ) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // 2160 blocks
+    static windowSize: bigint = BigInt(60 * 60 * 24 * 1 ) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // 2160 blocks
     static windowExtraBuffer: bigint = MiniComptroller.windowSize; // buffer blocks for reorgs to under block adds.
 
     static initialBlockTimeFactor: bigint = BigInt(2000) * FixedPoint.UNIT;
