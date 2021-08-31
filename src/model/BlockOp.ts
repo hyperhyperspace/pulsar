@@ -569,7 +569,7 @@ class BlockOp extends MutationOp {
             comptroller.setBlockTimeFactor(prevOp.blockTimeFactor?.getValue() as bigint);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         } else {
-            comptroller.setBlockTimeFactor(BigInt(300) * FixedPoint.UNIT)
+            comptroller.setBlockTimeFactor(BigInt(1200) * FixedPoint.UNIT)
             comptroller.setMovingMaxSpeed(BigInt(15) * FixedPoint.UNIT); 
             comptroller.setMovingMinSpeed(BigInt(5) * FixedPoint.UNIT); 
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
