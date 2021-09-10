@@ -257,7 +257,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     }
                 }
 
-                //console.log('Challenge now is "' + this.currentChallenge() + '" for Blockchain position ' + this.currentSeq() + '.');
+                Blockchain.miningLog.info('Accepted block #' + op.blockNumber?.getValue()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), its difficulty is ' + op.vdfSteps?.getValue()?.toString());
             }
 
         }

@@ -5,6 +5,10 @@ import { Logger, LogLevel } from '../../../core/dist/util/logging';
 import { BlockOp } from './BlockOp';
 import { VDF } from './VDF';
 
+import { RSADefaults } from '@hyper-hyper-space/core';
+
+RSADefaults.useNodeForRSA();
+
 
 class VDFWorker {
 
