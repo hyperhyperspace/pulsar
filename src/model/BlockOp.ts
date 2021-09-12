@@ -462,28 +462,31 @@ class BlockOp extends MutationOp {
         
         
         if (heightDifference > longestChainFinalityDepth) {
-            return newHeight > oldHeight;
+            return newHeight > oldHeight; // we're out of the finality window, longest chain wins
         }
+
+        // ok, we're inside the finality window: must find the forking point and see which sub-chain
+        //                                       is better by looking at the two forking blocks.
 
         let currentNewBlock = newHead;
         let currentOldBlock = oldHead;
         
         for (let d = 0; d < longestChainFinalityDepth; d++) {
 
-            if (currentNewBlock.equals(oldHead)) {
-                return true;
+            if (currentNewBlock.equals(oldHead)) { // there's no fork!
+                return true; // accept: the new block is a later block in the same chain as the current one
             }
 
             const currentNewBlockHeight = (currentNewBlock.blockNumber as HashedBigInt).getValue();
             const currentOldBlockHeight = (currentOldBlock.blockNumber as HashedBigInt).getValue();
 
-            if (currentNewBlockHeight > currentOldBlockHeight) {
-                const prevHashA = currentNewBlock.getPrevBlockHash();
+            if (currentNewBlockHeight > currentOldBlockHeight) {             // => currentNewBlockHeight > 0
+                const prevHashA = currentNewBlock.getPrevBlockHash();        // => prevHashA !== undefined
                 if (prevHashA !== undefined) {
                     currentNewBlock = await store.load(prevHashA) as BlockOp;
                 }
-            } else if (currentNewBlockHeight < currentOldBlockHeight) {
-                const prevHashB = currentOldBlock.getPrevBlockHash();
+            } else if (currentNewBlockHeight < currentOldBlockHeight) {      // => currentOldBlockHeight > 0
+                const prevHashB = currentOldBlock.getPrevBlockHash();        // => prevHashB !== undefined
                 if (prevHashB !== undefined) {
                     currentOldBlock = await store.load(prevHashB) as BlockOp;
                 }
