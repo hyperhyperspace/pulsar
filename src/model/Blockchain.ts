@@ -106,7 +106,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     race() {
 
         if (this._fallBehindStop) {
-            Blockchain.miningLog.info('Not starting mining of a new block - too far behind.');
+            Blockchain.miningLog.info('Cancelling mining of a new block - too far behind.');
             return;
         }
 
