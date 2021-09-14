@@ -224,7 +224,7 @@ async function main() {
     console.log('Using identity ' + Space.getWordCodingFor(resources.config.id).join(' ') + ' (hash: ' + resources.config.id.hash() + ')');
     console.log();
 
-    blockchain.startCompute(resources.config.id);
+    blockchain.enableMining(resources.config.id);
 
 }
 

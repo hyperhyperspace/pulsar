@@ -38,6 +38,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _autoCompute: boolean;
 
+    _fallBehindCheckInterval: any;
+    _fallBehindCheckLastHeight?: bigint;
+    _fallBehindStop: boolean;
+
     _node?: PeerNode;
 
     _maxSeenBlockNumber?: bigint;
@@ -55,21 +59,58 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         
         this._autoCompute = false;
         this._newBlockLock = new Lock();
+        this._fallBehindStop = false;
     }
 
-    startCompute(coinbase: Identity) {
+    enableMining(coinbase: Identity) {
         this._autoCompute = true;
         this._coinbase = coinbase;
+
+        if (this._fallBehindCheckInterval === undefined) {
+            this._fallBehindCheckInterval = setInterval(() => {
+
+                const stopped = this._fallBehindStop;
+
+                const newHeight = this._headBlock?.blockNumber?.getValue();
+                const oldHeight = this._fallBehindCheckLastHeight;
+                this._fallBehindStop = newHeight !== undefined && oldHeight !== undefined &&
+                                       newHeight > oldHeight + BigInt(5);
+
+                if (this._fallBehindStop) {
+                    if (this._computation !== undefined) { this.stopRace(); }
+                } else if (stopped) {
+                    if (this._computation === undefined) { this.race(); }
+                }
+
+                this._fallBehindCheckLastHeight = newHeight;
+
+            }, 20000);
+        }
+
+        this._fallBehindStop = true;
+
         this.race();
     }
 
-    stopCompute() {
+    disableMining() {
         this._autoCompute = false;
         this.stopRace();
+        if (this._fallBehindCheckInterval !== undefined) {
+
+            clearInterval(this._fallBehindCheckInterval);
+            this._fallBehindStop = false;
+
+        }
     }
 
     race() {
 
+        if (this._fallBehindStop) {
+            Blockchain.miningLog.info('Not starting mining of a new block - too far behind.');
+            return;
+        }
+
+        
         if (this._computation === undefined) {
 
             const comp = BlockOp.initializeComptroller(this._headBlock);
@@ -91,12 +132,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                              .then((vrfSeed: (string|undefined)) => {
 
                 if (this._computation !== undefined) {
-                    console.log('GHOST 1')
                     return;
                 }
 
                 if (!((prevBlock !== undefined && prevBlock.equals(this._computationPrevBlock)) || (prevBlock === undefined && this._computationPrevBlock === undefined))) {
-                    console.log('GHOST 2')
                     return; // this is a 'ghost compute', another one was started and we're being cancelled.
                 }
 
@@ -123,7 +162,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     if (msg.challenge === challenge ) {
 
                         if (!((prevBlock !== undefined && prevBlock.equals(this._computationPrevBlock)) || (prevBlock === undefined && this._computationPrevBlock === undefined))) {
-                            console.log('GHOST 3')
                             return; // this is a 'ghost compute', another one was started and we're being cancelled.
                         }
 
@@ -174,15 +212,16 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     stopRace(): Promise<void> {
         if (this._computation !== undefined) {
             Blockchain.miningLog.debug('Going to stop mining current block.');
-            return this._computation.terminate().then(
+            const result = this._computation.terminate().then(
                 () => {
                     Blockchain.miningLog.debug('Mining of current block stopped!');
-                    this._computation           = undefined;
-                    this._computationPrevBlock  = undefined;
-                    this._computationDifficulty = undefined;
                     return;
                 }
             );
+            this._computation           = undefined;
+            this._computationPrevBlock  = undefined;
+            this._computationDifficulty = undefined;
+            return result;
         } else {
             return Promise.resolve();
         }
