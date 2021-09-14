@@ -12,6 +12,7 @@ import { OpHeader } from '@hyper-hyper-space/core/dist/data/history/OpHeader';
 import { MiniComptroller, FixedPoint } from './MiniComptroller';
 import { Logger, LogLevel } from '../../../core/dist/util/logging';
 import { Lock } from '@hyper-hyper-space/core/dist/util/concurrency';
+import { HashedBigInt } from './HashedBigInt';
 //import { Logger, LogLevel } from 'util/logging';
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
@@ -90,10 +91,12 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                              .then((vrfSeed: (string|undefined)) => {
 
                 if (this._computation !== undefined) {
+                    console.log('GHOST 1')
                     return;
                 }
 
                 if (!((prevBlock !== undefined && prevBlock.equals(this._computationPrevBlock)) || (prevBlock === undefined && this._computationPrevBlock === undefined))) {
+                    console.log('GHOST 2')
                     return; // this is a 'ghost compute', another one was started and we're being cancelled.
                 }
 
@@ -105,10 +108,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 this._computationDifficulty = steps;
                 
                 Blockchain.miningLog.info('Mining #' + (comp.getBlockNumber() + BigInt(1)) + ', got ' + steps + ' steps for challenge ending in ' + challenge.slice(-6) + '...');
-                Blockchain.miningLog.debug('Dynamic Max VDF Speed (vdfSteps/sec) = ', FixedPoint.toNumber(comp.getMovingMaxSpeed()) )
-                Blockchain.miningLog.debug('Dynamic Min VDF Speed (vdfSteps/sec) = ', FixedPoint.toNumber(comp.getMovingMinSpeed()) )
-                Blockchain.miningLog.debug('Dynamic VDF Speed Ratio (Exponential Difficulty Adj.) = ', FixedPoint.toNumber(comp.getSpeedRatio()) )
-                Blockchain.miningLog.debug('Dynamic Block Time Factor (Linear Difficulty Adj.) = ', FixedPoint.toNumber(comp.getBlockTimeFactor()) )
+                Blockchain.miningLog.debug('Dynamic Max VDF Speed (vdfSteps/sec) = ' + FixedPoint.toNumber(comp.getMovingMaxSpeed()) )
+                Blockchain.miningLog.debug('Dynamic Min VDF Speed (vdfSteps/sec) = ' + FixedPoint.toNumber(comp.getMovingMinSpeed()) )
+                Blockchain.miningLog.debug('Dynamic VDF Speed Ratio (Exponential Difficulty Adj.) = ' + FixedPoint.toNumber(comp.getSpeedRatio()) )
+                Blockchain.miningLog.debug('Dynamic Block Time Factor (Linear Difficulty Adj.) = ' + FixedPoint.toNumber(comp.getBlockTimeFactor()) )
                 
                 
 
@@ -120,6 +123,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     if (msg.challenge === challenge ) {
 
                         if (!((prevBlock !== undefined && prevBlock.equals(this._computationPrevBlock)) || (prevBlock === undefined && this._computationPrevBlock === undefined))) {
+                            console.log('GHOST 3')
                             return; // this is a 'ghost compute', another one was started and we're being cancelled.
                         }
 
@@ -149,6 +153,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                             op.setPrevOps(new Set<MutationOp>().values());
                         }*/
     
+                        await this.stopRace();
                         await this.applyNewOp(op);
                         await this.getStore().save(this);
                         
@@ -172,7 +177,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             return this._computation.terminate().then(
                 () => {
                     Blockchain.miningLog.debug('Mining of current block stopped!');
-                    this._computation = undefined;
+                    this._computation           = undefined;
+                    this._computationPrevBlock  = undefined;
+                    this._computationDifficulty = undefined;
                     return;
                 }
             );
@@ -215,7 +222,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             if (this._headBlock === undefined) {
                 accept = true;
-            } else if (await BlockOp.shouldAcceptNewHead(op, this._headBlock, this.getStore())) { 
+            } else if (await this.shouldAcceptNewHead(op, this._headBlock)) { 
                 accept = true;
             }
 
@@ -229,7 +236,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 this._headBlock = op;
 
                 if (this._computation !== undefined && this._computationDifficulty !== undefined) {
-                    interrupt = await BlockOp.shouldInterruptCurrentMining(this._computationPrevBlock, this, this._computationDifficulty as bigint, this._coinbase as Identity, op, this.getResources()?.store as Store);
+                    interrupt = await this.shouldInterruptCurrentMining(op);
+                } else {
+                    interrupt = true;
                 }
 
                 if (interrupt) {
@@ -239,17 +248,16 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                         await this.stopRace();
                     }
 
-                    if (this._autoCompute) {
+                }
+                
+                if (this._autoCompute) {
+                    if (this._computation === undefined) {
                         Blockchain.miningLog.info('Started new mining compute.');
-                        this.race();
-                    }
-
-                } else {
-                    if (this._computation !== undefined) {
+                        this.race();    
+                    } else {
                         Blockchain.miningLog.info('Continuing current mining compute.');
                     }
-                }
-    
+                }    
 
             } else {
                 Blockchain.miningLog.info('Going to ignore received block #' + op.blockNumber?.getValue()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.vdfSteps?.getValue()?.toString() + ' and we are currently mining with a difficulty of ' + this._computationDifficulty?.toString() + ', keeping current head for #' + (prevBlockNumber  + BigInt(1)).toString());
@@ -293,6 +301,140 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     async stopSync(): Promise<void> {
         this._node?.stopBroadcast(this);
         this._node?.stopSync(this);
+    }
+
+    // Caveat: oldHead sometimes may be the block we are currently mining, and therefore
+    //         it does not exist in the store (or its causal history).
+
+    async shouldAcceptNewHead(newHead: BlockOp, oldHead: BlockOp): Promise<boolean> {
+        
+        const store = this.getStore();
+
+        if (newHead.equals(oldHead)) {
+            return false;
+        }
+
+        let longestChainFinalityDepth = 0;
+
+        const newHeight = (newHead.blockNumber as HashedBigInt).getValue();
+        const oldHeight = (oldHead.blockNumber as HashedBigInt).getValue();
+
+        if (oldHeight === newHeight) {
+            const oldFinality = oldHead.getFinalityDepth();
+            const newFinality = newHead.getFinalityDepth();
+
+            if (oldFinality > newFinality) {
+                longestChainFinalityDepth = oldFinality;
+            } else {
+                longestChainFinalityDepth = newFinality;
+            }
+        } else if (oldHeight > newHeight) {
+            longestChainFinalityDepth = oldHead.getFinalityDepth();
+        } else {
+            longestChainFinalityDepth = newHead.getFinalityDepth()
+        }
+
+
+        let heightDifference = newHeight - oldHeight;
+        if (heightDifference < BigInt(0)) {
+            heightDifference = -heightDifference;
+        }
+        
+        
+        if (heightDifference > longestChainFinalityDepth) {
+            return newHeight > oldHeight; // we're out of the finality window, longest chain wins
+        }
+
+        // ok, we're inside the finality window: must find the forking point and see which sub-chain
+        //                                       is better by looking at the two forking blocks.
+
+        let currentNewBlock = newHead;
+        let currentOldBlock = oldHead;
+        
+        for (let d = 0; d < longestChainFinalityDepth; d++) {
+
+            if (currentNewBlock.equals(oldHead)) { // there's no fork!
+                return true; // accept: the new block is a later block in the same chain as the current one
+            }
+
+            const currentNewBlockHeight = (currentNewBlock.blockNumber as HashedBigInt).getValue();
+            const currentOldBlockHeight = (currentOldBlock.blockNumber as HashedBigInt).getValue();
+
+            if (currentNewBlockHeight > currentOldBlockHeight) {             // => currentNewBlockHeight > 0
+                const prevHashA = currentNewBlock.getPrevBlockHash();        // => prevHashA !== undefined
+                if (prevHashA !== undefined) {
+                    currentNewBlock = await store.load(prevHashA) as BlockOp;
+                }
+            } else if (currentNewBlockHeight < currentOldBlockHeight) {      // => currentOldBlockHeight > 0
+                const prevHashB = currentOldBlock.getPrevBlockHash();        // => prevHashB !== undefined
+                if (prevHashB !== undefined) {
+                    currentOldBlock = await store.load(prevHashB) as BlockOp;
+                }
+            } else { // same len
+
+                if (currentNewBlock.getPrevBlockHash() === currentOldBlock.getPrevBlockHash()) {
+                    const newLocalDifficulty = currentNewBlock.vdfSteps?.getValue() as bigint; 
+                    const oldLocalDifficulty = currentOldBlock.vdfSteps?.getValue() as bigint;
+
+                    if (newLocalDifficulty === oldLocalDifficulty) {
+                        return currentNewBlock.hash().localeCompare(currentOldBlock.hash()) < 0;
+                    } else {
+                        return newLocalDifficulty < oldLocalDifficulty;
+                    }
+                } else { 
+                    const newBlockPrevHash = currentNewBlock.getPrevBlockHash();
+                    if (newBlockPrevHash !== undefined) {
+                        currentNewBlock = await store.load(newBlockPrevHash) as BlockOp;
+                    } else {
+                        throw new Error('The forked chain and the old one have different origin blocks, this should be impossible');
+                    }
+                    const oldBlockPrevHash = currentOldBlock.getPrevBlockHash();
+                    if (oldBlockPrevHash !== undefined) {
+                        currentOldBlock = await store.load(oldBlockPrevHash) as BlockOp;
+                    } else {
+                        throw new Error('The forked chain and the old one have different origin blocks, this should be impossible');
+                    }
+                }
+            }
+        }
+
+
+        if (newHeight === oldHeight) {
+
+            const newTotalDifficulty = BigInt('0x' +(await this.getOpHeader(newHead.hash())).headerProps.get('totalDifficulty'));
+            
+            // See note above (Caveat...): oldHead may not exist in the store (if it is the block being currenty mined)
+            
+            let oldTotalDifficulty: bigint;
+
+            try {
+                const oldHeadHeader = await this.getOpHeader(oldHead.hash());
+                oldTotalDifficulty = BigInt('0x' + oldHeadHeader.headerProps.get('totalDifficulty'));
+            } catch (e) {
+                const prevBlockHash  = oldHead.getPrevBlockHash();
+                oldTotalDifficulty = (oldHead.vdfSteps as HashedBigInt).getValue() + 
+                                     ((prevBlockHash === undefined) ? BigInt(0) :
+                                                                      BigInt('0x' + (await this.getOpHeader(prevBlockHash)).headerProps.get('totalDifficulty'))
+                                     )
+
+            }
+
+            if (newTotalDifficulty === oldTotalDifficulty) {
+                return newHead.getLastHash().localeCompare(oldHead.getLastHash()) < 0;
+            } else {
+                return newTotalDifficulty < oldTotalDifficulty;
+            }
+        } else {
+            return newHeight > oldHeight;
+        }
+        
+    }
+
+    shouldInterruptCurrentMining(newHead: BlockOp) { 
+        let miningBlock = new BlockOp(this, this._computationPrevBlock, this._computationDifficulty as bigint, '', '', this._coinbase, '')
+
+        return this.shouldAcceptNewHead(newHead, miningBlock)
+
     }
 
     getSyncAgentStateFilter(): StateFilter {

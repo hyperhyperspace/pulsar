@@ -13,13 +13,12 @@ import { Blockchain as Blockchain } from './model/Blockchain';
 import { BlockOp } from './model/BlockOp';
 
 import * as readline from 'readline';
-import { HistorySynchronizer } from '@hyper-hyper-space/core';
-import { LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 
 import { parse } from 'ts-command-line-args';
 
 import * as fs from 'fs'
 import { SQLiteBackend } from '@hyper-hyper-space/sqlite';
+import { LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 
 interface IPulsarArguments{
     network?: string;
@@ -42,10 +41,12 @@ async function main() {
 
     const keystore = new Store(new SQLiteBackend('.pulsar/keystore'));
 
+    Blockchain.controlLog.level = LogLevel.TRACE;
+    Blockchain.miningLog.level = LogLevel.TRACE;
 
-    HistorySynchronizer.controlLog.level = LogLevel.INFO;
-    HistorySynchronizer.sourcesLog.level = LogLevel.INFO;
-    HistorySynchronizer.stateLog.level   = LogLevel.INFO;
+    //HistorySynchronizer.controlLog.level = LogLevel.INFO;
+    //HistorySynchronizer.sourcesLog.level = LogLevel.INFO;
+    //HistorySynchronizer.stateLog.level   = LogLevel.INFO;
 
     await BlockOp.vdfInit();
 
