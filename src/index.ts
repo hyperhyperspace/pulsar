@@ -18,7 +18,6 @@ import { parse } from 'ts-command-line-args';
 
 import * as fs from 'fs'
 import { SQLiteBackend } from '@hyper-hyper-space/sqlite';
-import { LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 
 interface IPulsarArguments{
     network?: string;
@@ -40,7 +39,7 @@ async function main() {
     }
 
     const keystore = new Store(new SQLiteBackend('.pulsar/keystore'));
-    
+
     //HistorySynchronizer.controlLog.level = LogLevel.INFO;
     //HistorySynchronizer.sourcesLog.level = LogLevel.INFO;
     //HistorySynchronizer.stateLog.level   = LogLevel.INFO;
