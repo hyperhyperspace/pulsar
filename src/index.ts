@@ -40,10 +40,7 @@ async function main() {
     }
 
     const keystore = new Store(new SQLiteBackend('.pulsar/keystore'));
-
-    Blockchain.controlLog.level = LogLevel.TRACE;
-    Blockchain.miningLog.level = LogLevel.TRACE;
-
+    
     //HistorySynchronizer.controlLog.level = LogLevel.INFO;
     //HistorySynchronizer.sourcesLog.level = LogLevel.INFO;
     //HistorySynchronizer.stateLog.level   = LogLevel.INFO;
