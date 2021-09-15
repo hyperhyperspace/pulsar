@@ -39,7 +39,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     _autoCompute: boolean;
 
     _fallBehindCheckInterval: any;
-    _fallBehindCheckLastHeight?: bigint;
+    _fallBehindCheckLastHeights: bigint[];
     _fallBehindStop: boolean;
 
     _node?: PeerNode;
@@ -60,11 +60,14 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         this._autoCompute = false;
         this._newBlockLock = new Lock();
         this._fallBehindStop = false;
+        this._fallBehindCheckLastHeights = [];
     }
 
     enableMining(coinbase: Identity) {
         this._autoCompute = true;
         this._coinbase = coinbase;
+
+        const historySize = 8;
 
         if (this._fallBehindCheckInterval === undefined) {
             this._fallBehindCheckInterval = setInterval(() => {
@@ -72,22 +75,31 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 const stopped = this._fallBehindStop;
 
                 const newHeight = this._headBlock?.blockNumber?.getValue();
-                const oldHeight = this._fallBehindCheckLastHeight;
-                this._fallBehindStop = newHeight !== undefined && oldHeight !== undefined &&
-                                       newHeight > oldHeight + BigInt(5);
 
+                if (newHeight !== undefined) {
+                    this._fallBehindCheckLastHeights.push(newHeight);
+                    if (this._fallBehindCheckLastHeights.length > historySize) {
+                        this._fallBehindCheckLastHeights.shift();
+                    }
+
+                    if (this._fallBehindCheckLastHeights.length === historySize) {
+                        const oldHeight = this._fallBehindCheckLastHeights[0];
+                        this._fallBehindStop = newHeight > oldHeight + BigInt(8);
+                    }
+
+                    
+                }
+                
                 if (this._fallBehindStop) {
                     if (this._computation !== undefined) { this.stopRace(); }
                 } else if (stopped) {
                     if (this._computation === undefined) { this.race(); }
                 }
 
-                this._fallBehindCheckLastHeight = newHeight;
-
-            }, 20000);
+            }, 1000);
         }
 
-        this._fallBehindStop = true;
+        this._fallBehindStop = false;
 
         this.race();
     }
