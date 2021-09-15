@@ -1,6 +1,6 @@
 import '@hyper-hyper-space/node-env';
 
-import { Identity, Store } from '@hyper-hyper-space/core';
+import { HistorySynchronizer, Identity, Store } from '@hyper-hyper-space/core';
 import { RSAKeyPair } from '@hyper-hyper-space/core';
 
 import { RNGImpl } from '@hyper-hyper-space/core';
@@ -18,6 +18,7 @@ import { parse } from 'ts-command-line-args';
 
 import * as fs from 'fs'
 import { SQLiteBackend } from '@hyper-hyper-space/sqlite';
+import { LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 
 interface IPulsarArguments{
     network?: string;
@@ -40,9 +41,11 @@ async function main() {
 
     const keystore = new Store(new SQLiteBackend('.pulsar/keystore'));
 
-    //HistorySynchronizer.controlLog.level = LogLevel.INFO;
-    //HistorySynchronizer.sourcesLog.level = LogLevel.INFO;
-    //HistorySynchronizer.stateLog.level   = LogLevel.INFO;
+    HistorySynchronizer.controlLog.level = LogLevel.INFO;
+    HistorySynchronizer.sourcesLog.level = LogLevel.INFO;
+    HistorySynchronizer.stateLog.level   = LogLevel.INFO;
+    HistorySynchronizer.opXferLog.level  = LogLevel.INFO;
+    Store.operationLog.level = LogLevel.INFO;
 
     await BlockOp.vdfInit();
 

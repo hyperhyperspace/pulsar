@@ -346,7 +346,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     //         it does not exist in the store (or its causal history).
 
     async shouldAcceptNewHead(newHead: BlockOp, oldHead: BlockOp): Promise<boolean> {
-        
+
         const store = this.getStore();
 
         if (newHead.equals(oldHead)) {
@@ -424,12 +424,14 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     const newBlockPrevHash = currentNewBlock.getPrevBlockHash();
                     if (newBlockPrevHash !== undefined) {
                         currentNewBlock = await store.load(newBlockPrevHash) as BlockOp;
+                        if (currentNewBlock === undefined) { throw new Error('Op ' + newBlockPrevHash + ', prevOp of the new head op ' + newHead.hash() + ' with #' + (newHead.blockNumber as HashedBigInt).getValue() + ' d=' + d)} 
                     } else {
                         throw new Error('The forked chain and the old one have different origin blocks, this should be impossible');
                     }
                     const oldBlockPrevHash = currentOldBlock.getPrevBlockHash();
                     if (oldBlockPrevHash !== undefined) {
                         currentOldBlock = await store.load(oldBlockPrevHash) as BlockOp;
+                        if (currentOldBlock === undefined) { throw new Error('Op ' + oldBlockPrevHash + ', prevOp of the old head op ' + oldHead.hash() + ' with #' + (oldHead.blockNumber as HashedBigInt).getValue() + ' d=' + d)} 
                     } else {
                         throw new Error('The forked chain and the old one have different origin blocks, this should be impossible');
                     }
@@ -466,6 +468,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         } else {
             return newHeight > oldHeight;
         }
+        
         
     }
 

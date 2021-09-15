@@ -219,8 +219,6 @@ class BlockOp extends MutationOp {
             }
         }
 
-
-
         const prevOp: BlockOp | undefined = prev;
 
         if (this.vrfSeed !== undefined) {
@@ -326,12 +324,15 @@ class BlockOp extends MutationOp {
             return false;
         }
 
-        const ledger = await this.getLedgerForBlock(this.getPrevBlockHash(), references);
+        this.getLedgerForBlock;
 
+        /*const ledger = await this.getLedgerForBlock(this.getPrevBlockHash(), references);
         if (!ledger.canProcessBlock(this)) {
             BlockOp.logger.warning('Invalid transactions');
             return false;
-        }
+        }*/
+
+        
 
         BlockOp.logger.info('Received #' + this.blockNumber.getValue().toString() + ' with steps=' + this.vdfSteps.getValue().toString() + ' and timestamp=' + new Date(Number(this.timestampMillisecs?.getValue())/10**(FixedPoint.DECIMALS)).toLocaleString() + ' by ' + this.getAuthor()?.hash() + ', block time ' + (Number(blocktime)/(10**(FixedPoint.DECIMALS+3))).toFixed(4).toString() + 's, block hash ends in ' + this.hash().slice(-6));
         BlockOp.logger.info('Tokenomics: movingMaxSpeed=' 
