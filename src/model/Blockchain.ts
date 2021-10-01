@@ -393,6 +393,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         
         
         if (heightDifference > longestChainFinalityDepth) {
+
+            // we assume finalityDepth > 0, hence newHeight != oldHeight
+
             return newHeight > oldHeight; // we're out of the finality window, longest chain wins
         }
 
@@ -403,10 +406,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         let currentOldBlock = oldHead;
         
         for (let d = 0; d < longestChainFinalityDepth; d++) {
-
-            if (currentNewBlock.equals(oldHead)) { // there's no fork!
-                return true; // accept: the new block is a later block in the same chain as the current one
-            }
 
             const currentNewBlockHeight = (currentNewBlock.blockNumber as HashedBigInt).getValue();
             const currentOldBlockHeight = (currentOldBlock.blockNumber as HashedBigInt).getValue();
@@ -423,7 +422,16 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 }
             } else { // same len
 
-                if (currentNewBlock.getPrevBlockHash() === currentOldBlock.getPrevBlockHash()) {
+                if (currentNewBlock.equals(currentOldBlock)) {
+
+                    // We found a block common to both forks BEFORE finding a block with the same parent.
+                    // This implies one chain is a sub-chain of the other. Since we tested above that the
+                    // heads of both chains are not the same block, we know it is proper sub-chain.
+
+                    return (newHeight > oldHeight); // we know they can't be equal, see not above.
+
+                } else if (currentNewBlock.getPrevBlockHash() === currentOldBlock.getPrevBlockHash()) {
+
                     const newLocalDifficulty = currentNewBlock.vdfSteps?.getValue() as bigint; 
                     const oldLocalDifficulty = currentOldBlock.vdfSteps?.getValue() as bigint;
 
