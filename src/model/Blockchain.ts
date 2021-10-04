@@ -360,8 +360,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     async shouldAcceptNewHead(newHead: BlockOp, oldHead: BlockOp): Promise<boolean> {
 
         const store = this.getStore();
-
-        if (newHead.equals(oldHead)) {
+        
+        if (oldHead === undefined) {
+            return true;
+        } else if (newHead.equals(oldHead)) {
             return false;
         }
 
@@ -413,12 +415,24 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             if (currentNewBlockHeight > currentOldBlockHeight) {             // => currentNewBlockHeight > 0
                 const prevHashA = currentNewBlock.getPrevBlockHash();        // => prevHashA !== undefined
                 if (prevHashA !== undefined) {
+                    const oldCurrentNewBlock = currentNewBlock;
                     currentNewBlock = await store.load(prevHashA) as BlockOp;
+                    if (currentNewBlock === undefined) {
+                        throw new Error('Block #' + currentNewBlockHeight + ' (hash ' + oldCurrentNewBlock.hash() + ') prev block (hash '+ prevHashA +') is missing from store, this should not be possible!');
+                    }
+                } else {
+                    throw new Error('currentNewBlockHeight should be greater than zero (it is ' + currentNewBlockHeight?.toString(10) + '), but prevBlockhash is undefined.');
                 }
             } else if (currentNewBlockHeight < currentOldBlockHeight) {      // => currentOldBlockHeight > 0
                 const prevHashB = currentOldBlock.getPrevBlockHash();        // => prevHashB !== undefined
                 if (prevHashB !== undefined) {
+                    const oldCurrentOldBlock = currentOldBlock;
                     currentOldBlock = await store.load(prevHashB) as BlockOp;
+                    if (currentOldBlock === undefined) {
+                        throw new Error('Block #' + currentOldBlockHeight + ' (hash ' + oldCurrentOldBlock.hash() + ') prev block (hash '+ prevHashB +') is missing from store, this should not be possible!');
+                    }
+                } else {
+                    throw new Error('currentOldBlockHeight should be greater than zero (it is ' + currentOldBlockHeight?.toString(10) + '), but prevBlockhash is undefined.');
                 }
             } else { // same len
 
@@ -428,7 +442,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     // This implies one chain is a sub-chain of the other. Since we tested above that the
                     // heads of both chains are not the same block, we know it is proper sub-chain.
 
-                    return (newHeight > oldHeight); // we know they can't be equal, see not above.
+                    return (newHeight > oldHeight); // see note above, newHeight == oldHeight is impossible
 
                 } else if (currentNewBlock.getPrevBlockHash() === currentOldBlock.getPrevBlockHash()) {
 
