@@ -1,5 +1,5 @@
 {
-  "name": "Pulsar",
+  "name": "pulsar",
   "version": "0.0.2",
   "description": "The Web Blockchain (powered by Hyper Hyper Space).",
   "main": "dist/index.js",
