@@ -416,7 +416,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 const prevHashA = currentNewBlock.getPrevBlockHash();        // => prevHashA !== undefined
                 if (prevHashA !== undefined) {
                     const oldCurrentNewBlock = currentNewBlock;
-                    currentNewBlock = await store.load(prevHashA) as BlockOp;
+                    currentNewBlock = await this.loadOp(prevHashA) as BlockOp;
                     if (currentNewBlock === undefined) {
                         throw new Error('Block #' + currentNewBlockHeight + ' (hash ' + oldCurrentNewBlock.hash() + ') prev block (hash '+ prevHashA +') is missing from store, this should not be possible!');
                     }
@@ -427,7 +427,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 const prevHashB = currentOldBlock.getPrevBlockHash();        // => prevHashB !== undefined
                 if (prevHashB !== undefined) {
                     const oldCurrentOldBlock = currentOldBlock;
-                    currentOldBlock = await store.load(prevHashB) as BlockOp;
+                    currentOldBlock = await this.loadOp(prevHashB) as BlockOp;
                     if (currentOldBlock === undefined) {
                         throw new Error('Block #' + currentOldBlockHeight + ' (hash ' + oldCurrentOldBlock.hash() + ') prev block (hash '+ prevHashB +') is missing from store, this should not be possible!');
                     }
