@@ -20,6 +20,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     //static log = new Logger(Blockchain.name, LogLevel.DEBUG)
     static gossipLog = new Logger(Blockchain.name, LogLevel.INFO);
     static miningLog = new Logger(Blockchain.name, LogLevel.INFO);
+    static loadLog   = new Logger(Blockchain.name, LogLevel.INFO);
     
 
     static className = 'hhs/v0/soliton/Blockchain';
@@ -271,6 +272,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
         if (op instanceof BlockOp) {
 
+            Blockchain.loadLog.info('Loading block #' + op.blockNumber?.getValue()?.toString() + ' w/hash ' + op.hash());
+
             if (this._headBlock === undefined) {
                 accept = true;
             } else if (await this.shouldAcceptNewHead(op, this._headBlock)) { 
@@ -311,7 +314,12 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 }    
 
             } else {
-                Blockchain.miningLog.info('Going to ignore received block #' + op.blockNumber?.getValue()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.vdfSteps?.getValue()?.toString() + ' and we are currently mining with a difficulty of ' + this._computationDifficulty?.toString() + ', keeping current head for #' + (prevBlockNumber  + BigInt(1)).toString());
+                if (this._computation === undefined) {
+                    Blockchain.miningLog.info('Going to ignore received block #' + op.blockNumber?.getValue()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.vdfSteps?.getValue()?.toString() + ' keeping current head #' + this._headBlock?.blockNumber?.getValue().toString() + ' with a difficulty of ' + this._headBlock?.vdfSteps?.getValue()?.toString() + ', (hash ends in ' + this._headBlock?.getLastHash().slice(-6) + ')');
+                } else {
+                    Blockchain.miningLog.info('Going to ignore received block #' + op.blockNumber?.getValue()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.vdfSteps?.getValue()?.toString() + ' and we are currently mining with a difficulty of ' + this._computationDifficulty?.toString() + ', keeping current head for #' + (prevBlockNumber  + BigInt(1)).toString());
+                }
+                
             }
 
         }
