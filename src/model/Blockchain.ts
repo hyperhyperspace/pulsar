@@ -315,11 +315,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             } else {
                 if (this._computation === undefined) {
-                    Blockchain.miningLog.info('Going to ignore received block #' + op.blockNumber?.getValue()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.vdfSteps?.getValue()?.toString() + ' keeping current head #' + this._headBlock?.blockNumber?.getValue().toString() + ' with a difficulty of ' + this._headBlock?.vdfSteps?.getValue()?.toString() + ', (hash ends in ' + this._headBlock?.getLastHash().slice(-6) + ')');
+                    Blockchain.miningLog.info('Going to ignore block #' + op.blockNumber?.getValue()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.vdfSteps?.getValue()?.toString() + ' keeping current head #' + this._headBlock?.blockNumber?.getValue().toString() + ' with a difficulty of ' + this._headBlock?.vdfSteps?.getValue()?.toString() + ', (hash ends in ' + this._headBlock?.getLastHash().slice(-6) + ')');
                 } else {
-                    Blockchain.miningLog.info('Going to ignore received block #' + op.blockNumber?.getValue()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.vdfSteps?.getValue()?.toString() + ' and we are currently mining with a difficulty of ' + this._computationDifficulty?.toString() + ', keeping current head for #' + (prevBlockNumber  + BigInt(1)).toString());
-                }
-                
+                    Blockchain.miningLog.info('Going to ignore block #' + op.blockNumber?.getValue()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.vdfSteps?.getValue()?.toString() + ' and we are currently mining with a difficulty of ' + this._computationDifficulty?.toString() + ', keeping current head for #' + (prevBlockNumber  + BigInt(1)).toString());
+                }              
             }
 
         }
