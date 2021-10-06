@@ -68,7 +68,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         this._autoCompute = true;
         this._coinbase = coinbase;
 
-        const historySize = 8;
+        const historySize = 20;
 
         if (this._fallBehindCheckInterval === undefined) {
             this._fallBehindCheckInterval = setInterval(() => {
@@ -97,7 +97,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     if (this._computation === undefined) { this.race(); }
                 }
 
-            }, 1000);
+            }, 5000);
         }
 
         this._fallBehindStop = false;
