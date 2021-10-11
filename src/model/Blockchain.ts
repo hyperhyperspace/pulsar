@@ -20,6 +20,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     //static log = new Logger(Blockchain.name, LogLevel.DEBUG)
     static gossipLog = new Logger(Blockchain.name, LogLevel.INFO);
     static miningLog = new Logger(Blockchain.name, LogLevel.INFO);
+    static forkChoiceLog = new Logger('Fork choice', LogLevel.INFO);
     static loadLog   = new Logger(Blockchain.name, LogLevel.INFO);
     
 
@@ -367,8 +368,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     async shouldAcceptNewHead(newHead: BlockOp, oldHead: BlockOp): Promise<boolean> {
         
         if (oldHead === undefined) {
+            Blockchain.forkChoiceLog.debug('Accepting new head: old head is not present.');
             return true;
         } else if (newHead.equals(oldHead)) {
+            Blockchain.forkChoiceLog.debug('Rejecting new head: it is the same as the old one.');
             return false;
         }
 
@@ -392,27 +395,13 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             longestChainFinalityDepth = newHead.getFinalityDepth()
         }
 
-
-        let heightDifference = newHeight - oldHeight;
-        if (heightDifference < BigInt(0)) {
-            heightDifference = -heightDifference;
-        }
-        
-        
-        if (heightDifference > longestChainFinalityDepth) {
-
-            // we assume finalityDepth > 0, hence newHeight != oldHeight
-
-            return newHeight > oldHeight; // we're out of the finality window, longest chain wins
-        }
-
-        // ok, we're inside the finality window: must find the forking point and see which sub-chain
-        //                                       is better by looking at the two forking blocks.
+        // ok, assume we're inside the finality window: must find the forking point and see which sub-chain
+        //                                              is better by looking at the two forking blocks.
 
         let currentNewBlock = newHead;
         let currentOldBlock = oldHead;
         
-        for (let d = 0; d < longestChainFinalityDepth; d++) {
+        for (let d = 0; d < longestChainFinalityDepth-1; d++) {
 
             const currentNewBlockHeight = (currentNewBlock.blockNumber as HashedBigInt).getValue();
             const currentOldBlockHeight = (currentOldBlock.blockNumber as HashedBigInt).getValue();
@@ -447,7 +436,11 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     // This implies one chain is a sub-chain of the other. Since we tested above that the
                     // heads of both chains are not the same block, we know it is proper sub-chain.
 
-                    return (newHeight > oldHeight); // see note above, newHeight == oldHeight is impossible
+                    const accept = newHeight > oldHeight;
+ 
+                    Blockchain.forkChoiceLog.debug('The new and old head are in the same chain, accept=' + accept);
+
+                    return accept; // see note above, newHeight == oldHeight is impossible
 
                 } else if (currentNewBlock.getPrevBlockHash() === currentOldBlock.getPrevBlockHash()) {
 
@@ -455,9 +448,23 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     const oldLocalDifficulty = currentOldBlock.vdfSteps?.getValue() as bigint;
 
                     if (newLocalDifficulty === oldLocalDifficulty) {
-                        return currentNewBlock.hash().localeCompare(currentOldBlock.hash()) < 0;
+
+                        const accept = currentNewBlock.hash().localeCompare(currentOldBlock.hash()) < 0;
+
+                        Blockchain.forkChoiceLog.debug('Found common ancester block ' + currentNewBlock.getPrevBlockHash() + 
+                                                       ', both new and old following block have same difficulty of ' + newLocalDifficulty +
+                                                       ' accepting by comparing hashes, will accept:' + accept);
+
+                        return accept;
                     } else {
-                        return newLocalDifficulty < oldLocalDifficulty;
+
+                        const accept = newLocalDifficulty < oldLocalDifficulty;
+
+                        Blockchain.forkChoiceLog.debug('Found common ancester block ' + currentNewBlock.getPrevBlockHash() + 
+                                                       ', accepting by comparing following block difficuly (new=' + newLocalDifficulty + 
+                                                       ' old=' + oldLocalDifficulty + ' accept:' + accept);
+
+                        return accept;
                     }
                 } else { 
                     const newBlockPrevHash = currentNewBlock.getPrevBlockHash();
@@ -500,12 +507,18 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             }
 
             if (newTotalDifficulty === oldTotalDifficulty) {
-                return newHead.getLastHash().localeCompare(oldHead.getLastHash()) < 0;
+                const accept=newHead.getLastHash().localeCompare(oldHead.getLastHash()) < 0;
+                console.log('Outside of window, new and old height match (height=' + newHeight?.toString(10) + '), total difficulties match (tot diff=' + newTotalDifficulty?.toString(10) + '), accepting by comparing hashes, accept: ' + accept);
+                return accept;
             } else {
-                return newTotalDifficulty < oldTotalDifficulty;
+                const accept=newTotalDifficulty < oldTotalDifficulty;
+                console.log('Outside of window, new and old height match (height=' + newHeight?.toString(10) + '), new total diff=' + newTotalDifficulty?.toString(10) + ', old total diff=' + oldTotalDifficulty?.toString(10) + ', accept: ' + accept);
+                return accept;
             }
         } else {
-            return newHeight > oldHeight;
+            const accept=newHeight > oldHeight;
+            console.log('Outside of window, newHeight=' + newHeight?.toString(10) + ', oldHeight=' + oldHeight?.toString(10) + ', accept: ' + accept);
+            return accept;
         }
         
         
