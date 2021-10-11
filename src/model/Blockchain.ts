@@ -508,16 +508,16 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             if (newTotalDifficulty === oldTotalDifficulty) {
                 const accept=newHead.getLastHash().localeCompare(oldHead.getLastHash()) < 0;
-                console.log('Outside of window, new and old height match (height=' + newHeight?.toString(10) + '), total difficulties match (tot diff=' + newTotalDifficulty?.toString(10) + '), accepting by comparing hashes, accept: ' + accept);
+                Blockchain.forkChoiceLog.debug('Outside of window, new and old height match (height=' + newHeight?.toString(10) + '), total difficulties match (tot diff=' + newTotalDifficulty?.toString(10) + '), accepting by comparing hashes, accept: ' + accept);
                 return accept;
             } else {
                 const accept=newTotalDifficulty < oldTotalDifficulty;
-                console.log('Outside of window, new and old height match (height=' + newHeight?.toString(10) + '), new total diff=' + newTotalDifficulty?.toString(10) + ', old total diff=' + oldTotalDifficulty?.toString(10) + ', accept: ' + accept);
+                Blockchain.forkChoiceLog.debug('Outside of window, new and old height match (height=' + newHeight?.toString(10) + '), new total diff=' + newTotalDifficulty?.toString(10) + ', old total diff=' + oldTotalDifficulty?.toString(10) + ', accept: ' + accept);
                 return accept;
             }
         } else {
             const accept=newHeight > oldHeight;
-            console.log('Outside of window, newHeight=' + newHeight?.toString(10) + ', oldHeight=' + oldHeight?.toString(10) + ', accept: ' + accept);
+            Blockchain.forkChoiceLog.debug('Outside of window, newHeight=' + newHeight?.toString(10) + ', oldHeight=' + oldHeight?.toString(10) + ', accept: ' + accept);
             return accept;
         }
         
