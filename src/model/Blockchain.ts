@@ -533,9 +533,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     getSyncAgentStateFilter(): StateFilter {
         const forkChoiceFilter: StateFilter = async (state: HeaderBasedState, store: Store, isLocal: boolean, localState?: HeaderBasedState) => {
-
-            const t = Date.now();
-
+            
             const MAX_FINALITY_DEPTH=MiniComptroller.getMaxSpeedRatioNumber();
             
             let maxHeight = 0;
@@ -589,8 +587,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             Blockchain.gossipLog.debug('Done filtering gossip for blockcahin ' + this.hash() + ', height post-gossip is ' + maxHeight);
 
             const forkChoiceState = new HeaderBasedState(mut, filteredOpHeaders);
-
-            console.log('forkChoiceFilter ' + (Date.now()-t) + ' ms')
 
             return forkChoiceState;
 
