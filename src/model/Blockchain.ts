@@ -532,26 +532,40 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     }
 
     getSyncAgentStateFilter(): StateFilter {
-        const forkChoiceFilter: StateFilter = async (state: HeaderBasedState, store: Store) => {
+        const forkChoiceFilter: StateFilter = async (state: HeaderBasedState, store: Store, isLocal: boolean, localState?: HeaderBasedState) => {
 
+            const t = Date.now();
 
             const MAX_FINALITY_DEPTH=MiniComptroller.getMaxSpeedRatioNumber();
-
+            
+            let maxHeight = 0;
             const mut = state.mutableObj as Hash;
 
-            const local = await store.loadTerminalOpsForMutable(mut);
 
-            let maxHeight = 0;
+            if (!isLocal) {
 
-            Blockchain.gossipLog.debug('Filtering gossip for blockchain ' + this.hash() + ' (' + state.terminalOpHeaders?.size() + ' forks in state)');
+                Blockchain.gossipLog.debug('Filtering gossip for blockchain ' + this.hash() + ' (' + state.terminalOpHeaders?.size() + ' forks in state)');
 
-            if (local?.terminalOps !== undefined) {
-                for (const opHash of local?.terminalOps) {
-                    const opHistory = await store.loadOpHeader(opHash) as OpHeader;
-                    if (opHistory.computedProps.height > maxHeight) {
-                        maxHeight = opHistory.computedProps.height;
+                if (localState?.terminalOpHeaders !== undefined) {
+                    for (const opHeaderLiteral of localState.terminalOpHeaders.values()) {
+                        if (opHeaderLiteral.computedHeight > maxHeight) {
+                            maxHeight = opHeaderLiteral.computedHeight;
+                        }
                     }
+                } else {
+                    const local = await store.loadTerminalOpsForMutable(mut);
+    
+                    if (local?.terminalOps !== undefined) {
+                        for (const opHash of local?.terminalOps) {
+                            const opHistory = await store.loadOpHeader(opHash) as OpHeader;
+                            if (opHistory.computedProps.height > maxHeight) {
+                                maxHeight = opHistory.computedProps.height;
+                            }
+                        }
+                    }    
                 }
+                
+
             }
 
             const filteredOpHeaders: OpHeader[] = [];
@@ -575,6 +589,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             Blockchain.gossipLog.debug('Done filtering gossip for blockcahin ' + this.hash() + ', height post-gossip is ' + maxHeight);
 
             const forkChoiceState = new HeaderBasedState(mut, filteredOpHeaders);
+
+            console.log('forkChoiceFilter ' + (Date.now()-t) + ' ms')
 
             return forkChoiceState;
 
