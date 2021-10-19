@@ -41,14 +41,14 @@ async function main() {
 
     const keystore = new Store(new SQLiteBackend('.pulsar/keystore'));
 
-    HistorySynchronizer.controlLog.level = LogLevel.INFO;
+    HistorySynchronizer.controlLog.level = LogLevel.DEBUG;
     HistorySynchronizer.sourcesLog.level = LogLevel.INFO;
     HistorySynchronizer.stateLog.level   = LogLevel.INFO;
     HistorySynchronizer.opXferLog.level  = LogLevel.INFO;
     HistorySynchronizer.requestLog.level = LogLevel.INFO;
     Store.operationLog.level = LogLevel.INFO;
-    Blockchain.loadLog.level   = LogLevel.INFO;
-    Blockchain.miningLog.level = LogLevel.INFO;
+    Blockchain.loadLog.level   = LogLevel.WARNING;
+    Blockchain.miningLog.level = LogLevel.WARNING;
 
     await BlockOp.vdfInit();
 
