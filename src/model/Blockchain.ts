@@ -135,7 +135,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             
             this._computationPrevBlock = this._headBlock;
 
-            BlockOp.computeVrfSeed(this._coinbase as Identity, this._headBlock?.hash())
+            BlockOp.computeVrfSeed(this._coinbase as Identity, this._computationPrevBlock?.hash())
                              .then(this.vrfSeedCallback);
             
         } else {
