@@ -393,12 +393,12 @@ class BlockOp extends MutationOp {
 
     // This is the pseudo-random toss of dice to determine what is going to be the slot of the miner
     // in the current block (according also to his stake). Also determines the input of the VDF mining.
-    static async computeVrfSeed(author: Identity, prevOpHash?: Hash): Promise<string | undefined> {
+    static async computeVrfSeed(coinbase: Identity, prevOpHash?: Hash): Promise<{coinbase: Identity, prevOpHash?: Hash, vrfSeed?: string}> {
         if (prevOpHash !== undefined) {
             // The signature scheme HHS uses has a fixed padding, then signatures are unique and not malleable.
-            return author.sign(prevOpHash);
+            return {coinbase: coinbase, prevOpHash: prevOpHash, vrfSeed: await coinbase.sign(prevOpHash)};
         } else {
-            return undefined;
+            return {coinbase: coinbase, prevOpHash: prevOpHash, vrfSeed: undefined};
         }
     }
         

@@ -1,4 +1,4 @@
-import { Hashing, HashedObject, MutableObject, MutationOp, LiteralContext, StateFilter, Store, Hash, PeerNode } from '@hyper-hyper-space/core';
+import { Hashing, HashedObject, MutableObject, MutationOp, StateFilter, Store, Hash, PeerNode } from '@hyper-hyper-space/core';
 
 import { Identity } from '@hyper-hyper-space/core';
 
@@ -35,6 +35,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     _computation?: Worker;
     _computationDifficulty?: bigint;
     _computationPrevBlock?: BlockOp;
+    _computationChallenge?: string;
 
     _newBlockLock: Lock;
 
@@ -63,6 +64,11 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         this._newBlockLock = new Lock();
         this._fallBehindStop = false;
         this._fallBehindCheckLastHeights = [];
+
+        this.vrfSeedCallback = this.vrfSeedCallback.bind(this);
+
+        this.computationCallback = this.computationCallback.bind(this);
+        this.computationError = this.computationError.bind(this);
     }
 
     enableMining(coinbase: Identity) {
@@ -126,101 +132,107 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
         
         if (this._computation === undefined) {
-
-            const comp = BlockOp.initializeComptroller(this._headBlock);
-
-            // Bootstrap Period Protection pre-VDF.
-            const bootstrap = comp.isBootstrapPeriod();
-
-            let prevOpContext: LiteralContext | undefined;
-
-            if (this._headBlock !== undefined) {
-                prevOpContext = this._headBlock.toLiteralContext();
-            }
             
             this._computationPrevBlock = this._headBlock;
 
-            const prevBlock = this._computationPrevBlock;
-
             BlockOp.computeVrfSeed(this._coinbase as Identity, this._headBlock?.hash())
-                             .then((vrfSeed: (string|undefined)) => {
-
-                if (this._computation !== undefined) {
-                    return;
-                }
-
-                if (!((prevBlock !== undefined && prevBlock.equals(this._computationPrevBlock)) || (prevBlock === undefined && this._computationPrevBlock === undefined))) {
-                    return; // this is a 'ghost compute', another one was started and we're being cancelled.
-                }
-
-                const challenge = BlockOp.getChallenge(this, vrfSeed);
-                const steps = BlockOp.getVDFSteps(comp, challenge);
-
-                // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs.
-
-                this._computationDifficulty = steps;
-                
-                Blockchain.miningLog.info('Mining #' + (comp.getBlockNumber() + BigInt(1)) + ', got ' + steps + ' steps for challenge ending in ' + challenge.slice(-6) + '...');
-                Blockchain.miningLog.debug('Dynamic Max VDF Speed (vdfSteps/sec) = ' + FixedPoint.toNumber(comp.getMovingMaxSpeed()) )
-                Blockchain.miningLog.debug('Dynamic Min VDF Speed (vdfSteps/sec) = ' + FixedPoint.toNumber(comp.getMovingMinSpeed()) )
-                Blockchain.miningLog.debug('Dynamic VDF Speed Ratio (Exponential Difficulty Adj.) = ' + FixedPoint.toNumber(comp.getSpeedRatio()) )
-                Blockchain.miningLog.debug('Dynamic Block Time Factor (Linear Difficulty Adj.) = ' + FixedPoint.toNumber(comp.getBlockTimeFactor()) )
-                
-                
-
-                this._computation = new Worker('./dist/model/worker.js');
-                this._computation.on('error', (err: Error) => { Blockchain.miningLog.error('Unexpected error while mining: ', err)});
-                this._computation.on('message', async (msg: {challenge: string, result: string, bootstrapResult?: string}) => {
-                    
-                    Blockchain.miningLog.debug('Solved challenge ending in ' + msg.challenge.slice(-6) + '!');
-                    if (msg.challenge === challenge ) {
-
-                        if (!((prevBlock !== undefined && prevBlock.equals(this._computationPrevBlock)) || (prevBlock === undefined && this._computationPrevBlock === undefined))) {
-                            return; // this is a 'ghost compute', another one was started and we're being cancelled.
-                        }
-
-                        let op = new BlockOp(this, this._computationPrevBlock, steps, msg.result, msg.bootstrapResult, this._coinbase, vrfSeed);
-                        
-
-                        let blocktime = this._computationPrevBlock !== undefined? 
-                            op.timestampMillisecs?.getValue() as bigint - (this._computationPrevBlock.timestampMillisecs?.getValue() as bigint)
-                        :
-                            MiniComptroller.targetBlockTime * BigInt(1000); // FIXME:pwd initial block time
-        
-                        if (blocktime == BigInt(0)) {
-                            blocktime = BigInt(1) * FixedPoint.UNIT
-                        }
-
-                        Blockchain.miningLog.info('⛏️⛏️⛏️⛏️ #' + op.blockNumber?.getValue() + ' mined by us with coinbase ' + this._coinbase?.getLastHash() + ', block time ' + (Number(blocktime)/(10**(FixedPoint.DECIMALS+3))).toFixed(4).toString() + 's, block hash ends in ' + op.hash().slice(-6));
-                        Blockchain.miningLog.info('Tokenomics: movingMaxSpeed=' + (Number(op.movingMaxSpeed?.getValue()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-                            + ', movingMinSpeed=' + (Number(op.movingMinSpeed?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-                            + ', blockTimeFactor=' + (Number(op.blockTimeFactor?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-                            + ', speedRatio=' + (Number(FixedPoint.divTrunc(op.movingMaxSpeed?.getValue() as bigint, op.movingMinSpeed?.getValue() as bigint)) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString()
-                            + ', speed=' + (Number(steps) / (Number(blocktime)/10**FixedPoint.DECIMALS/1000))?.toFixed(4)?.toString()
-                            );
-                            
-                        /*if (this._lastBlock !== undefined) {
-                            op.setPrevOps(new Set([this._lastBlock]).values());
-                        } else {
-                            op.setPrevOps(new Set<MutationOp>().values());
-                        }*/
-    
-                        await this.stopRace();
-                        await this.applyNewOp(op);
-                        await this.getStore().save(this);
-                        
-                    } else {
-                        Blockchain.miningLog.warning('Mismatched challenge - could be normal. Solved one ending in ' + msg.challenge.slice(-6) + ' but expected ' + challenge.slice(-6));
-                    }
-                });
-
-                this._computation.postMessage({steps: steps, challenge: challenge, prevOpContext: prevOpContext, bootstrap: bootstrap});
-                
-            });
+                             .then(this.vrfSeedCallback);
             
         } else {
             Blockchain.miningLog.warning('Race was called but a computation is running.');
         }
+    }
+
+    vrfSeedCallback(result: {coinbase: Identity, prevBlockHash?: Hash, vrfSeed?: string}): void {
+
+        if (this._computation !== undefined) {
+            return;
+        }
+
+        if (result.prevBlockHash !== this._computationPrevBlock?.getLastHash()) {
+            return; // this is a 'ghost compute', another one was started and we're being cancelled.
+        }
+
+        const comp = BlockOp.initializeComptroller(this._computationPrevBlock);
+
+        // Bootstrap Period Protection pre-VDF.
+        const bootstrap = comp.isBootstrapPeriod();
+
+        const challenge = BlockOp.getChallenge(this, result.vrfSeed);
+        this._computationChallenge = challenge;
+        const steps = BlockOp.getVDFSteps(comp, challenge);
+
+        // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs.
+
+        this._computationDifficulty = steps;
+        
+        Blockchain.miningLog.info('Mining #' + (comp.getBlockNumber() + BigInt(1)) + ', got ' + steps + ' steps for challenge ending in ' + challenge.slice(-6) + '...');
+        Blockchain.miningLog.debug('Dynamic Max VDF Speed (vdfSteps/sec) = ' + FixedPoint.toNumber(comp.getMovingMaxSpeed()) )
+        Blockchain.miningLog.debug('Dynamic Min VDF Speed (vdfSteps/sec) = ' + FixedPoint.toNumber(comp.getMovingMinSpeed()) )
+        Blockchain.miningLog.debug('Dynamic VDF Speed Ratio (Exponential Difficulty Adj.) = ' + FixedPoint.toNumber(comp.getSpeedRatio()) )
+        Blockchain.miningLog.debug('Dynamic Block Time Factor (Linear Difficulty Adj.) = ' + FixedPoint.toNumber(comp.getBlockTimeFactor()) )
+
+        const prevOpContext = this._computationPrevBlock?.toLiteralContext();
+
+        this._computation = new Worker('./dist/model/worker.js');
+        this._computation.on('error', this.computationError);
+        this._computation.on('message', this.computationCallback);
+
+        this._computation.postMessage({steps: steps, challenge: challenge, prevOpContext: prevOpContext, prevBlockHash: this._computationPrevBlock?.getLastHash(), bootstrap: bootstrap, vrfSeed: result.vrfSeed});
+        
+    }
+
+    computationError(err: Error) { 
+        Blockchain.miningLog.error('Unexpected error while mining: ', err);
+    }
+
+    computationCallback(msg: {challenge: string, result: string, steps: bigint, prevBlockHash?: Hash, bootstrapResult?: string, vrfSeed?: string}) {
+        this.computationCallbackAsync(msg).then();
+    }
+
+    async computationCallbackAsync(msg: {challenge: string, result: string, steps: bigint, prevBlockHash?: Hash, bootstrapResult?: string, vrfSeed?: string}) {
+                    
+        Blockchain.miningLog.debug('Solved challenge ending in ' + msg.challenge.slice(-6) + '!');
+        if (msg.challenge === this._computationChallenge ) {
+
+            if (!(msg.prevBlockHash === this._computationPrevBlock?.getLastHash())) {
+                return; // this is a 'ghost compute', another one was started and we're being cancelled.
+            }
+
+            let op = new BlockOp(this, this._computationPrevBlock, msg.steps, msg.result, msg.bootstrapResult, this._coinbase, msg.vrfSeed);
+            
+
+            let blocktime = this._computationPrevBlock !== undefined? 
+                op.timestampMillisecs?.getValue() as bigint - (this._computationPrevBlock.timestampMillisecs?.getValue() as bigint)
+            :
+                MiniComptroller.targetBlockTime * BigInt(1000); // FIXME:pwd initial block time
+
+            if (blocktime == BigInt(0)) {
+                blocktime = BigInt(1) * FixedPoint.UNIT
+            }
+
+            Blockchain.miningLog.info('⛏️⛏️⛏️⛏️ #' + op.blockNumber?.getValue() + ' mined by us with coinbase ' + this._coinbase?.getLastHash() + ', block time ' + (Number(blocktime)/(10**(FixedPoint.DECIMALS+3))).toFixed(4).toString() + 's, block hash ends in ' + op.hash().slice(-6));
+            Blockchain.miningLog.info('Tokenomics: movingMaxSpeed=' + (Number(op.movingMaxSpeed?.getValue()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+                + ', movingMinSpeed=' + (Number(op.movingMinSpeed?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+                + ', blockTimeFactor=' + (Number(op.blockTimeFactor?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+                + ', speedRatio=' + (Number(FixedPoint.divTrunc(op.movingMaxSpeed?.getValue() as bigint, op.movingMinSpeed?.getValue() as bigint)) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString()
+                + ', speed=' + (Number(msg.steps) / (Number(blocktime)/10**FixedPoint.DECIMALS/1000))?.toFixed(4)?.toString()
+                );
+                
+            /*if (this._lastBlock !== undefined) {
+                op.setPrevOps(new Set([this._lastBlock]).values());
+            } else {
+                op.setPrevOps(new Set<MutationOp>().values());
+            }*/
+
+            await this.stopRace();
+            await this.applyNewOp(op);
+            await this.getStore().save(this);
+            
+        } else {
+            Blockchain.miningLog.warning('Mismatched challenge - could be normal. Solved one ending in ' + msg.challenge.slice(-6) + ' but expected ' + msg.challenge.slice(-6));
+        }
+        
     }
 
     stopRace(): Promise<void> {
@@ -354,7 +366,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         this._node.broadcast(this);
         this._node.sync(this);
 
-        await this.loadAndWatchForChanges();
+        await this.loadAndWatchForChanges(1024);
     }
     
     async stopSync(): Promise<void> {
