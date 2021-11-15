@@ -93,6 +93,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     _lastPrune?: bigint;
     _pruneLock: Lock;
 
+    private _loadedAllChanges: boolean;
+
     constructor(seed?: string, totalCoins?: string) {
         super([BlockOp.className, PruneOp.className]);
 
@@ -115,6 +117,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         this.computationError = this.computationError.bind(this);
 
         this._pruneLock = new Lock();
+
+        this._loadedAllChanges = false;
     }
 
     enableMining(coinbase: Identity) {
@@ -419,6 +423,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         this._node.sync(this);
 
         await this.loadAndWatchForChanges(1024);
+        this._loadedAllChanges = true;
     }
     
     async stopSync(): Promise<void> {
@@ -662,17 +667,18 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     async attemptPrune(newBlockNumber: bigint) {
 
         if (this._pruneLock.acquire()) {
-            Blockchain.pruneLog.debug('Acquired log, starting prune... (' + this._terminalOps.size + ' unpruned forks)');
+            
             try {
                 if (this._lastPrune === undefined || newBlockNumber > this._lastPrune) {
                     if (newBlockNumber % Blockchain.pruneFreq === BigInt(0)) {
+                        Blockchain.pruneLog.debug('Acquired log, starting prune... (' + this._terminalOps.size + ' unpruned forks)');
                         this._lastPrune = newBlockNumber;
                         await this.prune(newBlockNumber);
+                        Blockchain.pruneLog.debug('Prune finished (' + this._terminalOps.size + ' unpruned forks)');
                     }
                 }
             } finally {
-                this._pruneLock.release();
-                Blockchain.pruneLog.debug('Prune finished, released log... (' + this._terminalOps.size + ' unpruned forks)');
+                this._pruneLock.release();                
             }
         }
 
@@ -732,6 +738,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         Blockchain.pruneLog.debug('Saved pruning op with ' + batch.size + ' predecessors');
 
         return pruneOp;
+    }
+
+    hasLoadedAllChanges(): boolean {
+        return this._loadedAllChanges;
     }
 
 }
