@@ -1,6 +1,6 @@
 import '@hyper-hyper-space/node-env';
 
-import { HistorySynchronizer, Identity, Store } from '@hyper-hyper-space/core';
+import { HistorySynchronizer, Identity, SecureNetworkAgent, Store } from '@hyper-hyper-space/core';
 import { RSAKeyPair } from '@hyper-hyper-space/core';
 
 import { RNGImpl } from '@hyper-hyper-space/core';
@@ -41,14 +41,20 @@ async function main() {
 
     const keystore = new Store(new SQLiteBackend('.pulsar/keystore'));
 
-    HistorySynchronizer.controlLog.level = LogLevel.INFO;
-    HistorySynchronizer.sourcesLog.level = LogLevel.INFO;
-    HistorySynchronizer.stateLog.level   = LogLevel.INFO;
-    HistorySynchronizer.opXferLog.level  = LogLevel.INFO;
-    HistorySynchronizer.requestLog.level = LogLevel.INFO;
-    Store.operationLog.level = LogLevel.INFO;
+    Store.operationLog.level   = LogLevel.INFO;
+
+    SecureNetworkAgent.logger.level = LogLevel.INFO;
+
+    HistorySynchronizer.controlLog.level  = LogLevel.INFO;
+    HistorySynchronizer.sourcesLog.level  = LogLevel.INFO;
+    HistorySynchronizer.stateLog.level    = LogLevel.INFO;
+    HistorySynchronizer.opXferLog.level   = LogLevel.INFO;
+    HistorySynchronizer.requestLog.level  = LogLevel.INFO;
+    HistorySynchronizer.responseLog.level = LogLevel.INFO;
+    
     Blockchain.loadLog.level   = LogLevel.INFO;
     Blockchain.miningLog.level = LogLevel.INFO;
+    
 
     await BlockOp.vdfInit();
 
