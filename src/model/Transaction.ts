@@ -4,7 +4,7 @@ import { HashedBigInt } from "./HashedBigInt";
 
 class Transaction extends HashedObject {
 
-    static className = 'hhs/v0/soliton/Transaction';
+    static className = 'hhs/v0/pulsar/Transaction';
 
     // TODO: add Blockchain target to avoid cross-chain replay attack
 

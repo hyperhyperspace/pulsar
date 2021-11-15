@@ -4,24 +4,65 @@ import { Identity } from '@hyper-hyper-space/core';
 
 import { SpaceEntryPoint } from '@hyper-hyper-space/core';
 
-import { BlockOp } from './BlockOp';
+
 
 import { Worker } from 'worker_threads';
 import { HeaderBasedState } from '@hyper-hyper-space/core';
 import { OpHeader } from '@hyper-hyper-space/core/dist/data/history/OpHeader';
-import { MiniComptroller, FixedPoint } from './MiniComptroller';
-import { Logger, LogLevel } from '../../../core/dist/util/logging';
+import { Logger, LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 import { Lock } from '@hyper-hyper-space/core/dist/util/concurrency';
+
+
+
+import { MiniComptroller, FixedPoint } from './MiniComptroller';
+
+import { BlockOp } from './BlockOp';
 import { HashedBigInt } from './HashedBigInt';
-//import { Logger, LogLevel } from 'util/logging';
+import { PruneOp } from './PruneOp';
+
+function pruneSort(op1: MutationOp, op2: MutationOp): number {
+    if (op1 instanceof BlockOp) {
+        if (op2 instanceof PruneOp) {
+            return 1;
+        } else if (op2 instanceof BlockOp) {
+            const height1 = op1.blockNumber?.getValue() as bigint;
+            const height2 = op2.blockNumber?.getValue() as bigint;
+
+            if (height1 < height2) {
+                return -1;
+            } else if (height1 > height2) {
+                return 1;
+            } else {
+                return op1.getLastHash().localeCompare(op2.getLastHash());
+            }
+        } else {
+            return 0; // never
+        }
+    } else if (op1 instanceof PruneOp) {
+        if (op2 instanceof BlockOp) {
+            return -1;
+        } else if (op2 instanceof PruneOp) {
+            return op1.getLastHash().localeCompare(op2.getLastHash());
+        } else {
+            return 0; // never
+        }
+    } else {
+        return 0; // never
+    }
+}
 
 class Blockchain extends MutableObject implements SpaceEntryPoint {
+
+    static pruneFreq = BigInt(16);
+    static maxPrunedOps = 128;
+    static minPrunedOps = 8;
 
     //static log = new Logger(Blockchain.name, LogLevel.DEBUG)
     static gossipLog = new Logger(Blockchain.name, LogLevel.INFO);
     static miningLog = new Logger(Blockchain.name, LogLevel.INFO);
     static forkChoiceLog = new Logger('Fork choice', LogLevel.INFO);
     static loadLog   = new Logger(Blockchain.name, LogLevel.INFO);
+    static pruneLog  = new Logger(Blockchain.name, LogLevel.DEBUG);
     
 
     static className = 'hhs/v0/soliton/Blockchain';
@@ -49,8 +90,11 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _maxSeenBlockNumber?: bigint;
 
+    _lastPrune?: bigint;
+    _pruneLock: Lock;
+
     constructor(seed?: string, totalCoins?: string) {
-        super([BlockOp.className]);
+        super([BlockOp.className, PruneOp.className]);
 
         if (seed !== undefined) {
             this.setId(seed);
@@ -69,6 +113,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
         this.computationCallback = this.computationCallback.bind(this);
         this.computationError = this.computationError.bind(this);
+
+        this._pruneLock = new Lock();
     }
 
     enableMining(coinbase: Identity) {
@@ -336,6 +382,12 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
         }
 
+            /* we're done loading ops & we've just seen a new head block */
+        if (this.hasLoadedAllChanges() && this._headBlock !== undefined) {
+            const newBlockNumber = this._headBlock.blockNumber?.getValue() as bigint;
+            this.attemptPrune(newBlockNumber);
+        }
+
         return accept;
     }
 
@@ -558,7 +610,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
                 if (localState?.terminalOpHeaders !== undefined) {
                     for (const opHeaderLiteral of localState.terminalOpHeaders.values()) {
-                        if (opHeaderLiteral.computedHeight > maxHeight) {
+                        if (opHeaderLiteral.headerProps?.ignore === undefined && opHeaderLiteral.computedHeight > maxHeight) {
                             maxHeight = opHeaderLiteral.computedHeight;
                         }
                     }
@@ -568,7 +620,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     if (local?.terminalOps !== undefined) {
                         for (const opHash of local?.terminalOps) {
                             const opHistory = await store.loadOpHeader(opHash) as OpHeader;
-                            if (opHistory.computedProps.height > maxHeight) {
+                            if (opHistory.headerProps?.get('ignore') === undefined && opHistory.computedProps.height > maxHeight) {
                                 maxHeight = opHistory.computedProps.height;
                             }
                         }
@@ -582,13 +634,13 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             if (state.terminalOpHeaders !== undefined) {
                 for (const opHeaderLiteral of state.terminalOpHeaders.values()) {
-                    if (opHeaderLiteral.computedHeight > maxHeight) {
+                    if (opHeaderLiteral.headerProps?.ignore === undefined && opHeaderLiteral.computedHeight > maxHeight) {
                         maxHeight = opHeaderLiteral.computedHeight;
                     }
                 }
 
                 for (const opHeaderLiteral of state.terminalOpHeaders.values()) {
-                    if (opHeaderLiteral.computedHeight+MAX_FINALITY_DEPTH >= maxHeight) {
+                    if (opHeaderLiteral.headerProps?.ignore === undefined && opHeaderLiteral.computedHeight+MAX_FINALITY_DEPTH >= maxHeight) {
                         filteredOpHeaders.push(new OpHeader(opHeaderLiteral));
                     } else {
                         Blockchain.gossipLog.trace('Discarding terminal op history ' + opHeaderLiteral.headerHash + ' (height: ' + opHeaderLiteral.computedHeight + ', current height: ' + maxHeight + ')');
@@ -605,6 +657,81 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         };
 
         return forkChoiceFilter;
+    }
+
+    async attemptPrune(newBlockNumber: bigint) {
+
+        if (this._pruneLock.acquire()) {
+            Blockchain.pruneLog.debug('Acquired log, starting prune... (' + this._terminalOps.size + ' unpruned forks)');
+            try {
+                if (this._lastPrune === undefined || newBlockNumber > this._lastPrune) {
+                    if (newBlockNumber % Blockchain.pruneFreq === BigInt(0)) {
+                        this._lastPrune = newBlockNumber;
+                        await this.prune(newBlockNumber);
+                    }
+                }
+            } finally {
+                this._pruneLock.release();
+                Blockchain.pruneLog.debug('Prune finished, released log... (' + this._terminalOps.size + ' unpruned forks)');
+            }
+        }
+
+    }
+
+    async prune(newBlockNumber: bigint) {
+        let toPrune = new Array<MutationOp>();
+
+        const pruneLimit = newBlockNumber - Blockchain.pruneFreq;
+
+        if (pruneLimit <= BigInt(0)) {
+            return;
+        }
+
+        for (const op of this._terminalOps.values()) {
+            if (op instanceof PruneOp) {
+                toPrune.push(op);
+            } else if (op instanceof BlockOp) {
+                const opBlockNumber = op.blockNumber?.getValue() as bigint;
+
+                if (opBlockNumber < pruneLimit) {
+                    toPrune.push(op);
+                }
+            }
+        }
+
+        if (toPrune.length > 0) {
+            toPrune.sort(pruneSort);
+
+            let batch = new Set<MutationOp>();
+
+            for (const op of toPrune) {
+                batch.add(op);
+
+                if (batch.size === Blockchain.maxPrunedOps) {
+                    const pruneOp = await this.pruneBatch(batch);
+                    batch = new Set();
+                    batch.add(pruneOp);
+                }
+            }
+
+            if (batch.size >= Blockchain.minPrunedOps) {
+                await this.pruneBatch(batch);
+            }
+        }
+
+        
+    }
+
+    async pruneBatch(batch: Set<MutationOp>): Promise<PruneOp> {
+        const pruneOp = new PruneOp(this);
+
+        pruneOp.setPrevOps(batch.values());
+
+        await this.applyNewOp(pruneOp);
+
+        Blockchain.pruneLog.debug('Saved pruning op with ' + batch.size + ' predecessors');
+
+        return pruneOp;
     }
 
 }
