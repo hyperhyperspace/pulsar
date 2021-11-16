@@ -15,7 +15,6 @@ import { OpHeader, OpHeaderProps } from '@hyper-hyper-space/core/dist/data/histo
 import { Logger, LogLevel } from '../../../core/dist/util/logging';
 
 import { Transaction } from './Transaction';
-import { Ledger } from './Ledger';
 
 (global as any).document = { }; // yikes!
 
@@ -324,7 +323,7 @@ class BlockOp extends MutationOp {
             return false;
         }
 
-        this.getLedgerForBlock;
+        
 
         /*const ledger = await this.getLedgerForBlock(this.getPrevBlockHash(), references);
         if (!ledger.canProcessBlock(this)) {
@@ -347,7 +346,7 @@ class BlockOp extends MutationOp {
 
     }
 
-    private async getLedgerForBlock(blockHash?: Hash, references?: Map<Hash, HashedObject>): Promise<Ledger> {
+    /*private async getLedgerForBlock(blockHash?: Hash, references?: Map<Hash, HashedObject>): Promise<Ledger> {
         const blockList = new Array<BlockOp>();
 
         while (blockHash !== undefined) {
@@ -377,7 +376,7 @@ class BlockOp extends MutationOp {
         }
 
         return ledger;
-    }
+    }*/
 
     static getChallenge(target: Blockchain, vrfSeed?: Hash): string {
         let challenge: string;

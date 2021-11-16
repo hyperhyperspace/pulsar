@@ -1,4 +1,5 @@
 import { HashedObject, Identity, RNGImpl } from "@hyper-hyper-space/core";
+import { Blockchain } from "./Blockchain";
 import { HashedBigInt } from "./HashedBigInt";
 
 
@@ -6,16 +7,22 @@ class Transaction extends HashedObject {
 
     static className = 'hhs/v0/pulsar/Transaction';
 
-    // TODO: add Blockchain target to avoid cross-chain replay attack
-
+    blockchain?: Blockchain;
     destination?: Identity;
     amount?: HashedBigInt;
+    fee?: HashedBigInt;
     nonce?: string;
 
-    constructor(source?: Identity, destination?: Identity, amount?: bigint) {
+    constructor(blockchain?: Blockchain, source?: Identity, destination?: Identity, amount?: bigint, fee?: bigint) {
         super();
 
-        if (source !== undefined) {
+        if (blockchain !== undefined) {
+
+            this.blockchain = blockchain;
+
+            if (source === undefined) {
+                throw new Error('Transaction source is missing.');
+            }
 
             if (destination === undefined) {
                 throw new Error('Transaction destination is missing.');
@@ -33,11 +40,21 @@ class Transaction extends HashedObject {
                 throw new Error('Transaction amount must be greater than zero, received: ' + amount.toString() + '.');
             }
 
+            if (fee === undefined) {
+                throw new Error('Transaction fee is missing.');
+            }
+
+            if (fee < 0) {
+                throw new Error('Transaction fee must be greater than zero, received: ' + fee.toString() + '.');
+            }
+
+            this.blockchain = blockchain;
             this.destination = destination;
             this.amount = new HashedBigInt(amount);
+            this.fee    = new HashedBigInt(fee);
             this.setAuthor(source);
             this.nonce = new RNGImpl().randomHexString(128);
-
+            
         }
 
     }
@@ -53,6 +70,14 @@ class Transaction extends HashedObject {
     async validate(references: Map<string, HashedObject>): Promise<boolean> {
         
         references;
+
+        if (this.blockchain === undefined) {
+            return false;
+        }
+
+        if (!(this.blockchain instanceof Blockchain)) {
+            return false;
+        }
 
         if (this.getAuthor() === undefined) {
             return false;
@@ -86,7 +111,23 @@ class Transaction extends HashedObject {
             return false;
         }
 
+        if (this.fee === undefined) {
+            return false;
+        }
+
+        if (!(this.fee instanceof HashedBigInt)) {
+            return false;
+        }
+
+        if (this.fee.getValue() < BigInt(0)) {
+            return false;
+        }
+
         if (!(typeof(this.nonce) === 'string')) {
+            return false;
+        }
+
+        if (this.nonce.length !== 128 / 4) {
             return false;
         }
 
