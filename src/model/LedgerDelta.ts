@@ -36,14 +36,14 @@ class LedgerDelta {
 
     processBlock(blockOp: BlockOp) {
 
-        const blockNum = blockOp.blockNumber?.getValue() as bigint;
+        const blockNum = blockOp.getBlockNumber();
 
         if (blockNum !== this.currentBlockNumber + BigInt(1)) {
-            throw new Error('Cannot update ledger: expected block number ' + this.currentBlockNumber + ' but got block ' + blockOp.blockNumber?.getValue() + ' instead.');
+            throw new Error('Cannot update ledger: expected block number ' + this.currentBlockNumber + ' but got block ' + blockOp.getBlockNumber() + ' instead.');
         }
 
         const coinbase = blockOp.getAuthor()?.hash() as Hash;
-        const reward = blockOp.blockReward?.getValue() as bigint;
+        const reward = blockOp.getBlockReward();
 
         this.updateBalance(coinbase, reward);
 
@@ -84,7 +84,7 @@ class LedgerDelta {
         this.currentBlockNumber = this.currentBlockNumber - BigInt(1);
 
         const coinbase = blockOp.getAuthor()?.hash() as Hash;
-        const reward = blockOp.blockReward?.getValue() as bigint;
+        const reward = blockOp.getBlockReward() as bigint;
 
         this.updateBalance(coinbase, -reward);
 

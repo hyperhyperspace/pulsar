@@ -176,7 +176,7 @@ async function main() {
         blockchain = new Blockchain(new RNGImpl().randomHexString(160));
 
         const filename = './.pulsar/' + Space.getWordCodingFor(blockchain).join('_') + '.chain';
-        const store = new Store(new SQLiteBackend(filename));
+        const store = new Store(new SQLiteBackend(filename, true));
 
         await store.save(keypair);
         await store.save(identity);

@@ -1,7 +1,8 @@
 
 //import {createHash} from "crypto";
 import { Hash, HashedObject, Hashing, Identity, MutationOp } from '@hyper-hyper-space/core';
-import { HashedBigInt } from './HashedBigInt';
+//import { HashedBigInt } from './HashedBigInt';
+import { BigIntLiteral, BigIntParser } from './BigIntLiteral';
 //import { Logger, LogLevel } from '@hyper-hyper-space/core';
 
 import { Blockchain } from './Blockchain';
@@ -35,12 +36,12 @@ class BlockOp extends MutationOp {
     static coins: bigint = BigInt(0);
     static totalCoins: bigint = MiniComptroller.bootstrapVirtualStake * BigInt(4);
     
-    blockNumber?: HashedBigInt;
-    movingMaxSpeed?: HashedBigInt;
-    movingMinSpeed?: HashedBigInt;
-    blockTimeFactor?: HashedBigInt;
+    blockNumber?: BigIntLiteral;
+    movingMaxSpeed?: BigIntLiteral;
+    movingMinSpeed?: BigIntLiteral;
+    blockTimeFactor?: BigIntLiteral;
 
-    vdfSteps?: HashedBigInt;
+    vdfSteps?: BigIntLiteral;
 
     vrfSeed?: string;
 
@@ -48,9 +49,20 @@ class BlockOp extends MutationOp {
     vdfBootstrapResult?: string;
 
     transactions?: Transaction[];
-    blockReward?: HashedBigInt;
+    blockReward?: BigIntLiteral;
 
-    timestampMillisecs?: HashedBigInt;
+    timestampMillisecs?: BigIntLiteral;
+
+    _blockNumber?: bigint;
+    _movingMaxSpeed?: bigint;
+    _movingMinSpeed?: bigint;
+    _blockTimeFactor?: bigint;
+
+    _vdfSteps?: bigint;
+
+    _blockReward?: bigint;
+
+    _timestampMillisecs?: bigint;
 
     constructor(target?: Blockchain, prevOp?: BlockOp, steps?: bigint, vdfResult?: string, vdfBootstrapResult?: string, coinbase?: Identity, vrfSeed?: string, transactions?: Transaction[]) {
         super(target);
@@ -67,15 +79,16 @@ class BlockOp extends MutationOp {
 
             this.vrfSeed = vrfSeed;
 
-            this.timestampMillisecs = new HashedBigInt(BigInt(Math.floor(Date.now() * 10**3)) * BigInt(10)**BigInt(FixedPoint.DECIMALS - 3));
+            this.setTimestampMillisecs(BigInt(Math.floor(Date.now() * 10**3)) * BigInt(10)**BigInt(FixedPoint.DECIMALS - 3));
 
-            this.vdfSteps  = new HashedBigInt(steps);
+            this.setVdfSteps(steps);
             this.vdfResult = vdfResult;
 
             let blocktime = prevOp !== undefined? 
-                                (this.timestampMillisecs?.getValue() as bigint) - (prevOp.timestampMillisecs?.getValue() as bigint)
+                                this.getTimestampMillisecs() - prevOp.getTimestampMillisecs()
                             :
                                 MiniComptroller.targetBlockTime * BigInt(1000); // FIXME: initial block time
+            
             if (blocktime == BigInt(0)) {
                 blocktime = BigInt(1) * FixedPoint.UNIT
                 // console.log('Verifying block with blockTime (secs) = ', Number(blocktime) / Number(FixedPoint.UNIT) )
@@ -87,10 +100,10 @@ class BlockOp extends MutationOp {
             // millisecs to secs for blocktime
             comp.addBlockSample(blocktime / BigInt(1000), steps);
 
-            this.blockNumber = new HashedBigInt(comp.getBlockNumber());
-            this.movingMaxSpeed = new HashedBigInt(comp.getMovingMaxSpeed());
-            this.movingMinSpeed = new HashedBigInt(comp.getMovingMinSpeed());
-            this.blockTimeFactor = new HashedBigInt(comp.getBlockTimeFactor());
+            this.setBlockNumber(comp.getBlockNumber());
+            this.setMovingMaxSpeed(comp.getMovingMaxSpeed());
+            this.setMovingMinSpeed(comp.getMovingMinSpeed());
+            this.setBlockTimeFactor(comp.getBlockTimeFactor());
 
             if (vdfBootstrapResult) {
                 this.vdfBootstrapResult = vdfBootstrapResult;
@@ -106,7 +119,7 @@ class BlockOp extends MutationOp {
                 throw new Error('The max number of transactions per block is ' + MAX_TX_PER_BLOCK + ', attempted to create a block with ' + this.transactions.length + '.');
             }
 
-            this.blockReward = new HashedBigInt(comp.getConsensusBlockReward());
+            this.setBlockReward(comp.getConsensusBlockReward());
         }
 
     }
@@ -116,7 +129,16 @@ class BlockOp extends MutationOp {
     }
 
     init(): void {
-        
+        this._blockNumber = BigIntParser.read(this.blockNumber as BigIntLiteral);
+        this._movingMaxSpeed = BigIntParser.read(this.movingMaxSpeed as BigIntLiteral);
+        this._movingMinSpeed = BigIntParser.read(this.movingMinSpeed as BigIntLiteral);
+        this._blockTimeFactor = BigIntParser.read(this.blockTimeFactor as BigIntLiteral);
+    
+        this._vdfSteps = BigIntParser.read(this.vdfSteps as BigIntLiteral);
+    
+        this._blockReward = BigIntParser.read(this.blockReward as BigIntLiteral);
+    
+        this._timestampMillisecs = BigIntParser.read(this.timestampMillisecs as BigIntLiteral);
     }
 
     getPrevBlockHash(): Hash | undefined {
@@ -129,17 +151,52 @@ class BlockOp extends MutationOp {
 
     async validate(references: Map<Hash, HashedObject>): Promise<boolean> {
 
-        references;
+        if (!BigIntParser.validate(this.blockNumber)) {
+            BlockOp.logger.debug('blockNumber is not a valid bigint literal.');
+            return false;
+        }
+        
+        if (!BigIntParser.validate(this.movingMaxSpeed)) {
+            BlockOp.logger.debug('movingMaxSpeed is not a valid bigint literal.');
+            return false;
+        }
 
-        if (this.blockNumber === undefined || this.vdfResult === undefined || this.vdfBootstrapResult === undefined) {
-            BlockOp.logger.warning('Object is incomplete.');
+        if (!BigIntParser.validate(this.movingMinSpeed)) {
+            BlockOp.logger.debug('movingMinSpeed is not a valid bigint literal.');
+            return false;
+        }
+
+        if (!BigIntParser.validate(this.blockTimeFactor)) {
+            BlockOp.logger.debug('blockTimeFactor is not a valid bigint literal.');
+            return false;
+        }
+
+        if (!BigIntParser.validate(this.vdfSteps)) {
+            BlockOp.logger.debug('vdfSteps is not a valid bigint literal.');
+            return false;
+        }
+
+        if (!BigIntParser.validate(this.blockReward)) {
+            BlockOp.logger.warning('blockReward is not a valid bigint literal.');
+            return false;
+        }
+
+        if (!BigIntParser.validate(this.timestampMillisecs)) {
+            BlockOp.logger.warning('timestampMillisecs is not a valid bigint literal.');
+            return false;
+        }
+
+        this.init();
+
+        if (this.vdfResult === undefined || this.vdfBootstrapResult === undefined) {
+            BlockOp.logger.debug('Object is incomplete.');
             BlockOp.logger.debug('this.blockNumber: ', this.blockNumber);
             BlockOp.logger.debug('this.vdfResult:', this.vdfResult);
             BlockOp.logger.debug('this.vdfBootstrapResult', this.vdfBootstrapResult);
             return false;
         }
 
-        if (this.blockNumber.getValue() <= BigInt(0)) {
+        if (this.getBlockNumber() <= BigInt(0)) {
             BlockOp.logger.warning('Sequence number is not positive.');
             return false;
         }
@@ -171,7 +228,7 @@ class BlockOp extends MutationOp {
 
         let prev: HashedObject | undefined = undefined;
         
-        if (this.blockNumber.getValue() === BigInt(1)) {
+        if (this.getBlockNumber() === BigInt(1)) {
             if (this.prevOps.size() !== 0) {
                 BlockOp.logger.warning('First block has predecessors.');
                 return false;
@@ -185,7 +242,7 @@ class BlockOp extends MutationOp {
             if (this.prevOps.size() !== 1) {
                 BlockOp.logger.warning('Missing reference to previous block.');
                 BlockOp.logger.debug('prevOps size:', this.prevOps.size());
-                BlockOp.logger.debug('blockNumber:', this.blockNumber.getValue());
+                BlockOp.logger.debug('blockNumber:', this.getBlockNumber());
                 return false;
             }
             
@@ -228,20 +285,20 @@ class BlockOp extends MutationOp {
         }
          
         if (prevOp !== undefined) {
-            if (this.timestampMillisecs?.getValue() <= (prevOp.timestampMillisecs?.getValue() as bigint)) { // timestamp always goes forward.
-                BlockOp.logger.warning('next block timestamp is older or same as last block ' + this.timestampMillisecs?.getValue().toString() + ' using prevOp.timestampSeconds ' + prevOp.timestampMillisecs?.getValue().toString());
+            if (this.getTimestampMillisecs() <= prevOp.getTimestampMillisecs()) { // timestamp always goes forward.
+                BlockOp.logger.warning('next block timestamp is older or same as last block ' + this.getTimestampMillisecs()?.toString() + ' using prevOp.timestampSeconds ' + prevOp.getTimestampMillisecs()?.toString());
                 return false;
             }
             // Tolerate only one target blocktime from the future (are millisecs plus 12 decimals with 0s).
             const localTimeBigInt = BigInt(Math.floor(Date.now() * 10**3)) * BigInt(10)**BigInt(FixedPoint.DECIMALS);
-            if (this.timestampMillisecs?.getValue() > localTimeBigInt + MiniComptroller.targetBlockTime) {
-                BlockOp.logger.warning('next block timestamp comes too much from the future ' + this.timestampMillisecs?.getValue().toString() + ' using localtimeBigInt ' + localTimeBigInt.toString());
+            if (this.getTimestampMillisecs() > localTimeBigInt + MiniComptroller.targetBlockTime) {
+                BlockOp.logger.warning('next block timestamp comes too much from the future ' + this.getTimestampMillisecs()?.toString() + ' using localtimeBigInt ' + localTimeBigInt.toString());
                 return false;
             }
         }
 
         let blocktime = prevOp !== undefined? 
-                            this.timestampMillisecs?.getValue() - (prevOp.timestampMillisecs?.getValue() as bigint)
+                            this.getTimestampMillisecs() - prevOp.getTimestampMillisecs()
                         :
                             MiniComptroller.targetBlockTime * BigInt(1000); // FIXME:pwd initial block time
         
@@ -256,30 +313,30 @@ class BlockOp extends MutationOp {
         const steps = BlockOp.getVDFSteps(comp, challenge);
         // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs.
 
-        if (this.vdfSteps?._value !== steps) {
-            BlockOp.logger.warning('VDF Steps are wrong, should be ' + steps.toString() + ' but received ' + this.vdfSteps?._value?.toString());
+        if (this.getVdfSteps() !== steps) {
+            BlockOp.logger.warning('VDF Steps are wrong, should be ' + steps.toString() + ' but received ' + this.getVdfSteps()?.toString());
             return false;
         }
 
         // millisecs to secs for blocktime
         comp.addBlockSample(blocktime / BigInt(1000), steps);
 
-        if (this.blockNumber?.getValue() !== comp.getBlockNumber()) {
+        if (this.getBlockNumber() !== comp.getBlockNumber()) {
             BlockOp.logger.warning('Comptroller rejected blockNumber');
             return false;
         }
 
-        if (this.movingMaxSpeed?.getValue() !== comp.getMovingMaxSpeed()) {
+        if (this.getMovingMaxSpeed() !== comp.getMovingMaxSpeed()) {
             BlockOp.logger.warning('Comptroller rejected movingMaxSpeed');
             return false;
         }
                                                          
-        if (this.movingMinSpeed?.getValue() !== comp.getMovingMinSpeed()) {
+        if (this.getMovingMinSpeed() !== comp.getMovingMinSpeed()) {
             BlockOp.logger.warning('Comptroller rejected movingMinSpeed');
             return false;
         }
                                                          
-        if (this.blockTimeFactor?.getValue() !== comp.getBlockTimeFactor()) {
+        if (this.getBlockTimeFactor() !== comp.getBlockTimeFactor()) {
             BlockOp.logger.warning('Comptroller rejected blockTimeFactor');
             return false;
         }
@@ -318,7 +375,7 @@ class BlockOp extends MutationOp {
             return false;
         }
 
-        if (this.blockReward?.getValue() !== comp.getConsensusBlockReward()) {
+        if (this.getBlockReward() !== comp.getConsensusBlockReward()) {
             BlockOp.logger.warning('Wrong block reward');
             return false;
         }
@@ -333,12 +390,12 @@ class BlockOp extends MutationOp {
 
         
 
-        BlockOp.logger.info('Received #' + this.blockNumber.getValue().toString() + ' with steps=' + this.vdfSteps.getValue().toString() + ' and timestamp=' + new Date(Number(this.timestampMillisecs?.getValue())/10**(FixedPoint.DECIMALS)).toLocaleString() + ' by ' + this.getAuthor()?.hash() + ', block time ' + (Number(blocktime)/(10**(FixedPoint.DECIMALS+3))).toFixed(4).toString() + 's, block hash ends in ' + this.hash().slice(-6));
+        BlockOp.logger.info('Received #' + this.getBlockNumber()?.toString() + ' with steps=' + this.getVdfSteps()?.toString() + ' and timestamp=' + new Date(Number(this.getTimestampMillisecs())/10**(FixedPoint.DECIMALS)).toLocaleString() + ' by ' + this.getAuthor()?.hash() + ', block time ' + (Number(blocktime)/(10**(FixedPoint.DECIMALS+3))).toFixed(4).toString() + 's, block hash ends in ' + this.hash().slice(-6));
         BlockOp.logger.info('Tokenomics: movingMaxSpeed=' 
-            + (Number(this.movingMaxSpeed?.getValue()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-            + ', movingMinSpeed=' + (Number(this.movingMinSpeed?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-            + ', blockTimeFactor=' + (Number(this.blockTimeFactor?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-            + ', speedRatio=' + (Number(FixedPoint.divTrunc(this.movingMaxSpeed?.getValue(), this.movingMinSpeed.getValue())) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString()
+            + (Number(this.getMovingMaxSpeed()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+            + ', movingMinSpeed=' + (Number(this.getMovingMinSpeed())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+            + ', blockTimeFactor=' + (Number(this.getBlockTimeFactor())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+            + ', speedRatio=' + (Number(FixedPoint.divTrunc(this.getMovingMaxSpeed(), this.getMovingMinSpeed())) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString()
             + ', speed=' + (Number(comp.getSpeed()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString()
             );
 
@@ -418,7 +475,7 @@ class BlockOp extends MutationOp {
     }
 
     getSpeedRatio() {
-        return FixedPoint.divTrunc(this.movingMaxSpeed?.getValue() as bigint, this.movingMinSpeed?.getValue() as bigint)
+        return FixedPoint.divTrunc(this.getMovingMaxSpeed(), this.getMovingMinSpeed());
     }
 
     getFinalityDepth(): number {
@@ -429,10 +486,10 @@ class BlockOp extends MutationOp {
         const comptroller = new MiniComptroller();
 
         if (prevOp !== undefined) {
-            comptroller.setBlockNumber(prevOp.blockNumber?.getValue() as bigint);
-            comptroller.setMovingMaxSpeed(prevOp.movingMaxSpeed?.getValue() as bigint);
-            comptroller.setMovingMinSpeed(prevOp.movingMinSpeed?.getValue() as bigint);
-            comptroller.setBlockTimeFactor(prevOp.blockTimeFactor?.getValue() as bigint);
+            comptroller.setBlockNumber(prevOp.getBlockNumber());
+            comptroller.setMovingMaxSpeed(prevOp.getMovingMaxSpeed());
+            comptroller.setMovingMinSpeed(prevOp.getMovingMinSpeed());
+            comptroller.setBlockTimeFactor(prevOp.getBlockTimeFactor() as bigint);
             comptroller.setSpeedRatio(FixedPoint.divTrunc(comptroller.getMovingMaxSpeed(), comptroller.getMovingMinSpeed()));
         } else {
             comptroller.setBlockTimeFactor(BigInt(120) * FixedPoint.UNIT)
@@ -451,7 +508,7 @@ class BlockOp extends MutationOp {
         
         const prevOpHash = this.getPrevBlockHash();
 
-        let currentDiff = this.vdfSteps?.getValue() as bigint;
+        let currentDiff = this.getVdfSteps();
 
         if (prevOpHash !== undefined) {
             const prevOpHistory = (prevOpCausalHistories.get(prevOpHash) as OpHeader);
@@ -466,6 +523,69 @@ class BlockOp extends MutationOp {
         props.set('totalDifficulty', currentDiff.toString(16));
 
         return props;
+    }
+
+    setTimestampMillisecs(millis: bigint) {
+        this._timestampMillisecs = millis;
+        this.timestampMillisecs  = BigIntParser.write(millis);
+    }
+
+    getTimestampMillisecs() {
+        return this._timestampMillisecs as bigint;
+    }
+
+    setVdfSteps(steps: bigint) {
+        this._vdfSteps = steps;
+        this.vdfSteps  = BigIntParser.write(steps);
+    }
+
+    getVdfSteps() {
+        return this._vdfSteps as bigint;
+    }
+
+    setBlockNumber(n: bigint) {
+        this._blockNumber = n;
+        this.blockNumber  = BigIntParser.write(n);
+    }
+
+    getBlockNumber() {
+        return this._blockNumber as bigint;
+    }
+
+    setMovingMaxSpeed(m: bigint) {
+        this._movingMaxSpeed = m;
+        this.movingMaxSpeed  = BigIntParser.write(m);
+    }
+
+    getMovingMaxSpeed() {
+        return this._movingMaxSpeed as bigint;
+    }
+
+    setMovingMinSpeed(m: bigint) {
+        this._movingMinSpeed = m;
+        this.movingMinSpeed  = BigIntParser.write(m);
+    }
+
+    getMovingMinSpeed() {
+        return this._movingMinSpeed as bigint;
+    }
+
+    setBlockTimeFactor(f: bigint) {
+        this._blockTimeFactor = f;
+        this.blockTimeFactor  = BigIntParser.write(f);
+    }
+
+    getBlockTimeFactor() {
+        return this._blockTimeFactor as bigint;
+    }
+
+    setBlockReward(r: bigint) {
+        this._blockReward = r;
+        this.blockReward  = BigIntParser.write(r);
+    }
+
+    getBlockReward() {
+        return this._blockReward as bigint;
     }
 
 }

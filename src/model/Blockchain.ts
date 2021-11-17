@@ -17,7 +17,6 @@ import { Lock } from '@hyper-hyper-space/core/dist/util/concurrency';
 import { MiniComptroller, FixedPoint } from './MiniComptroller';
 
 import { BlockOp } from './BlockOp';
-import { HashedBigInt } from './HashedBigInt';
 import { PruneOp } from './PruneOp';
 
 function pruneSort(op1: MutationOp, op2: MutationOp): number {
@@ -25,8 +24,8 @@ function pruneSort(op1: MutationOp, op2: MutationOp): number {
         if (op2 instanceof PruneOp) {
             return 1;
         } else if (op2 instanceof BlockOp) {
-            const height1 = op1.blockNumber?.getValue() as bigint;
-            const height2 = op2.blockNumber?.getValue() as bigint;
+            const height1 = op1.getBlockNumber();
+            const height2 = op2.getBlockNumber();
 
             if (height1 < height2) {
                 return -1;
@@ -132,7 +131,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
                 const stopped = this._fallBehindStop;
 
-                const newHeight = this._headBlock?.blockNumber?.getValue();
+                const newHeight = this._headBlock?.getBlockNumber();
 
                 if (newHeight !== undefined) {
                     this._fallBehindCheckLastHeights.push(newHeight);
@@ -253,7 +252,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             
 
             let blocktime = this._computationPrevBlock !== undefined? 
-                op.timestampMillisecs?.getValue() as bigint - (this._computationPrevBlock.timestampMillisecs?.getValue() as bigint)
+                op.getTimestampMillisecs() - (this._computationPrevBlock.getTimestampMillisecs())
             :
                 MiniComptroller.targetBlockTime * BigInt(1000); // FIXME:pwd initial block time
 
@@ -261,11 +260,11 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 blocktime = BigInt(1) * FixedPoint.UNIT
             }
 
-            Blockchain.miningLog.info('⛏️⛏️⛏️⛏️ #' + op.blockNumber?.getValue() + ' mined by us with coinbase ' + this._coinbase?.getLastHash() + ', block time ' + (Number(blocktime)/(10**(FixedPoint.DECIMALS+3))).toFixed(4).toString() + 's, block hash ends in ' + op.hash().slice(-6));
-            Blockchain.miningLog.info('Tokenomics: movingMaxSpeed=' + (Number(op.movingMaxSpeed?.getValue()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-                + ', movingMinSpeed=' + (Number(op.movingMinSpeed?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-                + ', blockTimeFactor=' + (Number(op.blockTimeFactor?.getValue())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-                + ', speedRatio=' + (Number(FixedPoint.divTrunc(op.movingMaxSpeed?.getValue() as bigint, op.movingMinSpeed?.getValue() as bigint)) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString()
+            Blockchain.miningLog.info('⛏️⛏️⛏️⛏️ #' + op.getBlockNumber() + ' mined by us with coinbase ' + this._coinbase?.getLastHash() + ', block time ' + (Number(blocktime)/(10**(FixedPoint.DECIMALS+3))).toFixed(4).toString() + 's, block hash ends in ' + op.hash().slice(-6));
+            Blockchain.miningLog.info('Tokenomics: movingMaxSpeed=' + (Number(op.getMovingMaxSpeed()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+                + ', movingMinSpeed=' + (Number(op.getMovingMinSpeed())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+                + ', blockTimeFactor=' + (Number(op.getBlockTimeFactor())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
+                + ', speedRatio=' + (Number(FixedPoint.divTrunc(op.getMovingMaxSpeed(), op.getMovingMinSpeed())) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString()
                 + ', speed=' + (Number(msg.steps) / (Number(blocktime)/10**FixedPoint.DECIMALS/1000))?.toFixed(4)?.toString()
                 );
                 
@@ -335,7 +334,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
         if (op instanceof BlockOp) {
 
-            Blockchain.loadLog.info('Loading block #' + op.blockNumber?.getValue()?.toString() + ' w/hash ' + op.hash());
+            Blockchain.loadLog.info('Loading block #' + op.getBlockNumber()?.toString() + ' w/hash ' + op.hash());
 
             if (this._headBlock === undefined) {
                 accept = true;
@@ -343,7 +342,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 accept = true;
             }
 
-            let prevBlockNumber = this._computationPrevBlock?.blockNumber?.getValue() as bigint;
+            let prevBlockNumber = this._computationPrevBlock?.getBlockNumber();
 
             if (prevBlockNumber === undefined) {
                 prevBlockNumber = BigInt(0)
@@ -378,9 +377,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             } else {
                 if (this._computation === undefined) {
-                    Blockchain.miningLog.info('Going to ignore block #' + op.blockNumber?.getValue()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.vdfSteps?.getValue()?.toString() + ' keeping current head #' + this._headBlock?.blockNumber?.getValue().toString() + ' with a difficulty of ' + this._headBlock?.vdfSteps?.getValue()?.toString() + ', (hash ends in ' + this._headBlock?.getLastHash().slice(-6) + ')');
+                    Blockchain.miningLog.info('Going to ignore block #' + op.getBlockNumber()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.getVdfSteps()?.toString() + ' keeping current head #' + this._headBlock?.getBlockNumber().toString() + ' with a difficulty of ' + this._headBlock?.getVdfSteps()?.toString() + ', (hash ends in ' + this._headBlock?.getLastHash().slice(-6) + ')');
                 } else {
-                    Blockchain.miningLog.info('Going to ignore block #' + op.blockNumber?.getValue()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.vdfSteps?.getValue()?.toString() + ' and we are currently mining with a difficulty of ' + this._computationDifficulty?.toString() + ', keeping current head for #' + (prevBlockNumber  + BigInt(1)).toString());
+                    Blockchain.miningLog.info('Going to ignore block #' + op.getBlockNumber()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.getVdfSteps()?.toString() + ' and we are currently mining with a difficulty of ' + this._computationDifficulty?.toString() + ', keeping current head for #' + (prevBlockNumber  + BigInt(1)).toString());
                 }              
             }
 
@@ -388,7 +387,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             /* we're done loading ops & we've just seen a new head block */
         if (this.hasLoadedAllChanges() && this._headBlock !== undefined) {
-            const newBlockNumber = this._headBlock.blockNumber?.getValue() as bigint;
+            const newBlockNumber = this._headBlock.getBlockNumber();
             this.attemptPrune(newBlockNumber);
         }
 
@@ -446,8 +445,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
         let longestChainFinalityDepth = 0;
 
-        const newHeight = (newHead.blockNumber as HashedBigInt).getValue();
-        const oldHeight = (oldHead.blockNumber as HashedBigInt).getValue();
+        const newHeight = newHead.getBlockNumber();
+        const oldHeight = oldHead.getBlockNumber();
 
         if (oldHeight === newHeight) {
             const oldFinality = oldHead.getFinalityDepth();
@@ -472,8 +471,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         
         for (let d = 0; d < longestChainFinalityDepth-1; d++) {
 
-            const currentNewBlockHeight = (currentNewBlock.blockNumber as HashedBigInt).getValue();
-            const currentOldBlockHeight = (currentOldBlock.blockNumber as HashedBigInt).getValue();
+            const currentNewBlockHeight = currentNewBlock.getBlockNumber();
+            const currentOldBlockHeight = currentOldBlock.getBlockNumber();
 
             if (currentNewBlockHeight > currentOldBlockHeight) {             // => currentNewBlockHeight > 0
                 const prevHashA = currentNewBlock.getPrevBlockHash();        // => prevHashA !== undefined
@@ -513,8 +512,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
                 } else if (currentNewBlock.getPrevBlockHash() === currentOldBlock.getPrevBlockHash()) {
 
-                    const newLocalDifficulty = currentNewBlock.vdfSteps?.getValue() as bigint; 
-                    const oldLocalDifficulty = currentOldBlock.vdfSteps?.getValue() as bigint;
+                    const newLocalDifficulty = currentNewBlock.getVdfSteps(); 
+                    const oldLocalDifficulty = currentOldBlock.getVdfSteps();
 
                     if (newLocalDifficulty === oldLocalDifficulty) {
 
@@ -539,14 +538,14 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                     const newBlockPrevHash = currentNewBlock.getPrevBlockHash();
                     if (newBlockPrevHash !== undefined) {
                         currentNewBlock = await this.loadOp(newBlockPrevHash) as BlockOp;
-                        if (currentNewBlock === undefined) { throw new Error('Op ' + newBlockPrevHash + ', prevOp of the new head op ' + newHead.hash() + ' with #' + (newHead.blockNumber as HashedBigInt).getValue() + ' d=' + d)} 
+                        if (currentNewBlock === undefined) { throw new Error('Op ' + newBlockPrevHash + ', prevOp of the new head op ' + newHead.hash() + ' with #' + newHead.getBlockNumber() + ' d=' + d)} 
                     } else {
                         throw new Error('The forked chain and the old one have different origin blocks, this should be impossible');
                     }
                     const oldBlockPrevHash = currentOldBlock.getPrevBlockHash();
                     if (oldBlockPrevHash !== undefined) {
                         currentOldBlock = await this.loadOp(oldBlockPrevHash) as BlockOp;
-                        if (currentOldBlock === undefined) { throw new Error('Op ' + oldBlockPrevHash + ', prevOp of the old head op ' + oldHead.hash() + ' with #' + (oldHead.blockNumber as HashedBigInt).getValue() + ' d=' + d)} 
+                        if (currentOldBlock === undefined) { throw new Error('Op ' + oldBlockPrevHash + ', prevOp of the old head op ' + oldHead.hash() + ' with #' + oldHead.getBlockNumber() + ' d=' + d)} 
                     } else {
                         throw new Error('The forked chain and the old one have different origin blocks, this should be impossible');
                     }
@@ -568,7 +567,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 oldTotalDifficulty = BigInt('0x' + oldHeadHeader.headerProps.get('totalDifficulty'));
             } catch (e) {
                 const prevBlockHash  = oldHead.getPrevBlockHash();
-                oldTotalDifficulty = (oldHead.vdfSteps as HashedBigInt).getValue() + 
+                oldTotalDifficulty = oldHead.getVdfSteps() + 
                                      ((prevBlockHash === undefined) ? BigInt(0) :
                                                                       BigInt('0x' + (await this.getOpHeader(prevBlockHash)).headerProps.get('totalDifficulty'))
                                      )
@@ -697,7 +696,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             if (op instanceof PruneOp) {
                 toPrune.push(op);
             } else if (op instanceof BlockOp) {
-                const opBlockNumber = op.blockNumber?.getValue() as bigint;
+                const opBlockNumber = op.getBlockNumber();
 
                 if (opBlockNumber < pruneLimit) {
                     toPrune.push(op);
