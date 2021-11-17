@@ -77,8 +77,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     _computationPrevBlock?: BlockOp;
     _computationChallenge?: string;
 
-    _newBlockLock: Lock;
-
     _autoCompute: boolean;
 
     _fallBehindCheckInterval: any;
@@ -86,8 +84,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     _fallBehindStop: boolean;
 
     _node?: PeerNode;
-
-    _maxSeenBlockNumber?: bigint;
 
     _lastPrune?: bigint;
     _pruneLock: Lock;
@@ -106,7 +102,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         }
         
         this._autoCompute = false;
-        this._newBlockLock = new Lock();
         this._fallBehindStop = false;
         this._fallBehindCheckLastHeights = [];
 
