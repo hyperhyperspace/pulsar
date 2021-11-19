@@ -25,12 +25,14 @@ import { Miner } from './model/Miner';
 interface IPulsarArguments{
     network?: string;
     coinbase?: string; // should be identity in HHS lingo, but using coinbase instead
+    mode?: string
  }
 
 // args typed as IPulsarArguments
 export const args = parse<IPulsarArguments>({
     network: { type: String, alias: 'n', optional: true },
-    coinbase: { type: String, alias: 'c', optional: true}
+    coinbase: { type: String, alias: 'c', optional: true},
+    mode: {type: String, alias: 'm', optional: true }
 });
 
 
@@ -190,7 +192,7 @@ async function main() {
         space.startBroadcast();
     
         blockchain.setResources(resources);
-        blockchain.startSync();
+        await blockchain.startSync();
     
         console.log();
         console.log('Blockchain is ready, wordcode is:');
@@ -230,17 +232,51 @@ async function main() {
         await resources.store.save(blockchain);
     
         blockchain.setResources(resources);
-        blockchain.startSync();
+        await blockchain.startSync();
     }
 
-    console.log('Starting VDF computation...');
-    console.log();
-    console.log('Using identity ' + Space.getWordCodingFor(resources.config.id).join(' ') + ' (hash: ' + resources.config.id.hash() + ')');
-    console.log();
 
-    let miner = new Miner(blockchain, resources.config.id);
 
-    miner.enableMining();
+    if (args.mode === 'wallet') {
+
+        console.log("Entering wallet mode. Enter 'help' for instructions.");
+
+        Blockchain.loadLog.level = LogLevel.WARNING;
+        Miner.miningLog.level    = LogLevel.WARNING;
+
+        while (true) {
+            let command = await new Promise((resolve: (text: string) => void/*, reject: (reason: any) => void*/) => {
+                rl.question('>', (command: string) => {
+                    resolve(command);
+                });
+            });
+
+            if (command === 'exit') {
+                break;
+            } else if (command === 'balance') {
+                console.log((identity.info?.name === undefined? '' : identity.info.name + ': ') + blockchain._ledger.getBalance(identity.hash()));
+            } else if (command === 'help') {
+                console.log('Supported commands:');
+                console.log('help: show this message.');
+                console.log("balance: show this account's balance.");
+                console.log("quit: exit wallet.");
+            }
+         }
+
+
+    } else {
+
+        console.log('Starting VDF computation...');
+        console.log();
+        console.log('Using identity ' + Space.getWordCodingFor(resources.config.id).join(' ') + ' (hash: ' + resources.config.id.hash() + ')');
+        console.log();
+
+        let miner = new Miner(blockchain, resources.config.id);
+
+        miner.enableMining();
+    }
+
+
 
 }
 
