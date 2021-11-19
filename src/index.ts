@@ -20,6 +20,8 @@ import * as fs from 'fs'
 import { SQLiteBackend } from '@hyper-hyper-space/sqlite';
 import { LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 
+import { Miner } from './model/Miner';
+
 interface IPulsarArguments{
     network?: string;
     coinbase?: string; // should be identity in HHS lingo, but using coinbase instead
@@ -53,7 +55,7 @@ async function main() {
     HistorySynchronizer.responseLog.level = LogLevel.INFO;
     
     Blockchain.loadLog.level   = LogLevel.INFO;
-    Blockchain.miningLog.level = LogLevel.INFO;
+    Miner.miningLog.level = LogLevel.INFO;
     
 
     await BlockOp.vdfInit();
@@ -236,7 +238,9 @@ async function main() {
     console.log('Using identity ' + Space.getWordCodingFor(resources.config.id).join(' ') + ' (hash: ' + resources.config.id.hash() + ')');
     console.log();
 
-    blockchain.enableMining(resources.config.id);
+    let miner = new Miner(blockchain, resources.config.id);
+
+    miner.enableMining();
 
 }
 

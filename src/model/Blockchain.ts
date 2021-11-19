@@ -1,12 +1,5 @@
 import { Hashing, HashedObject, MutableObject, MutationOp, StateFilter, Store, Hash, PeerNode } from '@hyper-hyper-space/core';
-
-import { Identity } from '@hyper-hyper-space/core';
-
 import { SpaceEntryPoint } from '@hyper-hyper-space/core';
-
-
-
-import { Worker } from 'worker_threads';
 import { HeaderBasedState } from '@hyper-hyper-space/core';
 import { OpHeader } from '@hyper-hyper-space/core/dist/data/history/OpHeader';
 import { Logger, LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
@@ -14,7 +7,7 @@ import { Lock } from '@hyper-hyper-space/core/dist/util/concurrency';
 
 
 
-import { MiniComptroller, FixedPoint } from './MiniComptroller';
+import { MiniComptroller } from './MiniComptroller';
 
 import { BlockOp } from './BlockOp';
 import { PruneOp } from './PruneOp';
@@ -58,7 +51,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     //static log = new Logger(Blockchain.name, LogLevel.DEBUG)
     static gossipLog = new Logger(Blockchain.name, LogLevel.INFO);
-    static miningLog = new Logger(Blockchain.name, LogLevel.INFO);
     static forkChoiceLog = new Logger('Fork choice', LogLevel.INFO);
     static loadLog   = new Logger(Blockchain.name, LogLevel.INFO);
     static pruneLog  = new Logger(Blockchain.name, LogLevel.DEBUG);
@@ -68,20 +60,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     totalCoins?: string;
 
-    _coinbase?: Identity;
-
     _headBlock?: BlockOp;
-
-    _computation?: Worker;
-    _computationDifficulty?: bigint;
-    _computationPrevBlock?: BlockOp;
-    _computationChallenge?: string;
-
-    _autoCompute: boolean;
-
-    _fallBehindCheckInterval: any;
-    _fallBehindCheckLastHeights: bigint[];
-    _fallBehindStop: boolean;
 
     _node?: PeerNode;
 
@@ -89,6 +68,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     _pruneLock: Lock;
 
     private _loadedAllChanges: boolean;
+    private _newBlockCallbacks: Set<(blockOp: BlockOp, isNewHead: boolean) => void>;
 
     constructor(seed?: string, totalCoins?: string) {
         super([BlockOp.className, PruneOp.className]);
@@ -100,202 +80,14 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             else
                 this.totalCoins = "100";
         }
-        
-        this._autoCompute = false;
-        this._fallBehindStop = false;
-        this._fallBehindCheckLastHeights = [];
-
-        this.vrfSeedCallback = this.vrfSeedCallback.bind(this);
-
-        this.computationCallback = this.computationCallback.bind(this);
-        this.computationError = this.computationError.bind(this);
 
         this._pruneLock = new Lock();
 
         this._loadedAllChanges = false;
+        this._newBlockCallbacks = new Set();
     }
 
-    enableMining(coinbase: Identity) {
-        this._autoCompute = true;
-        this._coinbase = coinbase;
-
-        const historySize = 20;
-
-        if (this._fallBehindCheckInterval === undefined) {
-            this._fallBehindCheckInterval = setInterval(() => {
-
-                const stopped = this._fallBehindStop;
-
-                const newHeight = this._headBlock?.getBlockNumber();
-
-                if (newHeight !== undefined) {
-                    this._fallBehindCheckLastHeights.push(newHeight);
-                    if (this._fallBehindCheckLastHeights.length > historySize) {
-                        this._fallBehindCheckLastHeights.shift();
-                    }
-
-                    if (this._fallBehindCheckLastHeights.length === historySize) {
-                        const oldHeight = this._fallBehindCheckLastHeights[0];
-                        this._fallBehindStop = newHeight > oldHeight + BigInt(8);
-                    }
-
-                    
-                }
-                
-                if (this._fallBehindStop) {
-                    if (this._computation !== undefined) { this.stopRace(); }
-                } else if (stopped) {
-                    if (this._computation === undefined) { this.race(); }
-                }
-
-            }, 5000);
-        }
-
-        this._fallBehindStop = false;
-
-        this.race();
-    }
-
-    disableMining() {
-        this._autoCompute = false;
-        this.stopRace();
-        if (this._fallBehindCheckInterval !== undefined) {
-
-            clearInterval(this._fallBehindCheckInterval);
-            this._fallBehindStop = false;
-
-        }
-    }
-
-    race() {
-
-        if (this._fallBehindStop) {
-            Blockchain.miningLog.info('Cancelling mining of a new block - too far behind.');
-            return;
-        }
-
-        
-        if (this._computation === undefined) {
-            
-            this._computationPrevBlock = this._headBlock;
-
-            BlockOp.computeVrfSeed(this._coinbase as Identity, this._computationPrevBlock?.hash())
-                             .then(this.vrfSeedCallback);
-            
-        } else {
-            Blockchain.miningLog.warning('Race was called but a computation is running.');
-        }
-    }
-
-    vrfSeedCallback(result: {coinbase: Identity, prevBlockHash?: Hash, vrfSeed?: string}): void {
-
-        if (this._computation !== undefined) {
-            return;
-        }
-
-        if (result.prevBlockHash !== this._computationPrevBlock?.getLastHash()) {
-            return; // this is a 'ghost compute', another one was started and we're being cancelled.
-        }
-
-        const comp = BlockOp.initializeComptroller(this._computationPrevBlock);
-
-        // Bootstrap Period Protection pre-VDF.
-        const bootstrap = comp.isBootstrapPeriod();
-
-        const challenge = BlockOp.getChallenge(this, result.vrfSeed);
-        this._computationChallenge = challenge;
-        const steps = BlockOp.getVDFSteps(comp, challenge);
-
-        // TODO: after computing VDF Steps, final challenge must be hashed with the Merkle Root of TXs.
-
-        this._computationDifficulty = steps;
-        
-        Blockchain.miningLog.info('Mining #' + (comp.getBlockNumber() + BigInt(1)) + ', got ' + steps + ' steps for challenge ending in ' + challenge.slice(-6) + '...');
-        Blockchain.miningLog.debug('Dynamic Max VDF Speed (vdfSteps/sec) = ' + FixedPoint.toNumber(comp.getMovingMaxSpeed()) )
-        Blockchain.miningLog.debug('Dynamic Min VDF Speed (vdfSteps/sec) = ' + FixedPoint.toNumber(comp.getMovingMinSpeed()) )
-        Blockchain.miningLog.debug('Dynamic VDF Speed Ratio (Exponential Difficulty Adj.) = ' + FixedPoint.toNumber(comp.getSpeedRatio()) )
-        Blockchain.miningLog.debug('Dynamic Block Time Factor (Linear Difficulty Adj.) = ' + FixedPoint.toNumber(comp.getBlockTimeFactor()) )
-
-        const prevOpContext = this._computationPrevBlock?.toLiteralContext();
-
-        this._computation = new Worker('./dist/model/worker.js');
-        this._computation.on('error', this.computationError);
-        this._computation.on('message', this.computationCallback);
-
-        this._computation.postMessage({steps: steps, challenge: challenge, prevOpContext: prevOpContext, prevBlockHash: this._computationPrevBlock?.getLastHash(), bootstrap: bootstrap, vrfSeed: result.vrfSeed});
-        
-    }
-
-    computationError(err: Error) { 
-        Blockchain.miningLog.error('Unexpected error while mining: ', err);
-    }
-
-    computationCallback(msg: {challenge: string, result: string, steps: bigint, prevBlockHash?: Hash, bootstrapResult?: string, vrfSeed?: string}) {
-        this.computationCallbackAsync(msg).then();
-    }
-
-    async computationCallbackAsync(msg: {challenge: string, result: string, steps: bigint, prevBlockHash?: Hash, bootstrapResult?: string, vrfSeed?: string}) {
-                    
-        Blockchain.miningLog.debug('Solved challenge ending in ' + msg.challenge.slice(-6) + '!');
-        if (msg.challenge === this._computationChallenge ) {
-
-            if (!(msg.prevBlockHash === this._computationPrevBlock?.getLastHash())) {
-                return; // this is a 'ghost compute', another one was started and we're being cancelled.
-            }
-
-            let op = new BlockOp(this, this._computationPrevBlock, msg.steps, msg.result, msg.bootstrapResult, this._coinbase, msg.vrfSeed);
-            
-
-            let blocktime = this._computationPrevBlock !== undefined? 
-                op.getTimestampMillisecs() - (this._computationPrevBlock.getTimestampMillisecs())
-            :
-                MiniComptroller.targetBlockTime * BigInt(1000); // FIXME:pwd initial block time
-
-            if (blocktime == BigInt(0)) {
-                blocktime = BigInt(1) * FixedPoint.UNIT
-            }
-
-            Blockchain.miningLog.info('⛏️⛏️⛏️⛏️ #' + op.getBlockNumber() + ' mined by us with coinbase ' + this._coinbase?.getLastHash() + ', block time ' + (Number(blocktime)/(10**(FixedPoint.DECIMALS+3))).toFixed(4).toString() + 's, block hash ends in ' + op.hash().slice(-6));
-            Blockchain.miningLog.info('Tokenomics: movingMaxSpeed=' + (Number(op.getMovingMaxSpeed()) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-                + ', movingMinSpeed=' + (Number(op.getMovingMinSpeed())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-                + ', blockTimeFactor=' + (Number(op.getBlockTimeFactor())/10**FixedPoint.DECIMALS)?.toFixed(4)?.toString() 
-                + ', speedRatio=' + (Number(FixedPoint.divTrunc(op.getMovingMaxSpeed(), op.getMovingMinSpeed())) / 10**FixedPoint.DECIMALS)?.toFixed(4)?.toString()
-                + ', speed=' + (Number(msg.steps) / (Number(blocktime)/10**FixedPoint.DECIMALS/1000))?.toFixed(4)?.toString()
-                );
-                
-            /*if (this._lastBlock !== undefined) {
-                op.setPrevOps(new Set([this._lastBlock]).values());
-            } else {
-                op.setPrevOps(new Set<MutationOp>().values());
-            }*/
-
-            await this.stopRace();
-            await this.applyNewOp(op);
-            await this.getStore().save(this);
-            
-        } else {
-            Blockchain.miningLog.warning('Mismatched challenge - could be normal. Solved one ending in ' + msg.challenge.slice(-6) + ' but expected ' + msg.challenge.slice(-6));
-        }
-        
-    }
-
-    stopRace(): Promise<void> {
-        if (this._computation !== undefined) {
-            Blockchain.miningLog.debug('Going to stop mining current block.');
-            const result = this._computation.terminate().then(
-                () => {
-                    Blockchain.miningLog.debug('Mining of current block stopped!');
-                    return;
-                }
-            );
-            this._computation           = undefined;
-            this._computationPrevBlock  = undefined;
-            this._computationDifficulty = undefined;
-            return result;
-        } else {
-            return Promise.resolve();
-        }
-    }
+    
 
     getInitialChallenge(): string {
         return Hashing.sha.sha256hex(this.getId() as string);
@@ -324,60 +116,25 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     async mutate(op: MutationOp): Promise<boolean> {
 
-        let accept = false;
-        let interrupt = false;
+        let isNewHead = false;
 
         if (op instanceof BlockOp) {
 
             Blockchain.loadLog.info('Loading block #' + op.getBlockNumber()?.toString() + ' w/hash ' + op.hash());
 
             if (this._headBlock === undefined) {
-                accept = true;
+                isNewHead = true;
             } else if (await this.shouldAcceptNewHead(op, this._headBlock)) { 
-                accept = true;
+                isNewHead = true;
             }
 
-            let prevBlockNumber = this._computationPrevBlock?.getBlockNumber();
-
-            if (prevBlockNumber === undefined) {
-                prevBlockNumber = BigInt(0)
-            }
-
-            if (accept) {
+            if (isNewHead) {
                 this._headBlock = op;
-
-                if (this._computation !== undefined && this._computationDifficulty !== undefined) {
-                    interrupt = await this.shouldInterruptCurrentMining(op);
-                } else {
-                    interrupt = true;
-                }
-
-                if (interrupt) {
-
-                    if (this._computation !== undefined) {
-                        Blockchain.miningLog.info('Stopping current mining compute.');
-                        await this.stopRace();
-                    }
-
-                }
-                
-                if (this._autoCompute) {
-                    if (this._computation === undefined) {
-                        Blockchain.miningLog.info('Started new mining compute.');
-                        this.race();    
-                    } else {
-                        Blockchain.miningLog.info('Continuing current mining compute.');
-                    }
-                }    
-
-            } else {
-                if (this._computation === undefined) {
-                    Blockchain.miningLog.info('Going to ignore block #' + op.getBlockNumber()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.getVdfSteps()?.toString() + ' keeping current head #' + this._headBlock?.getBlockNumber().toString() + ' with a difficulty of ' + this._headBlock?.getVdfSteps()?.toString() + ', (hash ends in ' + this._headBlock?.getLastHash().slice(-6) + ')');
-                } else {
-                    Blockchain.miningLog.info('Going to ignore block #' + op.getBlockNumber()?.toString() + ' (hash ending in ' + op.getLastHash().slice(-6) + '), difficulty: ' + op.getVdfSteps()?.toString() + ' and we are currently mining with a difficulty of ' + this._computationDifficulty?.toString() + ', keeping current head for #' + (prevBlockNumber  + BigInt(1)).toString());
-                }              
             }
 
+            for (const callback of this._newBlockCallbacks.values()) {
+                callback(op, isNewHead);
+            }
         }
 
             /* we're done loading ops & we've just seen a new head block */
@@ -386,7 +143,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             this.attemptPrune(newBlockNumber);
         }
 
-        return accept;
+        return isNewHead;
     }
 
     getClassName(): string {
@@ -587,13 +344,6 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         
     }
 
-    shouldInterruptCurrentMining(newHead: BlockOp) { 
-        let miningBlock = new BlockOp(this, this._computationPrevBlock, this._computationDifficulty as bigint, '', '', this._coinbase, '')
-
-        return this.shouldAcceptNewHead(newHead, miningBlock)
-
-    }
-
     getSyncAgentStateFilter(): StateFilter {
         const forkChoiceFilter: StateFilter = async (state: HeaderBasedState, store: Store, isLocal: boolean, localState?: HeaderBasedState) => {
             
@@ -736,6 +486,14 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     hasLoadedAllChanges(): boolean {
         return this._loadedAllChanges;
+    }
+
+    addNewBlockCallback(callback: ((op: BlockOp, isNewHead: boolean) => void)) {
+        this._newBlockCallbacks.add(callback);
+    }
+
+    removeNewBlockCallback(callback: ((op: BlockOp, isNewHead: boolean) => void)) {
+        this._newBlockCallbacks.delete(callback);
     }
 
 }
