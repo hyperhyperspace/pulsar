@@ -2,48 +2,49 @@ import { Hash } from '@hyper-hyper-space/core';
 import { Logger, LogLevel } from '../../../core/dist/util/logging';
 import { BlockOp } from './BlockOp';
 import { Ledger } from './Ledger';
+import { LedgerLike } from './LedgerLike';
 
 class LedgerDelta {
     static logger = new Logger('LedgerDelta', LogLevel.INFO);
 
-    ledger: Ledger;
+    ledger: LedgerLike;
 
-    newBalances: Map<Hash, bigint>;
-    newTxs: Set<Hash>
+    balanceChanges: Map<Hash, bigint>;
 
-    
-    prevBlockNumber: bigint;
-    currentBlockNumber: bigint;
+    appliedTxs : Set<Hash>;
+    revertedTxs: Set<Hash>;
 
-    prevBlockHash?: Hash;
-    currentBlockHash?: Hash;
+    initialBlockNumber: bigint;
+    initialBlockHash?: Hash;
+
+    headBlockHash?: Hash;
+    headBlockNumber: bigint;
+
 
     valid: boolean;
 
-    constructor(ledger: Ledger) {
+    constructor(ledger: LedgerLike) {
         this.ledger = ledger;
-        this.newBalances = new Map();
-        this.newTxs = new Set();
+        this.balanceChanges = new Map();
+        this.appliedTxs = new Set();
 
-        this.prevBlockNumber = ledger.lastBlockNumber;
-        this.currentBlockNumber = ledger.lastBlockNumber
+        this.initialBlockHash   = ledger.getHeadBlockHash();
+        this.initialBlockNumber = ledger.getHeadBlockNumber();
 
-        this.prevBlockHash = ledger.lastBlockHash;
-        this.currentBlockHash = ledger.lastBlockHash;
+        this.headBlockHash   = this.initialBlockHash;
+        this.headBlockNumber = this.initialBlockNumber;
 
         this.valid = true;
     }
 
-    processBlock(blockOp: BlockOp) {
+    applyBlockOp(blockOp: BlockOp) {
 
-        const blockNum = blockOp.getBlockNumber();
-
-        if (blockNum !== this.currentBlockNumber + BigInt(1)) {
-            throw new Error('Cannot update ledger: expected block number ' + this.currentBlockNumber + ' but got block ' + blockOp.getBlockNumber() + ' instead.');
+        if (this.headBlockHash !== blockOp.getPrevBlockHash()) {
+            throw new Error('Cannot update ledger: expected current block to be ' + blockOp.getPrevBlockHash() + ' but we are on ' + this.headBlockHash + ' instead.');
         }
 
         const coinbase = blockOp.getAuthor()?.hash() as Hash;
-        const reward = blockOp.getBlockReward();
+        const reward   = blockOp.getBlockReward();
 
         this.updateBalance(coinbase, reward);
 
@@ -52,11 +53,13 @@ class LedgerDelta {
 
                 const txHash = tx.hash();
                 
-                if (this.ledger.processedTxs.has(txHash) || this.newTxs.has(txHash)) {
-                    throw new Error('Block ' + blockOp.hash() + ' is attempting to replay tx ' + txHash);
+                if (this.appliedTxs.has(txHash) || (!this.revertedTxs.has(txHash) && this.ledger.wasApplied(txHash))) {
+                    this.valid = false;
                 }
-
-                this.newTxs.add(txHash);
+                
+                if (!this.revertedTxs.delete(txHash)) {
+                    this.appliedTxs.add(txHash);
+                }
 
                 const srcAddr = tx.getAuthor()?.hash() as Hash;
                 const dstAddr = tx.destination?.hash() as Hash;
@@ -69,22 +72,23 @@ class LedgerDelta {
             }
         }
 
-        this.currentBlockNumber = blockNum;
+        this.headBlockNumber = blockOp.getBlockNumber();
+        this.headBlockHash   = blockOp.hash();
 
         return this.valid;
     }
 
-    revertBlock(blockOp: BlockOp) {
+    revertBlockOp(blockOp: BlockOp) {
 
-        if (this.currentBlockHash !== blockOp.hash()) {
+        if (this.headBlockHash !== blockOp.hash()) {
             throw new Error('Cannot revert block ' + blockOp.getLastHash() + ', it is not the last applied block.');
         }
 
-        this.currentBlockHash = blockOp.getPrevBlockHash();
-        this.currentBlockNumber = this.currentBlockNumber - BigInt(1);
+        this.headBlockHash   = blockOp.getPrevBlockHash();
+        this.headBlockNumber = this.headBlockNumber - BigInt(1);
 
         const coinbase = blockOp.getAuthor()?.hash() as Hash;
-        const reward = blockOp.getBlockReward() as bigint;
+        const reward   = blockOp.getBlockReward() as bigint;
 
         this.updateBalance(coinbase, -reward);
 
@@ -92,12 +96,11 @@ class LedgerDelta {
             for (const tx of blockOp.transactions) {
 
                 const txHash = tx.hash();
-                
-                if (this.newTxs.has(txHash)) {
-                    throw new Error('Block ' + blockOp.hash() + ' is attempting to replay tx ' + txHash);
-                }
 
-                this.newTxs.add(txHash);
+                if (!this.appliedTxs.delete(txHash)) {
+                    this.revertedTxs.add(txHash);
+                }
+                
 
                 const srcAddr = tx.getAuthor()?.hash() as Hash;
                 const dstAddr = tx.destination?.hash() as Hash;
@@ -109,23 +112,121 @@ class LedgerDelta {
                 this.updateBalance(coinbase, -fee);
             }
         }
+
+        this.headBlockHash   = blockOp.getPrevBlockHash();
+        this.headBlockNumber = blockOp.getBlockNumber() - BigInt(1);
     }
 
-    updateBalance(address: Hash, delta: bigint): void {
+    updateBalance(address: Hash, updateAmount: bigint): void {
 
-        let oldBalance = this.newBalances.get(address);
+        const oldChange = this.balanceChanges.get(address);
+        let newChange: bigint;
 
-        if (oldBalance === undefined) {
-            oldBalance = this.ledger.balances.get(address);
-        }        
+        if (oldChange === undefined) {
+            newChange = updateAmount;
+        } else {
+            newChange = oldChange + updateAmount;
+        }
 
-        const newBalance = (oldBalance === undefined? BigInt(0) : oldBalance) + delta;
-
-        this.newBalances.set(address, newBalance);
+        if (newChange === BigInt(0)) {
+            this.balanceChanges.delete(address);
+        } else {
+            this.balanceChanges.set(address, newChange);
+        }
+        
+        const newBalance = this.getBalance(address);
 
         if (newBalance < BigInt(0)) {
             this.valid = false;
         }
+    }
+
+    getHeadBlockHash(): string {
+        return this.headBlockHash;
+    }
+    
+    getHeadBlockNumber(): bigint {
+        return this.headBlockNumber;
+    }
+
+    getBalance(address: Hash): bigint {
+        let balance = this.ledger.getBalance(address);
+
+        const change = this.balanceChanges.get(address);
+
+        if (change !== undefined) {
+            balance = balance + change;
+        }
+
+        return balance;
+    }
+
+    wasApplied(tx: Hash): boolean {
+        return this.appliedTxs.has(tx) || (!this.revertedTxs.has(tx) && this.ledger.wasApplied(tx));
+    }
+
+    chainAfter(delta: LedgerDelta): LedgerDelta {
+
+        if (delta.headBlockHash !== this.initialBlockHash) {
+            throw new Error('Cannot chain ledger deltas, blocks do not match.')
+        }
+
+        let result = new LedgerDelta(delta.ledger);
+
+        result.initialBlockHash   = delta.initialBlockHash;
+        result.initialBlockNumber = delta.initialBlockNumber;
+
+        result.headBlockHash   = this.headBlockHash;
+        result.headBlockNumber = this.headBlockNumber;
+
+        for (const tx of this.appliedTxs) {
+            result.appliedTxs.add(tx);
+        }
+
+        for (const tx of delta.appliedTxs) {
+            if (!this.revertedTxs.has(tx)) {
+                result.appliedTxs.add(tx);
+            }
+        }
+
+        for (const tx of this.revertedTxs) {
+            result.revertedTxs.add(tx);
+        }
+
+        for (const tx of delta.appliedTxs) {
+            if (!this.appliedTxs.has(tx)) {
+                result.revertedTxs.add(tx);
+            }
+        }
+
+        for (const [address, balance] of delta.balanceChanges.entries()) {
+            this.updateBalance(address, balance);
+        }
+
+        for (const [address, balance] of this.balanceChanges.entries()) {
+            this.updateBalance(address, balance);
+        }
+
+        return result;
+
+    }
+
+    reverse(): LedgerDelta {
+        const result = new LedgerDelta(this.ledger);
+
+        for (const tx of this.appliedTxs) {
+            result.revertedTxs.add(tx);
+        }
+
+        for (const tx of this.revertedTxs) {
+            result.appliedTxs.add(tx);
+        }
+
+        for (const [address, balanceChange] of this.balanceChanges.entries()) {
+            result.balanceChanges.set(address, -balanceChange);
+        }
+
+        return result;
     }
 }
 
