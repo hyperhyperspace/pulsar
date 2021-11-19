@@ -128,23 +128,33 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
             Blockchain.loadLog.info('Loading block #' + op.getBlockNumber()?.toString() + ' w/hash ' + op.hash());
 
-            if (this._headBlock === undefined) {
-                isNewHead = true;
-            } else if (await this.shouldAcceptNewHead(op, this._headBlock)) { 
-                isNewHead = true;
-            }
+            let done = false;
 
-            
+            while (!done) {
 
-            if (isNewHead) {
-                const delta = await this.createDelta(op);
-                this._ledger.applyDelta(delta);
-                this._headBlock = op;
+                const prevHeadBlockHash = this._headBlock?.hash();
+
+                if (this._headBlock === undefined || await this.shouldAcceptNewHead(op, this._headBlock)) { 
+                    isNewHead = true;
+                } else {
+                    done = true;
+                }
+    
+                if (isNewHead) {
+                    const delta = await this.createDelta(op);
+    
+                    if (prevHeadBlockHash === this._headBlock?.hash()) {
+                        this._ledger.applyDelta(delta);
+                        this._headBlock = op;
+                        done = true;
+                    }
+                }
             }
 
             for (const callback of this._newBlockCallbacks.values()) {
                 callback(op, isNewHead);
             }
+
         }
 
             /* we're done loading ops & we've just seen a new head block */
@@ -158,41 +168,49 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     async createDelta(newHead: BlockOp): Promise<LedgerDelta> {
 
-        const delta = this._ledger.createDelta();
-        const toApply = [newHead];
+        const snapshot = this._ledger.createSnapshot();
 
-        let firstToApply = newHead;
-
-        while (firstToApply.getPrevBlockHash() !== delta.getHeadBlockHash()) {
-            const expectedBlockNumber = firstToApply.getBlockNumber() - BigInt(1);
-            let backtrackHead  = false;
-            let backtrackDelta = false;
-            if (delta.getHeadBlockNumber() > expectedBlockNumber) {
-                backtrackHead = true;
-            } else if (delta.getHeadBlockNumber() < expectedBlockNumber) {
-                backtrackDelta = true;
-            } else {
-                backtrackHead = true;
-                backtrackDelta = true;
+        try {
+            const delta = new LedgerDelta(snapshot);
+            const toApply = [newHead];
+    
+            let firstToApply = newHead;
+    
+            while (firstToApply.getPrevBlockHash() !== delta.getHeadBlockHash()) {
+                const expectedBlockNumber = firstToApply.getBlockNumber() - BigInt(1);
+                let backtrackHead  = false;
+                let backtrackDelta = false;
+                if (delta.getHeadBlockNumber() > expectedBlockNumber) {
+                    backtrackHead = true;
+                } else if (delta.getHeadBlockNumber() < expectedBlockNumber) {
+                    backtrackDelta = true;
+                } else {
+                    backtrackHead = true;
+                    backtrackDelta = true;
+                }
+    
+                if (backtrackHead) {
+                    const headBlockOp = await this.getStore().load(delta.getHeadBlockHash() as Hash) as BlockOp;
+                    delta.revertBlockOp(headBlockOp);
+                }
+    
+                if (backtrackDelta) {
+                    const prevBlockOp = await this.getStore().load(firstToApply.getPrevBlockHash() as Hash) as BlockOp;
+                    toApply.unshift(prevBlockOp);
+                    firstToApply = prevBlockOp;
+                }
             }
-
-            if (backtrackHead) {
-                const headBlockOp = await this.getStore().load(delta.getHeadBlockHash() as Hash) as BlockOp;
-                delta.revertBlockOp(headBlockOp);
+    
+            for (const blockOp of toApply) {
+                delta.applyBlockOp(blockOp);
             }
-
-            if (backtrackDelta) {
-                const prevBlockOp = await this.getStore().load(firstToApply.getPrevBlockHash() as Hash) as BlockOp;
-                toApply.unshift(prevBlockOp);
-                firstToApply = prevBlockOp;
-            }
+        
+            return delta;
+        } finally {
+            this._ledger.destroySnapshot(snapshot);
         }
 
-        for (const blockOp of toApply) {
-            delta.applyBlockOp(blockOp);
-        }
-
-        return delta;
+        
     }
 
     getClassName(): string {
@@ -217,12 +235,13 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             throw new Error('Cannot start sync: resources not configured.');
         }
 
+        await this.loadAndWatchForChanges(1024);
+
         this._node = new PeerNode(resources);
         
         this._node.broadcast(this);
         this._node.sync(this);
 
-        await this.loadAndWatchForChanges(1024);
         this._loadedAllChanges = true;
     }
     

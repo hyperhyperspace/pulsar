@@ -74,8 +74,6 @@ class LedgerDelta {
 
         this.headBlockNumber = blockOp.getBlockNumber();
         this.headBlockHash   = blockOp.hash();
-
-        return this.valid;
     }
 
     revertBlockOp(blockOp: BlockOp) {
@@ -208,7 +206,6 @@ class LedgerDelta {
         }
 
         return result;
-
     }
 
     reverse(): LedgerDelta {

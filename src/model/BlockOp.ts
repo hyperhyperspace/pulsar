@@ -388,6 +388,14 @@ class BlockOp extends MutationOp {
             return false;
         }*/
 
+        const blockchain = this.getBlockchain();
+
+        const delta = await blockchain.createDelta(this);
+
+        if (!delta.valid) {
+            BlockOp.logger.warning('Block does not pass tx validation.');
+            return false;
+        }
         
 
         BlockOp.logger.info('Received #' + this.getBlockNumber()?.toString() + ' with steps=' + this.getVdfSteps()?.toString() + ' and timestamp=' + new Date(Number(this.getTimestampMillisecs())/10**(FixedPoint.DECIMALS)).toLocaleString() + ' by ' + this.getAuthor()?.hash() + ', block time ' + (Number(blocktime)/(10**(FixedPoint.DECIMALS+3))).toFixed(4).toString() + 's, block hash ends in ' + this.hash().slice(-6));
@@ -586,6 +594,10 @@ class BlockOp extends MutationOp {
 
     getBlockReward() {
         return this._blockReward as bigint;
+    }
+
+    getBlockchain(): Blockchain {
+        return this.getTargetObject() as Blockchain;
     }
 
 }
