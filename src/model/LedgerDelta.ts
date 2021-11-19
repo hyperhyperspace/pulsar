@@ -1,7 +1,6 @@
 import { Hash } from '@hyper-hyper-space/core';
 import { Logger, LogLevel } from '../../../core/dist/util/logging';
 import { BlockOp } from './BlockOp';
-import { Ledger } from './Ledger';
 import { LedgerLike } from './LedgerLike';
 
 class LedgerDelta {
@@ -27,6 +26,7 @@ class LedgerDelta {
         this.ledger = ledger;
         this.balanceChanges = new Map();
         this.appliedTxs = new Set();
+        this.revertedTxs = new Set();
 
         this.initialBlockHash   = ledger.getHeadBlockHash();
         this.initialBlockNumber = ledger.getHeadBlockNumber();
@@ -141,7 +141,7 @@ class LedgerDelta {
         }
     }
 
-    getHeadBlockHash(): string {
+    getHeadBlockHash(): string|undefined {
         return this.headBlockHash;
     }
     

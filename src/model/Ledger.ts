@@ -86,7 +86,7 @@ class Ledger implements LedgerLike {
         
     }
 
-    getHeadBlockHash(): string {
+    getHeadBlockHash(): string|undefined {
         return this.headBlockHash;
     }
 

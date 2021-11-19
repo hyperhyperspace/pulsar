@@ -22,7 +22,7 @@ class LedgerSnapshot implements LedgerLike {
         return this.delta.wasApplied(tx);
     }
 
-    getHeadBlockHash(): string {
+    getHeadBlockHash(): string|undefined {
         return this.delta.getHeadBlockHash();
     }
 

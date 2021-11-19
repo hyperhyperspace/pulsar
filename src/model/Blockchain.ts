@@ -6,6 +6,8 @@ import { Logger, LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 import { Lock } from '@hyper-hyper-space/core/dist/util/concurrency';
 
 
+import { Ledger } from './Ledger';
+import { LedgerDelta } from './LedgerDelta';
 
 import { MiniComptroller } from './MiniComptroller';
 
@@ -62,6 +64,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _headBlock?: BlockOp;
 
+    _ledger: Ledger;
+
     _node?: PeerNode;
 
     _lastPrune?: bigint;
@@ -80,6 +84,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             else
                 this.totalCoins = "100";
         }
+
+        this._ledger = new Ledger();
 
         this._pruneLock = new Lock();
 
@@ -128,7 +134,11 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 isNewHead = true;
             }
 
+            
+
             if (isNewHead) {
+                const delta = await this.createDelta(op);
+                this._ledger.applyDelta(delta);
                 this._headBlock = op;
             }
 
@@ -144,6 +154,45 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         }
 
         return isNewHead;
+    }
+
+    async createDelta(newHead: BlockOp): Promise<LedgerDelta> {
+
+        const delta = this._ledger.createDelta();
+        const toApply = [newHead];
+
+        let firstToApply = newHead;
+
+        while (firstToApply.getPrevBlockHash() !== delta.getHeadBlockHash()) {
+            const expectedBlockNumber = firstToApply.getBlockNumber() - BigInt(1);
+            let backtrackHead  = false;
+            let backtrackDelta = false;
+            if (delta.getHeadBlockNumber() > expectedBlockNumber) {
+                backtrackHead = true;
+            } else if (delta.getHeadBlockNumber() < expectedBlockNumber) {
+                backtrackDelta = true;
+            } else {
+                backtrackHead = true;
+                backtrackDelta = true;
+            }
+
+            if (backtrackHead) {
+                const headBlockOp = await this.getStore().load(delta.getHeadBlockHash() as Hash) as BlockOp;
+                delta.revertBlockOp(headBlockOp);
+            }
+
+            if (backtrackDelta) {
+                const prevBlockOp = await this.getStore().load(firstToApply.getPrevBlockHash() as Hash) as BlockOp;
+                toApply.unshift(prevBlockOp);
+                firstToApply = prevBlockOp;
+            }
+        }
+
+        for (const blockOp of toApply) {
+            delta.applyBlockOp(blockOp);
+        }
+
+        return delta;
     }
 
     getClassName(): string {
