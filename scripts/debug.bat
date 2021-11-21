@@ -3,5 +3,5 @@ setlocal
 set NODE_PATH=dist
 @ECHO ON
 
-node --inspect ./dist/index.js
+node --inspect ./dist/index.js %*
 endlocal
