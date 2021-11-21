@@ -142,8 +142,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     
                 if (isNewHead) {
                     const delta = await this.createDelta(op);
-    
-                    if (prevHeadBlockHash === this._headBlock?.hash()) {
+                    
+                    // Check that we're still in the same head block, if not, repeat.
+                    // Furthermore, check that the delta was created for this very head block.
+                    if (prevHeadBlockHash === this._headBlock?.hash() && prevHeadBlockHash === delta.initialBlockHash) {
                         this._ledger.applyDelta(delta);
                         this._headBlock = op;
                         done = true;
