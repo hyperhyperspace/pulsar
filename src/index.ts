@@ -21,6 +21,7 @@ import { SQLiteBackend } from '@hyper-hyper-space/sqlite';
 import { LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 
 import { Miner } from './model/Miner';
+import { FixedPoint } from 'model/MiniComptroller';
 
 interface IPulsarArguments{
     network?: string;
@@ -241,28 +242,75 @@ async function main() {
 
         console.log("Entering wallet mode. Enter 'help' for instructions.");
 
-        Blockchain.loadLog.level = LogLevel.WARNING;
-        Miner.miningLog.level    = LogLevel.WARNING;
+        Blockchain.loadLog.level  = LogLevel.WARNING;
+        Blockchain.pruneLog.level = LogLevel.WARNING;
+        Miner.miningLog.level     = LogLevel.WARNING;
+        BlockOp.logger.level      = LogLevel.WARNING;
 
         while (true) {
-            let command = await new Promise((resolve: (text: string) => void/*, reject: (reason: any) => void*/) => {
+            const line = await new Promise((resolve: (text: string) => void/*, reject: (reason: any) => void*/) => {
                 rl.question('>', (command: string) => {
                     resolve(command);
                 });
             });
 
+            const params = line.split(' ');
+
+            const command = params[0]
+
             if (command === 'exit') {
                 break;
             } else if (command === 'balance') {
-                console.log((identity.info?.name === undefined? '' : identity.info.name + ': ') + blockchain._ledger.getBalance(identity.hash()));
+                let account = params.length > 1? await resources.store.load(params[1]) as Identity : identity;
+
+                if (account === undefined) {
+                    console.log('Could not find account.')
+                } else {
+                    console.log(account.hash() + (account.info?.name === undefined? '' : ' (' + account.info.name + ')') + ': ' + blockchain._ledger.getBalance(account.hash()));
+                }
+            } else if (command === 'head') { 
+                if (blockchain._headBlock === undefined) {
+                    console.log('This blockchain is empty');
+                } else {
+                    console.log('#' + blockchain._headBlock._blockNumber + ' mined by ' + blockchain._headBlock.getAuthor()?.hash() + ' at ' + new Date(Number(blockchain._headBlock.getTimestampMillisecs())/10**(FixedPoint.DECIMALS)).toLocaleString())
+                }
+            } else if (command === 'whales') {
+
+                const all = Array.from(blockchain._ledger.balances.entries());
+                
+                all.sort((b1, b2) => { 
+                    const r = b2[1] - b1[1];
+                    if (r > BigInt(0)) {
+                        return 1;
+                    } else if (r < BigInt(0)) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                });
+
+                for (let i=0; i<Math.min(10, all.length); i++) {
+
+                    const pair = all[i];
+
+                    const account = await resources.store.load(pair[0]) as Identity;
+
+                    if (account === undefined) {
+                        console.log('Could not find account.')
+                    } else {
+                        console.log(pair[0] + (account.info?.name === undefined? '' : ' (' + account.info.name + ')')+': ' + pair[1]);
+                    }
+                }
+
             } else if (command === 'help') {
                 console.log('Supported commands:');
                 console.log('help: show this message.');
-                console.log("balance: show this account's balance.");
-                console.log("quit: exit wallet.");
+                console.log("balance [hash]: show account balance for /hash/, or of the account holder if hash is omitted.");
+                console.log('head: show info about head block.')
+                console.log('whales: show the accounts with largest balances.')
+                console.log('exit: exit wallet.');
             }
          }
-
 
     } else {
 
