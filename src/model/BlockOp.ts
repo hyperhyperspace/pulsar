@@ -390,7 +390,7 @@ class BlockOp extends MutationOp {
 
         const blockchain = this.getBlockchain();
 
-        const delta = await blockchain.createDelta(this);
+        const delta = await blockchain.createDeltaToBlockOp(this);
 
         if (!delta.valid) {
             BlockOp.logger.warning('Block does not pass tx validation.');

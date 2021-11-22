@@ -82,9 +82,6 @@ class LedgerDelta {
             throw new Error('Cannot revert block ' + blockOp.getLastHash() + ', it is not the last applied block.');
         }
 
-        this.headBlockHash   = blockOp.getPrevBlockHash();
-        this.headBlockNumber = this.headBlockNumber - BigInt(1);
-
         const coinbase = blockOp.getAuthor()?.hash() as Hash;
         const reward   = blockOp.getBlockReward() as bigint;
 

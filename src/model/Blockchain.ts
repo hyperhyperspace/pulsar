@@ -141,7 +141,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                 }
     
                 if (isNewHead) {
-                    const delta = await this.createDelta(op);
+                    const delta = await this.createDeltaToBlockOp(op);
                     
                     // Check that we're still in the same head block, if not, repeat.
                     // Furthermore, check that the delta was created for this very head block.
@@ -168,36 +168,42 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         return isNewHead;
     }
 
-    async createDelta(newHead: BlockOp): Promise<LedgerDelta> {
+    async createDeltaToBlockOp(blockOp: BlockOp): Promise<LedgerDelta> {
 
         const snapshot = this._ledger.createSnapshot();
 
         try {
             const delta = new LedgerDelta(snapshot);
-            const toApply = [newHead];
+            const toApply = [blockOp];
     
-            let firstToApply = newHead;
+            let firstToApply = blockOp;
     
             while (firstToApply.getPrevBlockHash() !== delta.getHeadBlockHash()) {
                 const expectedBlockNumber = firstToApply.getBlockNumber() - BigInt(1);
-                let backtrackHead  = false;
                 let backtrackDelta = false;
+                let backtrackBlock = false;
                 if (delta.getHeadBlockNumber() > expectedBlockNumber) {
-                    backtrackHead = true;
+                    backtrackDelta = true;
                 } else if (delta.getHeadBlockNumber() < expectedBlockNumber) {
-                    backtrackDelta = true;
+                    backtrackBlock = true;
                 } else {
-                    backtrackHead = true;
                     backtrackDelta = true;
-                }
-    
-                if (backtrackHead) {
-                    const headBlockOp = await this.getStore().load(delta.getHeadBlockHash() as Hash) as BlockOp;
-                    delta.revertBlockOp(headBlockOp);
+                    backtrackBlock = true;
                 }
     
                 if (backtrackDelta) {
-                    const prevBlockOp = await this.getStore().load(firstToApply.getPrevBlockHash() as Hash) as BlockOp;
+                    const headBlockOp = await this.loadOp(delta.getHeadBlockHash() as Hash) as BlockOp;
+                    if (headBlockOp === undefined) {
+                        throw new Error('Could not fetch BlockOp ' + delta.getHeadBlockHash() + ' (chain backtrack) while attempting to create a ledger delta ending in BlockOp ' + blockOp?.hash());
+                    }
+                    delta.revertBlockOp(headBlockOp);
+                }
+    
+                if (backtrackBlock) {
+                    const prevBlockOp = await this.loadOp(firstToApply.getPrevBlockHash() as Hash) as BlockOp;
+                    if (prevBlockOp === undefined) {
+                        throw new Error('Could not fetch BlockOp ' + delta.getHeadBlockHash() + ' (block backtrack) while attempting to create a ledger delta ending in BlockOp ' + blockOp?.hash());
+                    }
                     toApply.unshift(prevBlockOp);
                     firstToApply = prevBlockOp;
                 }

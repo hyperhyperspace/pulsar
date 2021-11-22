@@ -22,6 +22,7 @@ import { LogLevel } from '@hyper-hyper-space/core/dist/util/logging';
 
 import { Miner } from './model/Miner';
 import { FixedPoint } from 'model/MiniComptroller';
+import { exit } from 'process';
 
 interface IPulsarArguments{
     network?: string;
@@ -311,6 +312,8 @@ async function main() {
                 console.log('exit: exit wallet.');
             }
          }
+
+         exit(0);
 
     } else {
 
