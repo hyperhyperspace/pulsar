@@ -314,6 +314,8 @@ async function main() {
                 console.log('head: show info about head block.')
                 console.log('whales: show the accounts with largest balances.')
                 console.log('exit: exit wallet.');
+            } else {
+                console.log("Unknown command '" + command + "' (type 'help' for assistance).");
             }
          }
 
