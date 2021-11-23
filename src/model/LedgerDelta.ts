@@ -220,6 +220,12 @@ class LedgerDelta {
             result.balanceChanges.set(address, -balanceChange);
         }
 
+        result.initialBlockHash   = this.headBlockHash;
+        result.initialBlockNumber = this.headBlockNumber;
+        
+        result.headBlockHash      = this.initialBlockHash;
+        result.headBlockNumber    = this.initialBlockNumber;
+
         return result;
     }
 }
