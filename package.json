@@ -29,9 +29,6 @@
     "build": "npx tsc",
     "clean": "rm -rf ./decl/* ./dist/*",
     "winclean": "if exist decl (rmdir decl /s /q) && mkdir decl && if exist dist (rmdir dist /s /q) && mkdir dist",
-    "start": "NODE_PATH=\"dist\" node ./dist/index.js",
-    "winstart": "./scripts/run.bat",
-    "windebug": "./scripts/debug.bat",
     "test": "npx jest"
   },
   "jest": {
