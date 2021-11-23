@@ -28,7 +28,7 @@ interface IPulsarArguments{
     network?: string;
     coinbase?: string; // should be identity in HHS lingo, but using coinbase instead
     mode?: string;
-    database?: string;
+    storage?: string;
  }
 
 // args typed as IPulsarArguments
@@ -36,7 +36,7 @@ export const args = parse<IPulsarArguments>({
     network: { type: String, alias: 'n', optional: true },
     coinbase: { type: String, alias: 'c', optional: true},
     mode: {type: String, alias: 'm', optional: true },
-    database: {type: String, alias: 'db', optional: true }
+    storage: {type: String, alias: 's', optional: true }
 });
 
 
@@ -66,7 +66,7 @@ async function main() {
 
     await BlockOp.vdfInit();
 
-    const useFastDatabase = args.database === 'fast';
+    const useFastStorage = args.storage === 'fast';
 
     let rl = readline.createInterface({
         input: process.stdin,
@@ -186,7 +186,7 @@ async function main() {
         blockchain = new Blockchain(new RNGImpl().randomHexString(160));
 
         const filename = './.pulsar/' + Space.getWordCodingFor(blockchain).join('_') + '.chain';
-        const store = new Store(new SQLiteBackend(filename, useFastDatabase));
+        const store = new Store(new SQLiteBackend(filename, useFastStorage));
 
         await store.save(keypair);
         await store.save(identity);
@@ -217,7 +217,7 @@ async function main() {
         }
 
         const filename = './.pulsar/' + wordcode.join('_') + '.chain';
-        const store = new Store(new SQLiteBackend(filename, useFastDatabase))
+        const store = new Store(new SQLiteBackend(filename, useFastStorage))
 
         await store.save(keypair);
         await store.save(identity);
