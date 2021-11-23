@@ -1,28 +1,29 @@
 {
-  "name": "pulsar",
+  "name": "@hyper-hyper-space/pulsar",
   "version": "0.0.2",
   "description": "The Web Blockchain (powered by Hyper Hyper Space).",
   "main": "dist/index.js",
-  "repository": "https://github.com/hyperhyperspace/soliton.git",
+  "module": "dist/index.esm.js",
+  "source": "src/index.ts",
+  "repository": "https://github.com/hyperhyperspace/pulsar.git",
   "author": "José Orlicki, Santiago Bazerque",
   "license": "MIT",
+  "types": "dist/index.d.ts",
   "private": false,
   "devDependencies": {
+    "@hyper-hyper-space/core": "^0.9.0",
     "@types/node": "^14.14.31",
     "jest": "^26.6.3",
     "ts-jest": "^26.5.2",
     "typescript": "^4.3.5"
   },
   "dependencies": {
-    "@hyper-hyper-space/core": "^0.9.0",
-    "@hyper-hyper-space/node-env": "^0.11.0",
-    "@hyper-hyper-space/sqlite": "0.1.0",
     "@subspace/vdf": "^0.1.0",
     "ts-command-line-args": "^2.1.0",
     "tslib": "^2.3.1"
   },
   "peerDependencies": {
-    
+    "@hyper-hyper-space/core": "^0.9.0"
   },
   "scripts": {
     "build": "npx tsc",

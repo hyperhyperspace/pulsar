@@ -75,6 +75,6 @@
       "skipLibCheck": true,                     /* Skip type checking of declaration files. */
       "forceConsistentCasingInFileNames": true  /* Disallow inconsistently-cased references to the same file. */
     },
-    "files": [ "src/index.ts", "src/model/worker.ts" ],
+    "files": [ "src/index.ts" ],
     "include": [ "./types/*" ]
 }

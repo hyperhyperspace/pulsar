@@ -8,7 +8,7 @@ import { BlockOp } from './BlockOp';
 
 import { MiniComptroller, FixedPoint } from './MiniComptroller';
 
-import { Worker } from 'worker_threads';
+import { VDFComputation } from './VDFComputation';
 
 class Miner {
 
@@ -18,7 +18,7 @@ class Miner {
 
     _coinbase?: Identity;
 
-    _computation?: Worker;
+    _computation?: VDFComputation;
     _computationDifficulty?: bigint;
     _computationPrevBlock?: BlockOp;
     _computationChallenge?: string;
@@ -29,7 +29,9 @@ class Miner {
     _fallBehindCheckLastHeights: bigint[];
     _fallBehindStop: boolean;
 
-    constructor(blockchain: Blockchain, coinbase: Identity) {
+    _VDFComputationImpl: new () => VDFComputation;
+
+    constructor(blockchain: Blockchain, coinbase: Identity, VDFComputationImpl: new () => VDFComputation) {
         this.blockchain = blockchain;
         this._coinbase = coinbase;
 
@@ -45,6 +47,8 @@ class Miner {
         this.onNewBlock = this.onNewBlock.bind(this);
 
         blockchain.addNewBlockCallback(this.onNewBlock);
+
+        this._VDFComputationImpl = VDFComputationImpl;
     }
 
     onNewBlock(blockOp: BlockOp, isNewHead: boolean) {
@@ -198,9 +202,10 @@ class Miner {
 
         const prevOpContext = this._computationPrevBlock?.toLiteralContext();
 
-        this._computation = new Worker('./dist/model/worker.js');
-        this._computation.on('error', this.computationError);
-        this._computation.on('message', this.computationCallback);
+        this._computation = new this._VDFComputationImpl();
+        
+        this._computation.onError(this.computationError);
+        this._computation.onMessage(this.computationCallback);
 
         this._computation.postMessage({steps: steps, challenge: challenge, prevOpContext: prevOpContext, prevBlockHash: this._computationPrevBlock?.getLastHash(), bootstrap: bootstrap, vrfSeed: result.vrfSeed});
         
