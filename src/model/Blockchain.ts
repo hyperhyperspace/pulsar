@@ -71,6 +71,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     _lastPrune?: bigint;
     _pruneLock: Lock;
 
+    private _loadAllChangesPromise?: Promise<void>;
     private _loadedAllChanges: boolean;
     private _newBlockCallbacks: Set<(blockOp: BlockOp, isNewHead: boolean) => void>;
 
@@ -249,13 +250,16 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         
         this._node.broadcast(this);
         this._node.sync(this);
-
-        this._loadedAllChanges = true;
     }
     
     async stopSync(): Promise<void> {
         this._node?.stopBroadcast(this);
         this._node?.stopSync(this);
+        this._node = undefined;
+    }
+
+    isSynchronizing() {
+        return this._node !== undefined;
     }
 
     // Caveat: oldHead sometimes may be the block we are currently mining, and therefore
@@ -558,6 +562,14 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         Blockchain.pruneLog.debug('Saved pruning op with ' + batch.size + ' predecessors');
 
         return pruneOp;
+    }
+
+    loadAndWatchForChanges(loadBatchSize?: number): Promise<void> {
+        if (this._loadAllChangesPromise === undefined) {
+            this._loadAllChangesPromise = super.loadAndWatchForChanges(loadBatchSize).then(() => { this._loadedAllChanges = true; });
+        }
+
+        return this._loadAllChangesPromise;
     }
 
     hasLoadedAllChanges(): boolean {
