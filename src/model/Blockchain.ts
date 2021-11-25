@@ -61,6 +61,8 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     static className = 'hhs/v0/soliton/Blockchain';
 
     totalCoins?: string;
+    name?: string;
+
 
     _headBlock?: BlockOp;
 
@@ -75,15 +77,22 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     private _loadedAllChanges: boolean;
     private _newBlockCallbacks: Set<(blockOp: BlockOp, isNewHead: boolean) => void>;
 
-    constructor(seed?: string, totalCoins?: string) {
+    constructor(seed?: string, totalCoins?: string, name?: string) {
         super([BlockOp.className, PruneOp.className]);
 
         if (seed !== undefined) {
+
+            if (name !== undefined && name.length > 256) {
+                throw new Error('Blockchain name is too long, max is 256 chars.')
+            }
+
             this.setId(seed);
-            if (totalCoins !== undefined)
+            if (totalCoins !== undefined) {
                 this.totalCoins = totalCoins;
-            else
+            } else {
                 this.totalCoins = "100";
+            }
+            this.name = name;
         }
 
         this._ledger = new Ledger();
@@ -231,9 +240,23 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     }
 
     async validate(references: Map<string, HashedObject>): Promise<boolean> {
-       references;
+        references;
 
-       return this.totalCoins !== undefined && this.getId() !== undefined;
+        if (this.getId() === undefined || this.totalCoins === undefined) {
+            return false;
+        }
+
+        try {
+            Number.parseInt(this.totalCoins)
+        } catch(e) {
+            return false;
+        }
+
+        if (this.name !== undefined && this.name.length > 256) {
+            return false;
+        }
+
+        return true;
     }
 
     async startSync(): Promise<void> {
