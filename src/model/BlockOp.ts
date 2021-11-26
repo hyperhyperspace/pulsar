@@ -17,7 +17,7 @@ import { Logger, LogLevel } from '../../../core/dist/util/logging';
 
 import { Transaction } from './Transaction';
 
-(global as any).document = { }; // yikes!
+// (global as any).document = { }; // yikes!
 
 const MAX_TX_PER_BLOCK = 4096;
 

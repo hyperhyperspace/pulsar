@@ -1,7 +1,7 @@
 //import { Logger, LogLevel } from "util/logging";
 
 import {SlothPermutation} from './SlothVDF';
-(global as any).document = { }; // yikes!
+//(global as any).document = { }; // yikes!
 
 class VDF {
 
