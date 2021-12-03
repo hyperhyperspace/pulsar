@@ -2,14 +2,26 @@
 
 **GOAL**: A Proof-of-Stake Blockchain that can fully run its the consensus on the browser with support for different CPUs speed and tolerance to Winner-Takes-All, Nothing-At-Stake and other attacks.
 
-## Run (Hawking Testnet):
+## Run console version (Hawking Testnet):
+
+To build, create a new local keypair (coinbase) and start mining:
 
 ```bash
-git clone git@github.com:hyperhyperspace/pulsar.git
-cd pulsar
+git clone git@github.com:hyperhyperspace/workspace.git
+cd workspace
+git submodule init
+git submodule update
 yarn
+bash ./build-libs.sh
+cd @hyper-hyper-space/pulsar-node
 yarn build
-yarn start --network="whisky romeo zulu"
+yarn start --network="butcher fire flag"
+```
+
+To run/mine with an existing coinbase keypair:
+
+```
+yarn start --coinbase="depth curious pound" --network="butcher fire flag"
 ```
 
 ## Develop:
