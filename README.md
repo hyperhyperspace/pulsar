@@ -7,7 +7,7 @@
 To build, create a new local keypair (coinbase) and start mining:
 
 ```bash
-git clone git@github.com:hyperhyperspace/workspace.git
+git clone https://github.com/hyperhyperspace/workspace.git
 cd workspace
 git submodule init
 git submodule update
