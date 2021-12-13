@@ -70,6 +70,7 @@ npm install microbundle-crl -g
 - VDF Mining.
 - Private pseudo-random dice tossing per miner (using VRF).
 - Fair staking, probability of mining is very close to stake percentage of the miner.
+- VDF Paralellization is affected by [Amdalh's Law](https://en.wikipedia.org/wiki/Amdahl%27s_law).
 
 ## Stake delegation for convenience
 
