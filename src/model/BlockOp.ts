@@ -206,7 +206,7 @@ class BlockOp extends MutationOp {
             return false;
         }
 
-        if (!super.validate(references)) {
+        if (!await super.validate(references)) {
             BlockOp.logger.warning('Generic op validation failed.');
             return false;
         }
