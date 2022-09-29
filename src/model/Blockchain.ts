@@ -1,4 +1,4 @@
-import { Hashing, HashedObject, MutableObject, MutationOp, StateFilter, Store, Hash, PeerNode } from '@hyper-hyper-space/core';
+import { Hashing, HashedObject, MutableObject, MutationOp, StateFilter, Store, Hash, MeshNode, MultiMap } from '@hyper-hyper-space/core';
 import { SpaceEntryPoint } from '@hyper-hyper-space/core';
 import { HeaderBasedState } from '@hyper-hyper-space/core';
 import { OpHeader } from '@hyper-hyper-space/core/dist/data/history/OpHeader';
@@ -68,7 +68,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     _ledger: Ledger;
 
-    _node?: PeerNode;
+    _node?: MeshNode;
 
     _lastPrune?: bigint;
     _pruneLock: Lock;
@@ -269,7 +269,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
         await this.loadAndWatchForChanges(1024);
 
-        this._node = new PeerNode(resources);
+        this._node = new MeshNode(resources);
         
         this._node.broadcast(this);
         this._node.sync(this);
@@ -605,6 +605,14 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     removeNewBlockCallback(callback: ((op: BlockOp, isNewHead: boolean) => void)) {
         this._newBlockCallbacks.delete(callback);
+    }
+
+    getMutableContents(): MultiMap<Hash, HashedObject> {
+        return new MultiMap();
+    }
+
+    getMutableContentByHash(_hash: Hash): Set<HashedObject> {
+        return new Set();
     }
 
 }
