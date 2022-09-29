@@ -54,7 +54,7 @@ class MiniComptroller implements Comptroller {
     static windowSize: bigint = BigInt(60 * 60 * 24 * 1 ) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // 2160 blocks
     static windowExtraBuffer: bigint = MiniComptroller.windowSize; // buffer blocks for reorgs to under block adds.
 
-    static initialBlockTimeFactor: bigint = BigInt(2000) * FixedPoint.UNIT;
+    static initialBlockTimeFactor: bigint = BigInt(8000) * FixedPoint.UNIT;
     static initialBlockReward: bigint = BigInt(10) * FixedPoint.UNIT;
 
     static minBlockTimeFactor: bigint = BigInt(1) * FixedPoint.UNIT;
