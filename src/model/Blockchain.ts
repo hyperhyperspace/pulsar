@@ -175,6 +175,10 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
             this.attemptPrune(newBlockNumber);
         }
 
+        if (isNewHead) {
+            this._mutationEventSource?.emit({emitter: this, action: 'new-head-block', data: this._headBlock});
+        }
+
         return isNewHead;
     }
 
