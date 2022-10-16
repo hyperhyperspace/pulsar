@@ -9,6 +9,7 @@ class LedgerDelta {
     ledger: LedgerLike;
 
     balanceChanges: Map<Hash, bigint>;
+    supplyChange: bigint;
 
     appliedTxs : Set<Hash>;
     revertedTxs: Set<Hash>;
@@ -25,6 +26,7 @@ class LedgerDelta {
     constructor(ledger: LedgerLike) {
         this.ledger = ledger;
         this.balanceChanges = new Map();
+        this.supplyChange = BigInt(0);
         this.appliedTxs = new Set();
         this.revertedTxs = new Set();
 
@@ -47,6 +49,7 @@ class LedgerDelta {
         const reward   = blockOp.getBlockReward();
 
         this.updateBalance(coinbase, reward);
+        this.updateSupply(reward);
 
         if (blockOp.transactions !== undefined) {
             for (const tx of blockOp.transactions) {
@@ -86,6 +89,7 @@ class LedgerDelta {
         const reward   = blockOp.getBlockReward() as bigint;
 
         this.updateBalance(coinbase, -reward);
+        this.updateSupply(-reward);
 
         if (blockOp.transactions !== undefined) {
             for (const tx of blockOp.transactions) {
@@ -136,6 +140,10 @@ class LedgerDelta {
         }
     }
 
+    updateSupply(changeAmount: bigint) {
+        this.supplyChange = this.supplyChange + changeAmount;
+    }
+
     getHeadBlockHash(): string|undefined {
         return this.headBlockHash;
     }
@@ -154,6 +162,10 @@ class LedgerDelta {
         }
 
         return balance;
+    }
+
+    getSupply() {
+        return this.ledger.getSupply() + this.supplyChange;
     }
 
     wasApplied(tx: Hash): boolean {

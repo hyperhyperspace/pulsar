@@ -16,12 +16,16 @@ class Ledger implements LedgerLike {
 
     snapshots: Map<string, LedgerSnapshot>;
 
+    supply: bigint;
+
     constructor() {
         this.balances = new Map();
         this.appliedTxs = new Set();
         this.headBlockNumber = BigInt(0);
 
         this.snapshots = new Map();
+
+        this.supply = BigInt(0);
     }
 
     createDelta(): LedgerDelta {
@@ -74,6 +78,8 @@ class Ledger implements LedgerLike {
             }
         }
 
+        this.supply = this.supply + delta.supplyChange;
+
         if (this.snapshots.size > 0) {
             const reversal = delta.reverse();
             for (const snapshot of this.snapshots.values()) {
@@ -102,6 +108,10 @@ class Ledger implements LedgerLike {
         } else {
             return balance;
         }
+    }
+
+    getSupply(): bigint {
+        return this.supply;
     }
 
     wasApplied(tx: Hash): boolean {

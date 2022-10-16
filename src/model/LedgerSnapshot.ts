@@ -18,6 +18,10 @@ class LedgerSnapshot implements LedgerLike {
         return this.delta.getBalance(address);
     }
 
+    getSupply(): bigint {
+        return this.delta.getSupply();
+    }
+
     wasApplied(tx: string): boolean {
         return this.delta.wasApplied(tx);
     }

@@ -7,6 +7,7 @@ interface LedgerLike {
     getHeadBlockNumber(): bigint;
 
     getBalance(address: Hash): bigint;
+    getSupply(): bigint;
     wasApplied(tx: Hash): boolean;
 }
 
