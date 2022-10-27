@@ -69,6 +69,7 @@ class MiniComptroller implements Comptroller {
     static speedRatio = FixedPoint.divTrunc( MiniComptroller.initialMovingMaxSpeed, MiniComptroller.initialMovingMinSpeed);
 
     static noiseFractionSlots: bigint = BigInt(10) * (FixedPoint.UNIT/BigInt(10**2)); // 0.10 * UNIT
+    static extraGranularitySlots: bigint = BigInt(5); // 5 slots per basic slot.
 
       ///////////
      // State //
@@ -222,7 +223,7 @@ class MiniComptroller implements Comptroller {
     slotByStakeWithNoise(coins: bigint, totalCoins: bigint, vrfSeed: bigint): bigint {
         if (this.blockNumber < MiniComptroller.bootstrapPeriod)
             coins += MiniComptroller.bootstrapVirtualStake
-        var slots: bigint = FixedPoint.divTrunc(totalCoins, coins) 
+        var slots: bigint = FixedPoint.divTrunc(FixedPoint.mul(totalCoins,MiniComptroller.extraGranularitySlots), coins) 
         if (FixedPoint.mulTrunc(slots, coins) < totalCoins)
             slots += FixedPoint.UNIT
         slots = FixedPoint.trunc(slots)
