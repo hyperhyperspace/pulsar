@@ -60,7 +60,7 @@ class MiniComptroller implements Comptroller {
     static minBlockTimeFactor: bigint = BigInt(1) * FixedPoint.UNIT;
     static maxBlockTimeFactor: bigint = BigInt(1000000000) * FixedPoint.UNIT;
 
-    static staticMaxSpeedRatio: bigint = BigInt(51) * (FixedPoint.UNIT/BigInt(10)); // 5.1 * UNIT
+    static staticMaxSpeedRatio: bigint = BigInt(61) * (FixedPoint.UNIT/BigInt(10)); // 6.1 * UNIT
     private maxSpeedRatio: bigint = MiniComptroller.staticMaxSpeedRatio    
     private minSpeedRatio: bigint = BigInt(13) * (FixedPoint.UNIT/BigInt(10)); // 1.3 * UNIT
     static initialMovingMaxSpeed: bigint = BigInt(12500) * FixedPoint.UNIT;
