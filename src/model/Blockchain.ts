@@ -106,7 +106,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     
 
     getInitialChallenge(): string {
-        return Hashing.sha.sha256hex(this.getId() as string);
+        return Hashing.sha.sha256hex(/*this.getId() as string*/'initial challenge');
     }
 
     /*
@@ -411,7 +411,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
 
                         // old flawed logic: 
-                        
+
                         /*if (newBlockPrevHash !== undefined) {
                             currentNewBlock = await this.loadOp(newBlockPrevHash) as BlockOp;
                             if (currentNewBlock === undefined) { throw new Error('Op ' + newBlockPrevHash + ', prevOp of the new head op ' + newHead.hash() + ' with #' + newHead.getBlockNumber() + ' d=' + d)} 
