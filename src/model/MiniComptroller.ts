@@ -51,7 +51,7 @@ class MiniComptroller implements Comptroller {
     static bootstrapVirtualStake: bigint = BigInt(10000) * FixedPoint.UNIT;
 
     // Rationale: want something robust but flexible, 1 min sounds to flexible and 24 hours to rigid, 1 hrs sounds a tradeoff.
-    static windowSize: bigint = BigInt(60 * 60 * 1 * 1 ) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // 2160 blocks
+    static windowSize: bigint = BigInt(60 * 60 * 2 * 1 ) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // 180 blocks
     static windowExtraBuffer: bigint = MiniComptroller.windowSize; // buffer blocks for reorgs to under block adds.
 
     static initialBlockTimeFactor: bigint = BigInt(16000) * FixedPoint.UNIT;
@@ -69,7 +69,7 @@ class MiniComptroller implements Comptroller {
     static speedRatio = FixedPoint.divTrunc( MiniComptroller.initialMovingMaxSpeed, MiniComptroller.initialMovingMinSpeed);
 
     static noiseFractionSlots: bigint = BigInt(10) * (FixedPoint.UNIT/BigInt(10**2)); // 0.10 * UNIT
-    static extraGranularitySlots: bigint = BigInt(2); // 5 slots per basic slot.
+    static extraGranularitySlots: bigint = BigInt(1); // 5 slots per basic slot.
 
       ///////////
      // State //
