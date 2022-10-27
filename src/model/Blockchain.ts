@@ -619,6 +619,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         return new Set();
     }
 
+    getName() {
+        return 'Blockchain ' + this.hash();
+    }
 }
 
 HashedObject.registerClass(Blockchain.className, Blockchain);
