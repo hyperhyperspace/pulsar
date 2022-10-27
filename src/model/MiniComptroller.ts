@@ -69,7 +69,7 @@ class MiniComptroller implements Comptroller {
     static speedRatio = FixedPoint.divTrunc( MiniComptroller.initialMovingMaxSpeed, MiniComptroller.initialMovingMinSpeed);
 
     static noiseFractionSlots: bigint = BigInt(10) * (FixedPoint.UNIT/BigInt(10**2)); // 0.10 * UNIT
-    static extraGranularitySlots: bigint = BigInt(5); // 5 slots per basic slot.
+    static extraGranularitySlots: bigint = BigInt(2); // 5 slots per basic slot.
 
       ///////////
      // State //
