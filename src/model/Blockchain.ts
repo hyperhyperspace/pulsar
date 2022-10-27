@@ -620,7 +620,7 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
     }
 
     getName() {
-        return 'Blockchain ' + this.hash();
+        return this.name;
     }
 }
 
