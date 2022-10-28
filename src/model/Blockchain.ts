@@ -404,31 +404,15 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
                         return accept;
                         // (this should only be necessary for the first window of blocks, per the finality depth)
-                    } else {
-
-
+                    } else if (newBlockPrevHash === undefined || oldBlockPrevHash === undefined) {
                         throw new Error('While traversing two forks of the chain that had the same height nominally, one ended up having less blocks than the other. This looks like an ill-constructed chain that has evaded validation rules.')
+                    } else {
+                        currentNewBlock = await this.loadOp(newBlockPrevHash) as BlockOp;
+                        if (currentNewBlock === undefined) { throw new Error('Op ' + newBlockPrevHash + ', prevOp of the new head op ' + newHead.hash() + ' with #' + newHead.getBlockNumber() + ' d=' + d)} 
 
-
-                        // old flawed logic: 
-
-                        /*if (newBlockPrevHash !== undefined) {
-                            currentNewBlock = await this.loadOp(newBlockPrevHash) as BlockOp;
-                            if (currentNewBlock === undefined) { throw new Error('Op ' + newBlockPrevHash + ', prevOp of the new head op ' + newHead.hash() + ' with #' + newHead.getBlockNumber() + ' d=' + d)} 
-                        } else {
-                            throw new Error('The forked chain and the old one have different origin blocks, this should be impossible');
-                        }
-                        
-                        if (oldBlockPrevHash !== undefined) {
-                            currentOldBlock = await this.loadOp(oldBlockPrevHash) as BlockOp;
-                            if (currentOldBlock === undefined) { throw new Error('Op ' + oldBlockPrevHash + ', prevOp of the old head op ' + oldHead.hash() + ' with #' + oldHead.getBlockNumber() + ' d=' + d)} 
-                        } else {
-                            throw new Error('The forked chain and the old one have different origin blocks, this should be impossible');
-                        }*/
-    
-
+                        currentOldBlock = await this.loadOp(oldBlockPrevHash) as BlockOp;
+                        if (currentOldBlock === undefined) { throw new Error('Op ' + oldBlockPrevHash + ', prevOp of the old head op ' + oldHead.hash() + ' with #' + oldHead.getBlockNumber() + ' d=' + d)} 
                     }
-
                 }
             }
         }
