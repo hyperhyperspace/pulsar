@@ -1,4 +1,4 @@
-import { Hashing, HashedObject, MutableObject, MutationOp, StateFilter, Store, Hash, MeshNode, MultiMap } from '@hyper-hyper-space/core';
+import { Hashing, HashedObject, MutableObject, MutationOp, StateFilter, Store, Hash, MeshNode, MultiMap, PeerGroupInfo } from '@hyper-hyper-space/core';
 import { SpaceEntryPoint } from '@hyper-hyper-space/core';
 import { HeaderBasedState } from '@hyper-hyper-space/core';
 import { OpHeader } from '@hyper-hyper-space/core/dist/data/history/OpHeader';
@@ -622,6 +622,17 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
 
     getMutableContentByHash(_hash: Hash): Set<HashedObject> {
         return new Set();
+    }
+
+    async getPeerGroup(): Promise<PeerGroupInfo> {
+        
+        const mesh = this.getResources()?.mesh;
+
+        if (mesh === undefined) {
+            throw new Error('Cannot get blockchain peer group: mesh has not been configured!');
+        }
+
+        return mesh.getDiscoveryPeerGroup(this);
     }
 
     getName() {
