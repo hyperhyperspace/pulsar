@@ -4,6 +4,8 @@
 
 ## Run console version (Hawking Testnet):
 
+NodeJS: 14.*
+
 To build, create a new local keypair (coinbase) and start mining:
 
 ```bash
