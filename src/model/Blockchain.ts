@@ -102,6 +102,9 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
         this._loadedAllChanges = false;
         this._newBlockCallbacks = new Set();
     }
+    getVersion(): string {
+        return "0.0.2";
+    }
 
     
 
