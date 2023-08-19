@@ -73,6 +73,8 @@ class BlockOp extends MutationOp {
 
             if (prevOp !== undefined) {
                 this.setPrevOps([prevOp].values());
+            } else {
+                this.setPrevOps([].values());
             }
 
             vdfResult = vdfResult.toLowerCase();

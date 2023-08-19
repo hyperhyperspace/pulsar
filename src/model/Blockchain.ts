@@ -408,6 +408,12 @@ class Blockchain extends MutableObject implements SpaceEntryPoint {
                         return accept;
                         // (this should only be necessary for the first window of blocks, per the finality depth)
                     } else if (newBlockPrevHash === undefined || oldBlockPrevHash === undefined) {
+
+                        console.log('old height: ' + currentOldBlockHeight.toString(16));
+                        console.log('new height: ' + currentNewBlockHeight.toString(16));
+                        console.log('new prev hash: ' + newBlockPrevHash);
+                        console.log('old prev hash: ' + oldBlockPrevHash);
+
                         throw new Error('While traversing two forks of the chain that had the same height nominally, one ended up having less blocks than the other. This looks like an ill-constructed chain that has evaded validation rules.')
                     } else {
                         currentNewBlock = await this.loadOp(newBlockPrevHash) as BlockOp;
