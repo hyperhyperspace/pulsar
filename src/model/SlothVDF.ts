@@ -73,8 +73,10 @@ class SlothPermutation {
         for (var i = 0; i < t; i++) {
             y = (y ** BigInt(2)) % SlothPermutation.p //this.fast_pow(y, BigInt(2),SlothVDF.p)
         }
-        if (!this.quad_res(y))
+        if (!this.quad_res(y)) {
             y = (-y+SlothPermutation.p) % SlothPermutation.p
+        }
+
         if ((x % SlothPermutation.p) === y || ((-x+SlothPermutation.p) % SlothPermutation.p) === y)
             return true
         else
