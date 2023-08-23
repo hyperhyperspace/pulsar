@@ -4,7 +4,7 @@
 
 ## Run console version (Hawking Testnet):
 
-NodeJS: 14.*
+NodeJS: `Expected version "^16.14.0 || >=18.0.0".`
 
 To build, create a new local keypair (coinbase) and start mining:
 
