@@ -54,7 +54,7 @@ class MiniComptroller implements Comptroller {
     static windowSize: bigint = BigInt(60 * 60 * 2 * 1 ) * FixedPoint.UNIT / MiniComptroller.targetBlockTime; // 180 blocks
     static windowExtraBuffer: bigint = MiniComptroller.windowSize; // buffer blocks for reorgs to under block adds.
 
-    static initialBlockTimeFactor: bigint = BigInt(16000) * FixedPoint.UNIT;
+    static initialBlockTimeFactor: bigint = BigInt(1080) * FixedPoint.UNIT;
     static initialBlockReward: bigint = BigInt(10) * FixedPoint.UNIT;
 
     static minBlockTimeFactor: bigint = BigInt(1) * FixedPoint.UNIT;
@@ -63,8 +63,8 @@ class MiniComptroller implements Comptroller {
     static staticMaxSpeedRatio: bigint = BigInt(61) * (FixedPoint.UNIT/BigInt(10)); // 6.1 * UNIT
     private maxSpeedRatio: bigint = MiniComptroller.staticMaxSpeedRatio    
     private minSpeedRatio: bigint = BigInt(13) * (FixedPoint.UNIT/BigInt(10)); // 1.3 * UNIT
-    static initialMovingMaxSpeed: bigint = BigInt(12500) * FixedPoint.UNIT;
-    static initialMovingMinSpeed: bigint =  BigInt(2500) * FixedPoint.UNIT
+    static initialMovingMaxSpeed: bigint = BigInt(60) * FixedPoint.UNIT;
+    static initialMovingMinSpeed: bigint =  BigInt(10) * FixedPoint.UNIT
     // VDF steps per seconds (Steps/Sec)
     static speedRatio = FixedPoint.divTrunc( MiniComptroller.initialMovingMaxSpeed, MiniComptroller.initialMovingMinSpeed);
 
