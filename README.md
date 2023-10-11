@@ -4,7 +4,11 @@
 
 ## Run console version (Hawking Testnet):
 
-NodeJS: `Expected version "^16.14.0 || >=18.0.0".`
+NodeJS: `Expected version "^16.14.0 || >=18.0.0".` Also install TypeScript if not already available:
+
+```bash
+npm install -g typescript
+```
 
 To build, create a new local keypair (coinbase) and start mining:
 
