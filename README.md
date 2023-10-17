@@ -29,7 +29,7 @@ yarn start --network="butcher fire flag"
 
 To run/mine with an existing coinbase keypair wallet use option `--coinbase=` or `-c`:
 
-```
+```bash
 yarn start --coinbase="depth curious pound"
 ```
 
