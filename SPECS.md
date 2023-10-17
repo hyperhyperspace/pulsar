@@ -115,24 +115,8 @@ The initial values are set based on system modeling and should be tuned for diff
 
 Additional details on the meaning and usage of each parameter is documented in the MiniComptroller.ts source code.
 
-## Further Research
-
-Some areas identified for further research and improvement:
-
-- **Stake Slashing:** Add punishment of stakeholders who violate consensus rules to further disincentivize attacks.
-
-- **Better Finality:** Use checkpoints or hierarchical VDFs to provide better finality guarantees. 
-
-- **Fork Handling:** Explicit fork choice rules based on stake weight.
-
-- **Better Sybil Resistance:** Use score based selection like Ouroboros Praos.
-
-- **Economic Modeling:** Model the system economics and balance of incentives.
-
-- **Security Proofs:** Provide formal proofs of attack resistance.
-
 ## References
 
 - MiniComptroller.ts - Implementation prototype
-- Scientific paper describing high-level protocol design
+- [Scientific paper](https://arxiv.org/abs/2008.10189) describing high-level protocol design
 
