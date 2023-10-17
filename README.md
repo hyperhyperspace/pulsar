@@ -1,8 +1,11 @@
-# (WIP) Pulsar: The Web Blockchain
+# Pulsar: The Web Blockchain
 
 **GOAL**: A Proof-of-Stake Blockchain that can fully run its the consensus on the browser with support for different CPUs speed and tolerance to Winner-Takes-All, Nothing-At-Stake and other attacks.
 
-## Run console version (Hawking Testnet):
+
+## Installation
+
+### Run console version (Hawking Testnet):
 
 NodeJS: `Expected version "^16.14.0 || >=18.0.0".` Also install TypeScript if not already available:
 
@@ -30,13 +33,13 @@ To run/mine with an existing coinbase keypair wallet use option `--coinbase=` or
 yarn start --coinbase="depth curious pound"
 ```
 
-## Develop & Testing:
+### Develop & Testing:
 
 ```bash
 yarn test  # and good to test
 ```
 
-## Setup for AWS Linux
+### Setup for AWS Linux
 
 ```bash
 # 0) git
@@ -64,6 +67,10 @@ npm install microbundle-crl -g
 - Web Browser P2P available (powered by Hyperhyperspace).
 - Simple Monetary Policy**: fixed issuance per block.
 - Bootstrap Period with Virtual Balance on each Mining Thread: to avoid cold-start issues, each miner get and initial virtual drop for each thread mining, only during the bootstrap period of several months. For example if Alice is using only 1 thread to mine she gets 10,000 native coins to mine and if she mines 1 block she can get 10 coins as a reward. Then she has 10,000 virtual coins during the bootstrap and 10 real coins until she spends that or earn more mining rewards. During the bootstrap period she can use 10,010 coins for staking. After the bootstratp period, for example 6 months, the virtual coins cannot be used for staking/rewards, but any real non-bootstrap remain and can used for staking in the future.
+
+## Specification
+
+Read the [paper](https://arxiv.org/abs/2008.10189) for a detailed analysis of similar alternatives. 
 
 ## Roadmap
 
