@@ -70,7 +70,8 @@ npm install microbundle-crl -g
 
 ## Specification
 
-Read the [paper](https://arxiv.org/abs/2008.10189) for a detailed analysis of similar alternatives. 
+- Read the [paper](https://arxiv.org/abs/2008.10189) for a detailed analysis of similar alternatives. 
+- Read the [SPECS.md](./SPECS.md) file for the concrete details of the implementation.
 
 ## Roadmap
 
