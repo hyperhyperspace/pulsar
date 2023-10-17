@@ -109,6 +109,10 @@ The key parameters that control the consensus rules are:
 
 - `speedRatio`: The ratio between the max and min speed used to set node VDF difficulty.
 
+- `minSpeedRatio`: when we reach this value of 1.3 it cannot get lower.
+
+- `maxSpeedRatio`: when we reach this value of 6.1 it cannot get higher.
+
 - `noiseFraction`: Fraction of extra noise added to the VDF difficulty for randomness, currently 0.1. 
 
 The initial values are set based on system modeling and should be tuned for different environments.
