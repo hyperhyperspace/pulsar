@@ -10,41 +10,30 @@ NodeJS: `Expected version "^16.14.0 || >=18.0.0".` Also install TypeScript if no
 npm install -g typescript
 ```
 
-To build, create a new local keypair (coinbase) and start mining:
+To build, create a new local keypair (coinbase) and start mining in a new network:
 
 ```bash
-git clone https://github.com/hyperhyperspace/workspace.git
-cd workspace
-git submodule init
-git submodule update
-yarn
-bash ./build-libs.sh
-cd @hyper-hyper-space/pulsar-node
-yarn build
+wget https://raw.githubusercontent.com/hyperhyperspace/pulsar/main/boot-pulsar.sh;
+chmod +x ./boot-pulsar.sh;
+sh ./boot-pulsar.sh;
+```
+
+To run/mine with an existing network use option `--network=` or `-n` and create a new local coinbase keypair wallet:
+
+```bash
 yarn start --network="butcher fire flag"
 ```
 
-To run/mine with an existing coinbase keypair:
+To run/mine with an existing coinbase keypair wallet use option `--coinbase=` or `-c`:
 
 ```
-yarn start --coinbase="depth curious pound" --network="butcher fire flag"
+yarn start --coinbase="depth curious pound"
 ```
 
-## Develop:
+## Develop & Testing:
 
 ```bash
-git clone https://github.com/hyperhyperspace/workspace.git
-cd workspace
-git submodule init
-git submodule update
-yarn
-bash ./pull-all-heads.sh
-bash ./build-libs.sh
-cd @hyper-hyper-space/pulsar
-yarn
-yarn build # and you're good to go
 yarn test  # and good to test
-yarn start # or yarn start --network="whisky romeo zulu"
 ```
 
 ## Setup for AWS Linux
